@@ -1,0 +1,100 @@
+# Arquivos de compilação
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Arquivos de build
+build/
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+
+# Arquivos de projeto e IDE
+*.pro.user
+*.pro.user.*
+*.vcxproj.user
+*.vcxproj.user.*
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Arquivos de log
+*.log
+*.tlog
+
+# Arquivos de documentação gerados
+doc/
+docs/
+html/
+latex/
+
+# Arquivos de backup
+*.bak
+*.backup
+*.old
+
+# Arquivos de configuração local
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea/
+*.code-workspace
+
+# Arquivos de dependências (se houver)
+vendor/
+deps/
+third_party/
+
+# Arquivos de teste
+test_results/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Arquivos de valgrind
+*.vglog
+*.valgrind
+
+# Arquivos de CMake (se usado no futuro)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile.cmake
+
+# Arquivos específicos do projeto
+# (mantenha apenas os arquivos de recursos necessários)
+# resources/dll/  # Descomente se não quiser versionar DLLs
+# resources/SDL/  # Descomente se não quiser versionar SDL
+
+# Arquivos de configuração de sistema
+*.ini
+*.cfg
+config.local.*
+
+# Arquivos de save/estado do jogo
+*.save
+*.sav
+saves/
