@@ -118,7 +118,7 @@ void Player::update(Uint32 dt)
         else if (player_keys.type == Player::InputType::Controller && m_controller)
         {
             const Sint16 DEADZONE = 8000;
-        
+            bool moved = false;
             // --- Vertical ---
             Sint16 axis_v = SDL_GameControllerGetAxis(
                 m_controller,
@@ -127,12 +127,13 @@ void Player::update(Uint32 dt)
             if (axis_v < -DEADZONE) {
                 setDirection(D_UP);
                 speed = default_speed;
+                moved = true;
             }
             else if (axis_v > DEADZONE) {
                 setDirection(D_DOWN);
                 speed = default_speed;
+                moved = true;
             }
-        
             // --- Horizontal ---
             Sint16 axis_h = SDL_GameControllerGetAxis(
                 m_controller,
@@ -141,12 +142,18 @@ void Player::update(Uint32 dt)
             if (axis_h < -DEADZONE) {
                 setDirection(D_LEFT);
                 speed = default_speed;
+                moved = true;
             }
             else if (axis_h > DEADZONE) {
                 setDirection(D_RIGHT);
                 speed = default_speed;
+                moved = true;
             }
-        
+            // Se não moveu (ambos os eixos dentro da deadzone), para o tanque (exceto se está escorregando no gelo)
+            if (!moved) {
+                if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
+                    speed = 0.0;
+            }
             // --- Disparo ---
             if (player_keys.button_fire >= 0 &&
                 SDL_GameControllerGetButton(
