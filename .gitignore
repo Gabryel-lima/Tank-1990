@@ -93,6 +93,7 @@ Makefile.cmake
 *.ini
 *.cfg
 config.local.*
+.cursorrules
 
 # Arquivos de save/estado do jogo
 *.save
