@@ -4,7 +4,8 @@ PROJECT_NAME = Tanks
 # Diretórios de build e binários
 BUILD = build
 BIN = $(BUILD)/bin
-RESOURCES_DIR = resources  # Diretório onde ficam os recursos do jogo
+# Dir de recursos
+RESOURCES_DIR = resources
 
 # Configuração específica para Windows
 ifeq ($(OS),Windows_NT)
@@ -94,8 +95,16 @@ build/%.o: src/%.cpp
 	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
 
 # Copia os recursos necessários para o diretório binário
-$(APP_RESOURCES):
-	cp -R $(RESOURCES_DIR)/$@ $(BIN)
+$(APP_RESOURCES): | $(BIN)
+	@echo "DEBUG: $(RESOURCES_DIR)/$@"
+	@if [ -d "$(RESOURCES_DIR)/$@" ]; then \
+		cp -r "$(RESOURCES_DIR)/$@" "$(BIN)/" ; \
+	elif [ -f "$(RESOURCES_DIR)/$@" ]; then \
+		cp -f "$(RESOURCES_DIR)/$@" "$(BIN)/" ; \
+	else \
+		echo "Arquivo ou diretório não encontrado: $(RESOURCES_DIR)/$@" ; \
+		exit 1 ; \
+	fi
 
 # Regras específicas para Windows (copiar DLLs do MinGW)
 ifeq ($(OS),Windows_NT)
