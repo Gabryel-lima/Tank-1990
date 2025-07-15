@@ -11,8 +11,7 @@ using namespace std;
 /**
  * @brief Classe que contém o conjunto de parâmetros da aplicação.
  */
-class AppConfig
-{
+class AppConfig {
 public:
     /**
      * Caminho para a textura dos objetos.
