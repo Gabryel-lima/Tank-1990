@@ -1,5 +1,5 @@
-#include "player.h"
-#include "../appconfig.h"
+#include "player.h" // Ok
+#include "../appconfig.h" // Ok
 #include <SDL2/SDL.h>
 #include <iostream>
 
