@@ -4,73 +4,83 @@
 #include "tank.h"
 
 /**
- * @brief Klasa zajmująca się ruchami wrogich czołgów.
+ * @brief Classe responsável pelo comportamento dos tanques inimigos.
+ * Gerencia movimentação, lógica de tiro e interação com o alvo.
  */
 class Enemy : public Tank
 {
 public:
     /**
-     * Tworzenie przeciwnika w pierwszym z położeń wrogów.
+     * Construtor padrão: cria um inimigo na primeira posição de spawn definida.
      * @see AppConfig::enemy_starting_point
      */
     Enemy();
+
     /**
-     * Tworzenie przeciwnika
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param type - typ czołgu przeciwnika
+     * Construtor parametrizado: cria um inimigo em uma posição e tipo específicos.
+     * @param x - posição horizontal inicial do inimigo
+     * @param y - posição vertical inicial do inimigo
+     * @param type - tipo do sprite do tanque inimigo
      */
     Enemy(double x, double y, SpriteType type);
 
     /**
-     * Funkcja rysuje czołg przeciwnika i jeżeli jest ustawiona flaga @a AppConfig::show_enemy_target to rysuję linią łączącą czołg z jego celem.
+     * Desenha o tanque inimigo na tela.
+     * Se a flag @a AppConfig::show_enemy_target estiver ativada, desenha uma linha até o alvo do inimigo.
      */
     void draw();
+
     /**
-     * Funkcja uaktualnia położenie czołgu oraz decyduje o kirunku i czasie kolejnego wystrzału w zależności od typy wroga.
-     * @param dt - czas od ostatniego wywołania funkcji
+     * Atualiza a posição do tanque inimigo, decide direção e momento do próximo disparo
+     * de acordo com o tipo do inimigo.
+     * @param dt - tempo (em ms) desde a última atualização
      */
     void update(Uint32 dt);
+
     /**
-     * Zmniejszczenie poziomu pancerza o 1. Jeżeli poziom pancerza dojdze do zera następuje wybuch (zniszczenie) czołgu.
+     * Reduz o nível de armadura em 1. Se chegar a zero, o tanque é destruído (explode).
      */
     void destroy();
+
     /**
-     * Funkcja zwraca liczbę punktów jakie dostanie gracz za trafienie danego czołgu wroga.
-     * @return punkty
+     * Retorna a quantidade de pontos que o jogador recebe ao destruir este inimigo.
+     * @return pontos
      */
     unsigned scoreForHit();
 
     /**
-     * Pozycja do jakiej kieruje się czołg przeciwnika.
+     * Posição alvo para onde o tanque inimigo está se dirigindo.
      */
     SDL_Point target_position;
 
 private:
     /**
-     * Czas od ostatniej zmiany kierunku.
+     * Tempo desde a última mudança de direção (em ms).
      */
     Uint32 m_direction_time;
+
     /**
-     * Czas jazdy w danym kirunku. Czas po jakim nastąpi zmiana kierunku.
+     * Tempo durante o qual o tanque mantém a direção atual antes de mudar (em ms).
      */
     Uint32 m_keep_direction_time;
 
     /**
-     * Czas od ostatniej próby wznowienia jazdy
+     * Tempo desde a última tentativa de retomar o movimento (em ms).
      */
     Uint32 m_speed_time;
+
     /**
-     * Czas po jakim nastąpi kolejne wznowienie jazdy; ustawienie niezerowej prędkości.
+     * Tempo até a próxima tentativa de retomar o movimento (em ms); define quando a velocidade será diferente de zero.
      */
     Uint32 m_try_to_go_time;
 
     /**
-     * Czas od ostatniej próby wystrzału pocisku.
+     * Tempo desde a última tentativa de disparar um projétil (em ms).
      */
     Uint32 m_fire_time;
+
     /**
-     * Czas po jakim nastąpi próba kolejnego wystrzału.
+     * Tempo até a próxima tentativa de disparo (em ms).
      */
     Uint32 m_reload_time;
 };

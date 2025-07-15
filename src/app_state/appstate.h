@@ -6,36 +6,43 @@
 
 /**
  * @brief
- * Klasa jest interfejsem, po którym dziedziczą klasy @a Game, @a Menu, @a Scores
+ * Classe interface base para os estados do aplicativo/jogo.
+ * As classes @a Game, @a Menu, @a Scores devem herdar desta interface.
  */
-class AppState
+class AppState 
 {
 public:
     virtual ~AppState() {}
 
     /**
-     * Funkcja sprawdza czy aktualny stan gry się skończył.
-     * @return @a true jeżeli obecny stan gry się skończył, w przeciwnym wypadku @a false.
+     * Verifica se o estado atual do jogo terminou.
+     * @return @a true se o estado atual terminou, caso contrário @a false.
      */
     virtual bool finished() const = 0;
+
     /**
-     * Funkcja rysująca elementy gry należące do danego stanu
+     * Desenha os elementos do jogo pertencentes a este estado.
      */
     virtual void draw() = 0;
+
     /**
-     * Funkcja aktualizująca stan obiektów i liczników w grze
-     * @param dt - czas od ostatniego wywołania funkcji w milisekundach
+     * Atualiza o estado dos objetos e contadores do jogo.
+     * @param dt - tempo desde a última chamada da função, em milissegundos.
      */
     virtual void update(Uint32 dt) = 0;
+
     /**
-     * Funkcja umożliwiająca obsługę zdarzeń wykrywanych przez bibliotekę SDL2.
-     * @param ev - wskaźnik na unię SDL_Event przechowującą typ i parametry różnych zdarzeń
+     * Processa eventos detectados pela biblioteca SDL2.
+     * @param ev - ponteiro para a união SDL_Event contendo o tipo e parâmetros de diferentes eventos.
      */
     virtual void eventProcess(SDL_Event* ev) = 0;
+
     /**
-     * Funkcja zwracającya następny stan po zakończeniu obecnego. Funkcję należy wywołać tylko wtedy, gdy funkcja @a finished zwróci wartość @a true.
-     * @return następny stan gry
+     * Retorna o próximo estado após o término do estado atual.
+     * Esta função deve ser chamada apenas se @a finished retornar @a true.
+     * @return próximo estado do jogo.
      */
     virtual AppState* nextState() = 0;
 };
+
 #endif // APPSTATE_H

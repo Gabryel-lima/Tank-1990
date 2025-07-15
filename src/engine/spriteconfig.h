@@ -7,64 +7,74 @@
 
 /**
  * @brief
- * Struktura przechowująca informacjie danym typie animacji obiektu.
+ * Estrutura que armazena informações sobre um tipo de animação de sprite.
+ * Cada SpriteData representa uma animação específica (ex: tanque, explosão, item).
  */
 struct SpriteData
 {
+    // Construtor padrão: inicializa todos os campos com valores neutros
     SpriteData() { rect.x = 0; rect.y = 0; rect.w = 0; rect.h = 0; frames_count = 0; frame_duration = 0; loop = false;}
+    // Construtor parametrizado: define todos os campos de acordo com os argumentos
     SpriteData(int x, int y, int w, int h, int fc, int fd, bool l)
         { rect.x = x; rect.y = y; rect.w = w; rect.h = h; frames_count = fc; frame_duration = fd; loop = l;}
 
     /**
-     * Pozycja i wymiary pierwszej klatki animacji
+     * Posição e dimensões do retângulo da primeira frame da animação na textura.
+     * (x, y) = canto superior esquerdo na textura.
+     * w, h = largura e altura de cada frame.
      */
     SDL_Rect rect;
     /**
-     * Liczba klatek w animacji.
+     * Quantidade de frames (quadros) na animação.
      */
     int frames_count;
     /**
-     * Czas wyświetlania jednej klatki milisekundach.
+     * Duração de cada frame em milissegundos.
      */
     unsigned frame_duration;
     /**
-     * Zmienna określająca czy animacja jest zapętlona.
+     * Indica se a animação é em loop (verdadeiro) ou executa apenas uma vez (falso).
      */
     bool loop;
 };
 
 /**
  * @brief
- * Klasa przechowuje informacjie o wszystkich typach animacji w grze.
+ * Classe responsável por armazenar e fornecer informações sobre todos os tipos de animação do jogo.
+ * Permite consultar rapidamente os dados de cada sprite/objeto animado.
  */
 class SpriteConfig
 {
 public:
     /**
-     * W konstruktorze wykonywane są dodawania kolejnych animacji funkcją @a SpriteConfig::insert.
+     * O construtor adiciona todas as animações utilizadas no jogo,
+     * utilizando a função privada SpriteConfig::insert.
      */
     SpriteConfig();
+
     /**
-     * Pobranie wybranego typu animacji.
-     * @param sp - szukany typ animacji
-     * @return animację danego typu
+     * Retorna um ponteiro para os dados da animação do tipo solicitado.
+     * @param sp - tipo de sprite/objeto animado desejado
+     * @return ponteiro constante para SpriteData correspondente
      */
     const SpriteData* getSpriteData(SpriteType sp) const;
 private:
     /**
-     * Kontener przechowujący wszystkie typy animacji.
+     * Mapa que armazena todos os tipos de animação, indexados pelo tipo SpriteType.
+     * Permite busca eficiente dos dados de cada sprite.
      */
     std::map<SpriteType, SpriteData> m_configs;
+
     /**
-     * Funkcja używana przy dodawaniu nowego typu animacji.
-     * @param st - typ animacji
-     * @param x - połoźenie poziome pierwszej klatki animacji w teksturze
-     * @param y - połoźenie pionowe pierwszej klatki animacji w teksturze
-     * @param w - szerokości klatek animacji
-     * @param h - wysokości klatek animacji
-     * @param fc - liczba klatek w animacji
-     * @param fd - czas wyświetlania jednej klatki
-     * @param l - zapętlenie animacji
+     * Função auxiliar para adicionar um novo tipo de animação ao mapa.
+     * @param st - tipo de sprite/objeto animado
+     * @param x - posição horizontal da primeira frame na textura
+     * @param y - posição vertical da primeira frame na textura
+     * @param w - largura de cada frame
+     * @param h - altura de cada frame
+     * @param fc - quantidade de frames na animação
+     * @param fd - duração de cada frame (ms)
+     * @param l - se a animação é em loop (true) ou não (false)
      */
     void insert(SpriteType st , int x, int y, int w, int h, int fc, int fd, bool l);
 };

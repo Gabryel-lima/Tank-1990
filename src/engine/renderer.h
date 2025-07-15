@@ -7,82 +7,97 @@
 
 /**
  * @brief
- * Klasa odpowiada za rysowanie obiektów na ekranie.
+ * Classe responsável por desenhar objetos na tela.
+ * Gerencia o renderizador SDL, texturas e fontes para exibição de gráficos e textos.
  */
 class Renderer
 {
 public:
-    Renderer();
-    ~Renderer();
+    Renderer();  ///< Construtor: inicializa ponteiros dos recursos gráficos.
+    ~Renderer(); ///< Destrutor: libera todos os recursos gráficos alocados.
+
     /**
-     * Wczytanie tekstury z pliku oraz stworzenie renderera związanego z oknem aplikacji.
-     * @param window - wskaźnik na obiekt zawartości okna aplikacji
+     * Carrega a textura principal do jogo a partir de um arquivo e cria o renderizador associado à janela.
+     * @param window Ponteiro para o objeto da janela SDL.
      */
     void loadTexture(SDL_Window* window);
+
     /**
-     * Wczytwanie czcionki w trzech różnych rozmiarach.
+     * Carrega as fontes utilizadas para renderização de texto em três tamanhos diferentes.
      */
     void loadFont();
+
     /**
-     * Czyszczenie bufora ekranu.
+     * Limpa o buffer de renderização, preenchendo-o com a cor de fundo padrão.
      */
     void clear();
+
     /**
-     * Prezentacja bufora ekranu.
+     * Apresenta o conteúdo do buffer de renderização na tela (swap dos buffers).
      */
     void flush();
+
     /**
-     * Przerysowanie fragmentu tekstury na fragment bufora ekranu.
-     * @param texture_src - źródłowy prostokąt z tekstury
-     * @param window_dest - docelowy prostokąt na buforze ekranu
+     * Desenha um fragmento da textura principal em uma região específica do buffer de renderização.
+     * @param texture_src Retângulo fonte na textura.
+     * @param window_dest Retângulo de destino no buffer de renderização.
      */
     void drawObject(const SDL_Rect *texture_src, const SDL_Rect *window_dest);
+
     /**
-     * Ustawienie skali wyświetlanego bufora, tak aby miał zachowane proporcje planszy oraz aby był umiejscowiony w środku okna aplikacji.
-     * @param xs - skala pozioma jako stosunek szerokości okna do szerokości mapy
-     * @param ys - skala pionowa jako stosunek wysokości okna do wysokości mapy
+     * Define o fator de escala do renderizador e centraliza o conteúdo no meio da janela.
+     * Mantém as proporções do mapa.
+     * @param xs Fator de escala horizontal (largura da janela / largura do mapa).
+     * @param ys Fator de escala vertical (altura da janela / altura do mapa).
      * @see AppConfig::map_rect
      */
     void setScale(float xs, float ys);
+
     /**
-     * Rysowanie tekstu w buforze okna w wybranej pozycji początkowej.
-     * @param start - położenie punktu początkowego rysowanego tekstu; ujemna wartości którejś ze wspołrzędnych skutkuje wyśrodkowaniem napisu w tej osi
-     * @param text - rysowany tekst
-     * @param text_color - kolory rysowanego tekst
-     * @param font_size - numer czcionki za pomocą, której będzi rysoweny tekst; dostępne trzy wartośc: 1, 2, 3
+     * Desenha um texto na tela em uma posição específica.
+     * @param start Posição inicial do texto; valores negativos centralizam o texto naquele eixo.
+     * @param text Texto a ser desenhado.
+     * @param text_color Cor do texto.
+     * @param font_size Tamanho da fonte: 1 (grande), 2 (média), 3 (pequena).
      */
     void drawText(const SDL_Point* start, std::string text, SDL_Color text_color, int font_size = 1);
+
     /**
-     * Funkcja rysująca prostokątk w buforze okna.
-     * @param rect - położneie prostokątku na planszy
-     * @param rect_color - kolor prostokątku
-     * @param fill - zmienna mówiącza czy prostokąt ma być zamalowany
+     * Desenha um retângulo na tela.
+     * @param rect Retângulo a ser desenhado (posição e tamanho).
+     * @param rect_color Cor do retângulo.
+     * @param fill Se true, o retângulo será preenchido; caso contrário, apenas a borda será desenhada.
      */
     void drawRect(const SDL_Rect* rect, SDL_Color rect_color, bool fill = false);
 
 private:
     /**
-     * Wskaźnik na obiekt związany z buforem okna.
+     * Ponteiro para o renderizador SDL associado ao buffer da janela.
      */
     SDL_Renderer* m_renderer;
+
     /**
-     * Wskaźnik na teksturę zawierającą wszystkie widoczne elementy gry.
+     * Ponteiro para a textura principal contendo todos os elementos visuais do jogo.
      */
     SDL_Texture* m_texture;
+
     /**
-     * Wskaźnik na teksturę pomocniczą przy rysowaniu tekstu na ekranie.
+     * Ponteiro para a textura auxiliar utilizada na renderização de textos.
      */
     SDL_Texture* m_text_texture;
+
     /**
-     * Czcionka o rozmiarze 28.
+     * Fonte de tamanho 28 (grande).
      */
     TTF_Font* m_font1;
+
     /**
-     * Czcionka o rozmiarze 14.
+     * Fonte de tamanho 14 (média).
      */
     TTF_Font* m_font2;
+
     /**
-     * Czcionka o rozmiarze 10.
+     * Fonte de tamanho 10 (pequena).
      */
     TTF_Font* m_font3;
 };

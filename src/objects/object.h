@@ -5,99 +5,127 @@
 
 /**
  * @brief
- * Klasa bazowa dla obiektów w grze.
+ * Classe base para todos os objetos do jogo.
+ * Fornece interface e atributos comuns para renderização, atualização e colisão.
  */
 class Object
 {
 public:
     /**
-     * Tworzenie obiektu w położeniu (0, 0).
+     * Construtor padrão.
+     * Cria o objeto na posição (0, 0).
      */
     Object();
+
     /**
-     * Tworzenie obiektu.
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param type - typ obiektu
+     * Construtor parametrizado.
+     * Cria o objeto em uma posição específica e com um tipo de sprite.
+     * @param x - posição horizontal inicial
+     * @param y - posição vertical inicial
+     * @param type - tipo do sprite/objeto
      */
     Object(double x, double y, SpriteType type);
+
     /**
-     * Tworzenie obiektu.
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param sprite - animacja obiektu danego typu
+     * Construtor alternativo.
+     * Cria o objeto em uma posição específica com um ponteiro para SpriteData.
+     * @param x - posição horizontal inicial
+     * @param y - posição vertical inicial
+     * @param sprite - ponteiro para os dados de animação do sprite
      */
     Object(double x, double y, const SpriteData* sprite);
+
+    /**
+     * Destrutor virtual.
+     * Garante destruição correta em herança.
+     */
     virtual ~Object();
 
     /**
-     * Rysowanie za pomocą metody @a drawObject z klasy @a Renderer, obiektu z tekstury o współrzędnych src_rect w obszar mapy o wpółrzędnych dest_rect.
+     * Desenha o objeto na tela.
+     * Utiliza o método drawObject da classe Renderer, desenhando a textura definida por src_rect na área dest_rect.
+     * Pode ser sobrescrito por classes derivadas.
      */
     virtual void draw();
+
     /**
-     * Uaktualnienie prostokątan dest_rect na podstawie pozycji obiektu: pos_x, pos_y. Odliczanie czasu wyświetlania jednej klatki animacji i zmiana klatki po odliczeniu opowiedniego czasu.
-     * @param dt - czas od ostatniego wywołania funkcji, wykorzystywany do odliczania czasu wyświetlania klatki
+     * Atualiza o estado do objeto.
+     * Atualiza dest_rect com base em pos_x e pos_y, gerencia animação (tempo de exibição de cada frame).
+     * @param dt - tempo (em ms) desde a última chamada, usado para controlar a animação
      */
     virtual void update(Uint32 dt);
 
     /**
-     * Zmienna mowi czy obiekt ma być usunięty. Jeżeli zmianan jest równa @a true to nie aktualizacja i rysowanie obiektu jest pomijane.
+     * Indica se o objeto deve ser removido do jogo.
+     * Se for true, o objeto não será atualizado nem desenhado.
      */
     bool to_erase;
+
     /**
-     * Prostokąt kolizji; może być mniejszy niż wymiary dest_rect.
+     * Retângulo de colisão do objeto.
+     * Pode ser menor que dest_rect para ajustar a área de colisão real.
      */
     SDL_Rect collision_rect;
+
     /**
-     * Pozycja docelowa obiektu na ekranie.
+     * Retângulo de destino na tela onde o objeto será desenhado.
+     * Define a posição e tamanho do objeto no mundo do jogo.
      */
     SDL_Rect dest_rect;
+
     /**
-     * Pozycja na teksturze aktualnie wyświetlanej klatki.
+     * Retângulo de origem na textura do sprite.
+     * Define qual parte da textura será desenhada (frame atual da animação).
      */
     SDL_Rect src_rect;
+
     /**
-     * Typ obiektu.
+     * Tipo do objeto (enum SpriteType).
+     * Usado para identificar o tipo de sprite/objeto.
      */
     SpriteType type;
+
     /**
-     * Dokładna pozycja pozioma obiektu.
+     * Posição horizontal precisa do objeto (em pixels ou unidades do mundo).
      */
     double pos_x;
+
     /**
-     * Dokładna pozycja pionowa obiektu.
+     * Posição vertical precisa do objeto (em pixels ou unidades do mundo).
      */
     double pos_y;
 
 protected:
     /**
-     * Funkcja zwraca prostokąt przesunięty o wielokrotności rozmiaru prostokąta rect.
-     * @param rect - prostokąt bazowy
-     * @param x - przesunięcie poziome
-     * @param y - przesunięcie pionowe
-     * @return przesunięty prostokąt
+     * Retorna um retângulo deslocado a partir de rect, útil para animação de sprites.
+     * @param rect - retângulo base
+     * @param x - deslocamento horizontal (em múltiplos do tamanho do frame)
+     * @param y - deslocamento vertical (em múltiplos do tamanho do frame)
+     * @return retângulo deslocado
      */
     SDL_Rect moveRect(const SDL_Rect &rect, int x, int y);
 
     /**
-     * Animacja odpowiadająca danemu typowi obiektu.
+     * Ponteiro para os dados de animação do sprite associado ao objeto.
      */
     const SpriteData* m_sprite;
+
     /**
-     * Czas wyświetlania obecnej klatki animacji.
+     * Tempo acumulado de exibição do frame atual da animação (em ms).
      */
     Uint32 m_frame_display_time;
+
     /**
-     * Numer obecnej klatki animacji.
+     * Índice do frame atual da animação.
      */
     int m_current_frame;
 };
 
 /**
- * Funkcja wyznaczająca częśc wspólną dwuch prostokątków
- * @param rect1
- * @param rect2
- * @return część wspólną, jeśli rect1 i rect2 nie mają części wspólnej prostokąt wyjściowy będzie miał ujemne wymiary
+ * Calcula a interseção (área comum) entre dois retângulos.
+ * @param rect1 - ponteiro para o primeiro retângulo
+ * @param rect2 - ponteiro para o segundo retângulo
+ * @return retângulo representando a área comum; se não houver interseção, o retângulo terá dimensões negativas
  */
 SDL_Rect intersectRect(SDL_Rect* rect1, SDL_Rect* rect2);
 

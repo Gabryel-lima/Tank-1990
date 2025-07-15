@@ -4,98 +4,116 @@
 #include "tank.h"
 
 /**
- * @brief Klasa odpowiadająca czołgom graczy.
+ * @brief Classe responsável pelo comportamento dos tanques controlados pelo jogador.
+ * Herda de Tank e adiciona lógica de input, pontuação e evolução do jogador.
  */
 class Player : public Tank
 {
 public:
 
     /**
-     * @brief Struktura przechowująca klawiszę odpowiadające sterowaniem czołgiem gracza.
+     * @brief Estrutura que armazena os códigos das teclas responsáveis pelo controle do tanque do jogador.
+     * Permite configurar quais teclas controlam cada direção e o disparo.
      */
     struct PlayerKeys
     {
         PlayerKeys(): up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN), left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN) {}
         PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f): up(u), down(d), left(l), right(r), fire(f) {}
         /**
-         * Klawisz odpowiadający jeździe w górę.
+         * Tecla para mover para cima.
          */
         SDL_Scancode up;
         /**
-         * Klawisz odpowiadający jeździe w dół.
+         * Tecla para mover para baixo.
          */
         SDL_Scancode down;
         /**
-         * Klawisz odpowiadający jeździe w lewo.
+         * Tecla para mover para a esquerda.
          */
         SDL_Scancode left;
         /**
-         * Klawisz odpowiadający jeździe w prawo.
+         * Tecla para mover para a direita.
          */
         SDL_Scancode right;
         /**
-         * Klawisz odpowiadający wystrzałowi pocisku.
+         * Tecla para disparar projétil.
          */
         SDL_Scancode fire;
     };
 
     /**
-     * Tworzenie gracza w pierwszym z położeń graczy.
+     * Construtor padrão.
+     * Cria o jogador na primeira posição inicial definida em AppConfig.
      * @see AppConfig::player_starting_point
      */
     Player();
+
     /**
-     * Tworzenie czołgu gracza
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param type - typ gracza
+     * Construtor parametrizado.
+     * Cria o tanque do jogador em uma posição e tipo específicos.
+     * @param x - posição horizontal inicial
+     * @param y - posição vertical inicial
+     * @param type - tipo do sprite do jogador
      */
     Player(double x, double y, SpriteType type);
 
-
     /**
-     * Funkcaj odpowiada za zmianę animacji czołgu gracza oraz za sprawdzeni stanu wciśniętych klawiszy i reakcja na te klawisze, które sterują czołgiem gracza.
-     * @param dt - czas od ostatwniego wywołania funkcji, wykorzystywany przy zmianie animacji
+     * Atualiza o estado do jogador.
+     * Responsável por atualizar a animação do tanque, verificar o estado das teclas pressionadas
+     * e reagir aos comandos de movimento e disparo.
+     * @param dt - tempo (em ms) desde a última chamada, usado para controlar a animação
      */
     void update(Uint32 dt);
+
     /**
-     * Funkcja odpowiada za odjęcie życia, wyczyszczenie wszystkich flag i włączenie animacji powstawania czołgu.
+     * Realiza o respawn do jogador.
+     * Remove uma vida, limpa todas as flags e inicia a animação de renascimento do tanque.
      */
     void respawn();
+
     /**
-     * Funkcja odpowiada za włączenie animacji wybuchu czołgu jeżeli czołgu nie miał osłonki, łódki lub trzech gwiazdek.
+     * Destrói o tanque do jogador.
+     * Inicia a animação de explosão caso o tanque não possua escudo, barco ou três estrelas.
      */
     void destroy();
+
     /**
-     * Funkcja odpowiada za stworzenie pocisku jeżeli jeszcze nie stworzono maksymalnej ich ilości,
-     * nadaniu mu większej szybkości jeżeli gracz ma przynajmniej jedną gwiazdkę oraz dodaniu zwiększonych obrażeni jeżeli gracz ma trzy gwiazdki.
-     * @return wskaźnik na utworzony pocisk, jeżeli nie stworzono pocisku zwraca @a nullptr
+     * Cria um projétil se ainda não atingiu o limite máximo.
+     * Aumenta a velocidade do projétil se o jogador tiver pelo menos uma estrela
+     * e adiciona dano extra se o jogador tiver três estrelas.
+     * @return ponteiro para o projétil criado, ou nullptr se não for possível criar
      */
     Bullet* fire();
 
     /**
-     * Funkcja zmienia liczbę aktualnie posiadanych gwiazdek. Przy niezerowej liczbie gwiazdek zwiększana jest domyślna prędkość czołgu,
-     * a dla liczby gwiazdek większej od 1 oraz dla każdego dodatniego @a c zwiększana jest maksymalna liczba pocisków.
-     * @param c - zmiana liczby gwiazdek, może być ujemna
+     * Altera a quantidade de estrelas do jogador.
+     * Se o número de estrelas for maior que zero, aumenta a velocidade padrão do tanque.
+     * Para duas ou mais estrelas e para cada incremento positivo, aumenta o número máximo de projéteis.
+     * @param c - variação na quantidade de estrelas (pode ser negativa)
      */
     void changeStarCountBy(int c);
 
     /**
-     * Klawiszcze sterujące ruchami aktualngo gracza.
+     * Teclas de controle do jogador atual.
+     * Permite customizar o input de cada jogador.
      */
     PlayerKeys player_keys;
+
     /**
-     * Aktualnie posiadane punkty przez gracza.
+     * Pontuação atual do jogador.
      */
     unsigned score;
 
 private:
     /**
-     * Aktualnie posiadana liczba gwiazdek; może się zawierać w przedziale [0, 3].
+     * Quantidade atual de estrelas do jogador; varia de 0 a 3.
+     * Estrelas aumentam habilidades do tanque.
      */
     int star_count;
+
     /**
-     * Czas jaki minął od ostatnego wystrzału pocisku.
+     * Tempo decorrido desde o último disparo do jogador.
+     * Usado para controlar o tempo de recarga.
      */
     Uint32 m_fire_time;
 };

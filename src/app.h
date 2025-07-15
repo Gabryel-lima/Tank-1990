@@ -5,34 +5,46 @@
 
 /**
  * @brief
- * Klasa główna aplikacji. Jej działanie jest równoważne z działaniem aplikacji.
+ * Classe principal da aplicação. Sua execução representa o ciclo de vida da aplicação.
  */
 class App
 {
 public:
-    App();
-    ~App();
+    App();  ///< Construtor: inicializa ponteiros e variáveis principais.
+    ~App(); ///< Destrutor: libera recursos alocados.
+
     /**
-     * Funkcja zawiera inicjalizację biblioteki SDL2, silnika gry, wczytanie tekstur oraz czcionek.
-     * Po poprawnej inicjalizacji następuje wejście w pętlę główną programu, która kolejno: reaguje na zdarzenie,
-     * uaktualnia obecny stan aplikacji, rysuje obiety na ekranie.
+     * Executa a aplicação.
+     * Responsável por inicializar a biblioteca SDL2, o motor do jogo, carregar texturas e fontes.
+     * Após a inicialização bem-sucedida, entra no loop principal do programa, que:
+     *   - processa eventos,
+     *   - atualiza o estado atual da aplicação,
+     *   - desenha os objetos na tela.
      */
     void run();
+
     /**
-     * Funkcja obsługująca zdarzenia czekające w kolejce.
+     * Processa eventos pendentes na fila de eventos do SDL.
+     * Responsável por capturar e tratar entradas do usuário e outros eventos do sistema.
      */
     void eventProces();
+
 private:
     /**
-     * Zmienna podtrzymująca działanie pętli głównej programu.
+     * Variável que mantém o loop principal do programa em execução.
+     * Quando false, o loop principal é encerrado e a aplicação termina.
      */
     bool is_running;
+
     /**
-     * Aktualny stan aplikacji.
+     * Ponteiro para o estado atual da aplicação (menu, jogo, etc).
+     * Permite alternar entre diferentes estados da aplicação.
      */
     AppState* m_app_state;
+
     /**
-     * Obiekt okna aplikacji.
+     * Ponteiro para o objeto da janela principal da aplicação.
+     * Usado para renderização e manipulação da janela SDL.
      */
     SDL_Window* m_window;
 };

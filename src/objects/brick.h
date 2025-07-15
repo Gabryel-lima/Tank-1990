@@ -4,39 +4,51 @@
 #include "object.h"
 
 /**
- * @brief Klasa odpowiedzialna za pojedyńczy kawałek murku.
+ * @brief Classe responsável por representar um único bloco de parede de tijolo.
+ * Herda de Object e implementa a lógica de dano e colisão do tijolo.
  */
 class Brick : public Object
 {
 public:
     /**
-     * Tworzenie murku w położeniu (0, 0).
+     * Construtor padrão: cria um tijolo na posição (0, 0).
+     * Útil para inicialização rápida ou testes.
      */
     Brick();
+
     /**
-     * Tworzenie murku
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
+     * Construtor parametrizado: cria um tijolo em uma posição específica.
+     * @param x - posição horizontal inicial do tijolo
+     * @param y - posição vertical inicial do tijolo
      */
     Brick(double x, double y);
 
     /**
-     * Funkcja została zaimplementowana aby nie zmieniać collision_rect.
-     * @param dt - czas od ostatniego wywołania funkcji.
+     * Atualiza o estado do tijolo.
+     * Esta função foi implementada para não alterar o collision_rect,
+     * pois o tijolo é estático e não precisa de atualização por frame.
+     * @param dt - tempo (em ms) desde a última atualização
      */
     void update(Uint32 dt);
+
     /**
-     * Funkcja zmieniająca stan murku po trafieniu przez pocisk. Funkcja zmienia collision_rect.
-     * @param bullet_direction - kierunek ruchu pocisku
+     * Altera o estado do tijolo ao ser atingido por um projétil.
+     * Modifica o collision_rect para refletir o dano sofrido.
+     * @param bullet_direction - direção do projétil que atingiu o tijolo
      */
     void bulletHit(Direction bullet_direction);
+
 private:
     /**
-     * Liczba trafień pucisków w murek.
+     * Número de vezes que o tijolo foi atingido por projéteis.
+     * Usado para determinar o estado atual do bloco e sua destruição.
      */
     int m_collision_count;
+
     /**
-     * Jeden z dziesięciu stanów w jakich może być murek.
+     * Código de estado do tijolo.
+     * Representa um dos dez possíveis estados de dano/forma do bloco.
+     * Utilizado para controlar a renderização e colisão parcial.
      */
     int m_state_code;
 };

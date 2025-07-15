@@ -11,139 +11,174 @@ typedef unsigned TankStateFlags;
 
 /**
  * @brief
- * Klasa zajmująca się podstawową mechaniką czołgów: jazda, strzał.
+ * Classe responsável pela mecânica básica dos tanques: movimentação e disparo.
  */
 class Tank : public Object
 {
 public:
     /**
-     * Tworzenie czołgu w pierwszym z położeń wrogów.
+     * Construtor padrão.
+     * Cria o tanque na primeira posição inicial dos inimigos.
      * @see AppConfig::enemy_starting_point
      */
     Tank();
+
     /**
-     * Tworzenie czołgu
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param type - typ czołgu
+     * Construtor parametrizado.
+     * Cria o tanque em uma posição e tipo específicos.
+     * @param x - posição horizontal inicial
+     * @param y - posição vertical inicial
+     * @param type - tipo do tanque
      */
     Tank(double x, double y, SpriteType type);
+
+    /**
+     * Destrutor virtual.
+     * Garante destruição correta dos recursos.
+     */
     virtual ~Tank();
 
     /**
-     * Funkcja rysuje obrazek czołgu, w razie potrzeby rysuje osłonkę i łódkę.
-     * Wywołuje rysowanie pocisków.
+     * Desenha o tanque na tela.
+     * Se necessário, desenha também o escudo e o barco.
+     * Chama o desenho dos projéteis disparados.
      */
     void draw();
+
     /**
-     * Funkcja odpowiada za zmianę położenia czołgu, uaktualnienie położenia prostokątów dest_rect i collision_rect, położenia osłonek i łodzi, animację czołgu,
-     * wywołanie aktualizacji pocisku oraz usuwanie zniszczonych pocisków. Funkcja odlicza czas posiadania osłonki i zamrożenia i wyłącza te flagi.
-     * @param dt - czas od ostatniego wywołania funkcji, wykorzystywany przy zmianie animacji
+     * Atualiza o estado do tanque.
+     * Atualiza posição, retângulos de destino e colisão, posição do escudo/barco, animação,
+     * atualiza os projéteis e remove projéteis destruídos.
+     * Controla o tempo de escudo e congelamento, desativando as flags quando necessário.
+     * @param dt - tempo desde a última chamada (em ms), usado para animação
      */
     void update(Uint32 dt);
+
     /**
-     * Funkcja odpowiada za stworzenie pocisku jeżeli jeszcze nie stworzono maksymalnej ich ilości.
-     * @return wskaźnik na utworzony pocisk, jeżeli nie stworzono pocisku zwraca @a nullptr
+     * Cria um novo projétil se ainda não atingiu o limite máximo.
+     * @return ponteiro para o projétil criado, ou nullptr se não for possível criar
      */
     virtual Bullet* fire();
+
     /**
-     * Funkcja zwraca prostokąt kolizji jaki byłby w następnej klatce przy założeniu prędkości i kierunku takiej jaka jest obecnie.
-     * @param dt - przewidywany czas wyliczania następnej klatki
-     * @return następny prostokąt kolizji
+     * Retorna o retângulo de colisão previsto para o próximo frame,
+     * considerando a velocidade e direção atuais.
+     * @param dt - tempo previsto para o próximo frame
+     * @return próximo retângulo de colisão
      */
     SDL_Rect nextCollisionRect(Uint32 dt);
+
     /**
-     * Funkcja ustawia następny kierunek ruchu z uwzględnieniem poślizgu na lodzie. Podczas zmiany kierunku następuje dopasowanie czołgu do wielokrotności wymiarów komórki planszy @a AppConfig::tile_rect.
-     * @param d - nowy kierunek
+     * Define a próxima direção de movimento, considerando o efeito de deslize no gelo.
+     * Ao mudar de direção, ajusta o tanque para múltiplos do tamanho do tile (AppConfig::tile_rect).
+     * @param d - nova direção
      */
     void setDirection(Direction d);
+
     /**
-     * Funkcja zatrzymuje czołg.
-     * @param intersect_rect - obszar kolizji
+     * Para o tanque devido a uma colisão.
+     * @param intersect_rect - área de colisão
      */
     void collide(SDL_Rect &intersect_rect);
+
     /**
-     * Funkcja odpowiada za wyczyszczenie wszystkich flag i włączenie animacji powstawania czołgu.
+     * Limpa todas as flags e inicia a animação de respawn do tanque.
      */
     virtual void respawn();
+
     /**
-     * Funkcja odpowiada za włączenie animacji wybuchu czołgu.
+     * Inicia a animação de destruição/explosão do tanque.
      */
     virtual void destroy();
+
     /**
-     * Ustawienie wybranej flagi.
-     * @param flag
+     * Seta uma flag de estado do tanque.
+     * @param flag - flag a ser ativada
      */
     void setFlag(TankStateFlag flag);
+
     /**
-     * Wyczyszczenie wybranej flagi.
-     * @param flag
+     * Limpa uma flag de estado do tanque.
+     * @param flag - flag a ser desativada
      */
     void clearFlag(TankStateFlag flag);
+
     /**
-     * Sprawdzenie czy wybrana flaga jest ustawiona.
-     * @param flag
-     * @return @a true jeżeli flaga jest ustawiona w przeciwnym wypadku @a false
+     * Verifica se uma flag de estado está ativa.
+     * @param flag - flag a ser verificada
+     * @return true se a flag está ativa, false caso contrário
      */
     bool testFlag(TankStateFlag flag);
 
     /**
-     * Domyślna prędkość danego czołgu. Może być różna dla różnych typów czołgów lub może być zmieniona po wzięcu bonusu przez gracza.
+     * Velocidade padrão do tanque.
+     * Pode variar conforme o tipo do tanque ou bônus coletados.
      */
     double default_speed;
+
     /**
-     * Aktualna prędkość czołgu.
+     * Velocidade atual do tanque.
      */
     double speed;
+
     /**
-     * Zmienna przechowuję informację czy czołg jest obecnie zatrzymany.
+     * Indica se o tanque está parado.
      */
     bool stop;
+
     /**
-     * Zmeinna przechowuje aktualny kierunek jazdy czołgu.
+     * Direção atual do tanque.
      */
     Direction direction;
+
     /**
-     * Kontener z wystrzelonymi pociskami czołgu.
+     * Vetor com os projéteis disparados pelo tanque.
      */
     std::vector<Bullet*> bullets;
+
     /**
-     * Liczba żyć gracza lub numer poziomu pancerza wrogiego czołgu.
+     * Número de vidas do jogador ou nível de armadura do tanque inimigo.
      */
     int lives_count;
 
 protected:
     /**
-     * Flagi jakie ma aktualnie czołg.
+     * Flags de estado atuais do tanque (invulnerável, congelado, etc).
      */
     TankStateFlags m_flags;
+
     /**
-     * Czas od wystąpienia poślizgu.
+     * Tempo desde o início do deslize (gelo).
      */
     Sint32 m_slip_time;
+
     /**
-     * Odpowiada zwrotowi czołgu w poślizgu i może być różna od kierunku przemieszczania się czołgu na lodzie.
+     * Direção visual do tanque durante o deslize, pode ser diferente da direção real de movimento.
      */
     Direction new_direction;
+
     /**
-     * Maksymalna liczba pocisków jakie może wystrzelić czołg.
+     * Quantidade máxima de projéteis que o tanque pode disparar simultaneamente.
      */
     unsigned m_bullet_max_size;
 
     /**
-     * Wskaźnik na osłonkę czołgu. Jeśli czołg nie ma osłonki zmienna ma wartośc nullptr;
+     * Ponteiro para o escudo do tanque. nullptr se não houver escudo.
      */
     Object* m_shield;
+
     /**
-     * Wskaźnik na łódkę, którą może mieć czołg. Jeśli czołg nie ma łódki zmienna ma wartośc nullptr;
+     * Ponteiro para o barco do tanque. nullptr se não houver barco.
      */
     Object* m_boat;
+
     /**
-     * Czas od zdobycia osłonki.
+     * Tempo desde que o escudo foi adquirido.
      */
     Uint32 m_shield_time;
+
     /**
-     * Czas od zamrożenia czoałgu.
+     * Tempo desde que o tanque foi congelado.
      */
     Uint32 m_frozen_time;
 };

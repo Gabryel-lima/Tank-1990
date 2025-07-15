@@ -6,59 +6,70 @@
 
 #include <vector>
 #include <string>
+
 /**
  * @brief
- * Klasa wyboru trybu gry: 1 gracz czy 2 graczy lub wyjścia. Klasa jest pierwszym stanem aplikacji, pojawia się zaraz po uruchomieniu programu i pozwala na przejście do stanu gry (klasa Game).
+ * Classe responsável pelo menu principal do jogo.
+ * Permite ao usuário escolher entre os modos: 1 jogador, 2 jogadores ou sair do jogo.
+ * Esta é a primeira tela exibida ao iniciar o aplicativo e permite a transição para o estado de jogo (classe Game).
  */
 class Menu : public AppState
 {
 public:
-    Menu();
-    ~Menu();
+    Menu();   // Construtor: inicializa o menu e o ponteiro visual (tanque)
+    ~Menu();  // Destrutor: libera recursos alocados
+
     /**
-     * Funkcja sprawdzająca czy należy zakończyć stan menu i przejści do kolejnego stanu gry.
-     * @return @a true jeżeli została wybrana, któraś z opcji menu lub został wciśnięty kalwisz Esc, @a false w przeciwnym wypadku
+     * Verifica se o estado do menu deve ser finalizado e se deve ocorrer a transição para o próximo estado do jogo.
+     * @return true se alguma opção do menu foi selecionada ou se a tecla Esc foi pressionada, false caso contrário.
      */
-    bool finished() const;
+    bool finished() const override;
+
     /**
-     * Funkcja rysuje logo gry, napisy menu i wskaźnik wybranej pozycji w kształcie czołgu.
+     * Desenha o logo do jogo, as opções do menu e o ponteiro visual (tanque) indicando a seleção atual.
      */
-    void draw();
+    void draw() override;
+
     /**
-     * Funkcja odpowiada za animację wskaźnika w postaci czołgu.
-     * @param dt - czas od ostatniej animacji
+     * Atualiza a animação do ponteiro do menu (tanque).
+     * @param dt Tempo desde a última atualização (em milissegundos).
      * @see Tank::update(Uint32 dt)
      */
-    void update(Uint32 dt);
+    void update(Uint32 dt) override;
+
     /**
-     * Funkcja odpowiada na reakcję na klawisze:
-     * @li Strzałka w górę i w dół - zmiana wybranej pozycji menu
-     * @li Enter i Spacja - zatwierdzenie obecnej pozycji menu
-     * @li Esc - wyjście z programu
-     * @param ev -  wskaźnik na unię SDL_Event przechowującą typ i parametry różnych zdarzeń
+     * Processa eventos de teclado para navegação e seleção no menu.
+     * - Seta para cima/baixo: altera a opção selecionada.
+     * - Enter ou Espaço: confirma a seleção atual.
+     * - Esc: sai do programa.
+     * @param ev Ponteiro para a união SDL_Event contendo o tipo e parâmetros dos eventos.
      */
-    void eventProcess(SDL_Event* ev);
+    void eventProcess(SDL_Event* ev) override;
+
     /**
-     * Pzejście do gry w wybranym trybie lub wyjście z aplikacji.
-     * @return @a nullptr jeżli wybrano "Exit" lub wciśnięto Esc, w przeciwnym wypadku funkcja zwraca wskaźnik na Game
+     * Realiza a transição para o próximo estado do jogo conforme a opção escolhida.
+     * @return nullptr se "Exit" foi selecionado ou Esc pressionado; caso contrário, retorna ponteiro para o novo estado Game.
      */
-    AppState* nextState();
+    AppState* nextState() override;
 
 private:
     /**
-     * Kontener przechowujący wszystkie napisy jakie pojawiają się w menu.
+     * Container com todos os textos das opções do menu.
      */
     std::vector<std::string> m_menu_texts;
+
     /**
-     * Indeks wybranej pozycji menu.
+     * Índice da opção atualmente selecionada no menu.
      */
     int m_menu_index;
+
     /**
-     * Zmienna odpowiadająca za wskaźnik w postaci czołgu.
+     * Ponteiro para o objeto Player que representa o tanque usado como ponteiro visual no menu.
      */
     Player* m_tank_pointer;
+
     /**
-     * Zmienna przechowuje informację, czy należy zakończyć bieżący stan gry i przejść do gry lub wyłączyć aplikację.
+     * Indica se o menu deve ser finalizado e o estado deve ser trocado (iniciar jogo ou sair).
      */
     bool m_finished;
 };

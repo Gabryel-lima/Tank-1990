@@ -4,47 +4,57 @@
 #include "object.h"
 
 /**
- * @brief Klasa zajmująca się pociskami wystrzalanymi przez czołgi.
+ * @brief Classe responsável pelos projéteis disparados pelos tanques.
+ * Herda de Object e implementa a lógica de movimento, colisão e dano do projétil.
  */
 class Bullet : public Object
 {
 public:
     /**
-     * Tworzenie pocisku w położeniu (0, 0).
+     * Construtor padrão: cria um projétil na posição (0, 0).
+     * Útil para inicialização rápida ou testes.
      */
     Bullet();
+
     /**
-     * Tworzenie pocisku
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
+     * Construtor parametrizado: cria um projétil em uma posição específica.
+     * @param x - posição horizontal inicial do projétil
+     * @param y - posição vertical inicial do projétil
      */
     Bullet(double x, double y);
 
     /**
-     * Aktualizacja położenia pocisku.
-     * @param dt - czas od ostatniego wywołania funkcji
+     * Atualiza a posição do projétil.
+     * Move o projétil de acordo com sua velocidade e direção.
+     * @param dt - tempo (em ms) desde a última atualização
      */
     void update(Uint32 dt);
+
     /**
-     * Włączenie animacji wybuchu pocisku.
+     * Ativa a animação de explosão do projétil.
+     * Marca o projétil para remoção após a animação.
      */
     void destroy();
     
     /**
-     * Prędkość poruszania się pocisku.
+     * Velocidade de deslocamento do projétil (pixels/ms).
      */
     double speed;
+
     /**
-     * Zmienna przechowuje informację czy pocisk się z czymś zderzył.
+     * Indica se o projétil colidiu com algum objeto.
+     * Quando verdadeiro, o projétil para de se mover e inicia a animação de explosão.
      */
     bool collide;
+
     /**
-     * Zmienna przechowuje informację czy pocisk ma zwiększone obrażenia.
-     * Zwiększone obrażenia pozwalają niszczyć kamienny mur oraz krzaki.
+     * Indica se o projétil possui dano aumentado.
+     * Projéteis com dano aumentado podem destruir paredes de pedra e arbustos.
      */
     bool increased_damage;
+
     /**
-     * Kierunek przemieszczania się pocisku.
+     * Direção de movimento do projétil.
      */
     Direction direction;
 };

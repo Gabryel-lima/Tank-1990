@@ -2,6 +2,7 @@
 #include "../appconfig.h"
 #include <algorithm>
 
+// Construtor padrão do Tank. Inicializa o tanque na posição inicial do inimigo 0.
 Tank::Tank()
     : Object(AppConfig::enemy_starting_point.at(0).x, AppConfig::enemy_starting_point.at(0).y, ST_TANK_A)
 {
@@ -15,6 +16,7 @@ Tank::Tank()
     m_frozen_time = 0;
 }
 
+// Construtor parametrizado do Tank. Inicializa o tanque em (x, y) com o tipo de sprite fornecido.
 Tank::Tank(double x, double y, SpriteType type)
     : Object(x, y, type)
 {
@@ -28,6 +30,7 @@ Tank::Tank(double x, double y, SpriteType type)
     m_frozen_time = 0;
 }
 
+// Destrutor do Tank. Libera memória dos projéteis, escudo e barco.
 Tank::~Tank()
 {
     for(auto bullet : bullets) delete bullet;
@@ -45,6 +48,7 @@ Tank::~Tank()
     }
 }
 
+// Desenha o tanque, escudo, barco e projéteis associados.
 void Tank::draw()
 {
     if(to_erase) return;
@@ -57,11 +61,13 @@ void Tank::draw()
         if(bullet != nullptr) bullet->draw();
 }
 
+// Atualiza o estado do tanque, incluindo posição, animação, efeitos e projéteis.
 void Tank::update(Uint32 dt)
 {
     if(to_erase) return;
     if(testFlag(TSF_LIFE))
     {
+        // Atualiza posição do tanque se não estiver parado ou congelado
         if(!stop && !testFlag(TSF_FROZEN))
         {
             switch (direction)
@@ -81,6 +87,7 @@ void Tank::update(Uint32 dt)
             }
         }
 
+        // Atualiza retângulo de destino e colisão
         dest_rect.x = pos_x;
         dest_rect.y = pos_y;
         dest_rect.h = m_sprite->rect.h;
@@ -92,6 +99,7 @@ void Tank::update(Uint32 dt)
         collision_rect.w = dest_rect.w - 4;
     }
 
+    // Efeito de deslize no gelo
     if(testFlag(TSF_ON_ICE) && m_slip_time > 0)
     {
         m_slip_time -= dt;
@@ -103,6 +111,7 @@ void Tank::update(Uint32 dt)
         }
     }
 
+    // Atualiza escudo se ativo
     if(testFlag(TSF_SHIELD) && m_shield != nullptr)
     {
         m_shield_time += dt;
@@ -111,19 +120,22 @@ void Tank::update(Uint32 dt)
         m_shield->update(dt);
         if(m_shield_time > AppConfig::tank_shield_time) clearFlag(TSF_SHIELD);
     }
+    // Atualiza barco se ativo
     if(testFlag(TSF_BOAT) && m_boat != nullptr)
     {
         m_boat->pos_x = pos_x;
         m_boat->pos_y = pos_y;
         m_boat->update(dt);
     }
+    // Atualiza efeito de congelamento
     if(testFlag(TSF_FROZEN))
     {
         m_frozen_time += dt;
         if(m_frozen_time > AppConfig::tank_frozen_time) clearFlag(TSF_FROZEN);
     }
 
-    if(m_sprite->frames_count > 1 && (testFlag(TSF_LIFE) ? speed > 0 : true)) //brak animacji jeśli czołg nie prógbuje jechać
+    // Animação do sprite do tanque (não anima se o tanque não está se movendo)
+    if(m_sprite->frames_count > 1 && (testFlag(TSF_LIFE) ? speed > 0 : true)) // sem animação se o tanque não tenta andar
     {
         m_frame_display_time += dt;
         if(m_frame_display_time > (testFlag(TSF_MENU)  ? m_sprite->frame_duration / 2 : m_sprite->frame_duration))
@@ -150,21 +162,25 @@ void Tank::update(Uint32 dt)
         }
     }
 
-
-    // Obsługa pocisku
+    // Atualiza todos os projéteis e remove os que devem ser apagados
     for(auto bullet : bullets) bullet->update(dt);
-    bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet*b){if(b->to_erase) {delete b; return true;} return false;}), bullets.end());
+    bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](Bullet*b){
+        if(b->to_erase) {delete b; return true;}
+        return false;
+    }), bullets.end());
 }
 
+// Cria e dispara um novo projétil, se permitido.
 Bullet* Tank::fire()
 {
     if(!testFlag(TSF_LIFE)) return nullptr;
     if(bullets.size() < m_bullet_max_size)
     {
-        //podajemy początkową dowolną pozycję, bo nie znamy wymiarów pocisku
+        // Inicializa o projétil em uma posição qualquer, pois ainda não sabemos o tamanho do projétil
         Bullet* bullet = new Bullet(pos_x, pos_y);
         bullets.push_back(bullet);
 
+        // Determina a direção do disparo (considerando efeito de gelo)
         Direction tmp_d = (testFlag(TSF_ON_ICE) ? new_direction : direction);
         switch(tmp_d)
         {
@@ -187,17 +203,19 @@ Bullet* Tank::fire()
         }
 
         bullet->direction = tmp_d;
+        // Ajusta a velocidade do projétil dependendo do tipo do tanque
         if(type == ST_TANK_C)
             bullet->speed = AppConfig::bullet_default_speed * 1.3;
         else
             bullet->speed = AppConfig::bullet_default_speed;
 
-        bullet->update(0); //zmiana pozycji dest_rect
+        bullet->update(0); // Atualiza a posição do dest_rect do projétil
         return bullet;
     }
     return nullptr;
 }
 
+// Calcula o próximo retângulo de colisão do tanque, dado o tempo dt.
 SDL_Rect Tank::nextCollisionRect(Uint32 dt)
 {
     if(speed == 0) return collision_rect;
@@ -229,6 +247,7 @@ SDL_Rect Tank::nextCollisionRect(Uint32 dt)
     return r;
 }
 
+// Define a direção do tanque, considerando efeitos como gelo e alinhamento com a grade.
 void Tank::setDirection(Direction d)
 {
     if(!(testFlag(TSF_LIFE) || testFlag(TSF_CREATE))) return;
@@ -242,6 +261,7 @@ void Tank::setDirection(Direction d)
     else
         direction = d;
 
+    // Alinha o tanque à grade do mapa se não estiver parado
     if(!stop)
     {
         double epsilon = 5;
@@ -264,9 +284,11 @@ void Tank::setDirection(Direction d)
     }
 }
 
+// Trata colisão do tanque com outro objeto, parando o movimento conforme a direção.
 void Tank::collide(SDL_Rect &intersect_rect)
 {
-    if(intersect_rect.w > intersect_rect.h) // kolizja od góry lub dołu
+    // Colisão pela vertical (cima ou baixo)
+    if(intersect_rect.w > intersect_rect.h)
     {
         if((direction == D_UP && intersect_rect.y <= collision_rect.y) ||
                 (direction == D_DOWN && (intersect_rect.y + intersect_rect.h) >= (collision_rect.y + collision_rect.h)))
@@ -275,6 +297,7 @@ void Tank::collide(SDL_Rect &intersect_rect)
             m_slip_time = 0;
         }
     }
+    // Colisão pela horizontal (esquerda ou direita)
     else
     {
         if((direction == D_LEFT && intersect_rect.x <= collision_rect.x) ||
@@ -286,6 +309,7 @@ void Tank::collide(SDL_Rect &intersect_rect)
     }
 }
 
+// Destrói o tanque, trocando sprite e limpando colisão.
 void Tank::destroy()
 {
     if(!testFlag(TSF_LIFE)) return;
@@ -300,31 +324,38 @@ void Tank::destroy()
     m_slip_time = 0;
     m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_DESTROY_TANK);
 
+    // Zera retângulo de colisão
     collision_rect.x = 0;
     collision_rect.y = 0;
     collision_rect.h = 0;
     collision_rect.w = 0;
 
+    // Centraliza sprite de destruição
     dest_rect.x = pos_x + (dest_rect.w - m_sprite->rect.w)/2;
     dest_rect.y = pos_y + (dest_rect.h - m_sprite->rect.h)/2;
     dest_rect.h = m_sprite->rect.h;
     dest_rect.w = m_sprite->rect.w;
 }
 
+// Seta uma flag de estado do tanque e inicializa efeitos especiais.
 void Tank::setFlag(TankStateFlag flag)
 {
+    // Se ativando efeito de gelo, salva direção atual
     if(!testFlag(flag) && flag == TSF_ON_ICE)
         new_direction = direction;
 
+    // Ativa escudo
     if(flag == TSF_SHIELD)
     {
         if(m_shield == nullptr) m_shield = new Object(pos_x, pos_y, ST_SHIELD);
          m_shield_time = 0;
     }
+    // Ativa barco
     if(flag == TSF_BOAT)
     {
          if(m_boat == nullptr) m_boat = new Object(pos_x, pos_y, type == ST_PLAYER_1 ? ST_BOAT_P1 : ST_BOAT_P2);
     }
+    // Ativa congelamento
     if(flag == TSF_FROZEN)
     {
         m_frozen_time = 0;
@@ -332,6 +363,7 @@ void Tank::setFlag(TankStateFlag flag)
     m_flags |= flag;
 }
 
+// Limpa uma flag de estado do tanque e remove efeitos especiais.
 void Tank::clearFlag(TankStateFlag flag)
 {
     if(flag == TSF_SHIELD)
@@ -352,11 +384,13 @@ void Tank::clearFlag(TankStateFlag flag)
     m_flags &= ~flag;
 }
 
+// Testa se uma flag de estado está ativa no tanque.
 bool Tank::testFlag(TankStateFlag flag)
 {
     return (m_flags & flag) == flag;
 }
 
+// Reinicializa o tanque após perder uma vida, limpando efeitos e resetando sprite.
 void Tank::respawn()
 {
     m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_CREATE);
@@ -368,9 +402,9 @@ void Tank::respawn()
     clearFlag(TSF_BOAT);
     m_flags = TSF_LIFE;
     update(0);
-    m_flags = TSF_CREATE; //resetujemy wszystkie inne flagi
+    m_flags = TSF_CREATE; // reseta todas as outras flags
 
-    //ustawienie porostokąta kolizji po wywołaniu update
+    // Zera retângulo de colisão após update
     collision_rect.x = 0;
     collision_rect.y = 0;
     collision_rect.h = 0;

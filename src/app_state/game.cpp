@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cmath>
 
+// Construtor padrão do jogo
 Game::Game()
 {
     m_level_columns_count = 0;
@@ -28,6 +29,7 @@ Game::Game()
     nextLevel();
 }
 
+// Construtor do jogo com quantidade de jogadores
 Game::Game(int players_count)
 {
     m_level_columns_count = 0;
@@ -43,6 +45,7 @@ Game::Game(int players_count)
     nextLevel();
 }
 
+// Construtor do jogo com jogadores existentes e nível anterior
 Game::Game(std::vector<Player *> players, int previous_level)
 {
     m_level_columns_count = 0;
@@ -65,11 +68,13 @@ Game::Game(std::vector<Player *> players, int previous_level)
     nextLevel();
 }
 
+// Destrutor do jogo
 Game::~Game()
 {
     clearLevel();
 }
 
+// Desenha todos os elementos do jogo na tela
 void Game::draw()
 {
     Engine& engine = Engine::getEngine();
@@ -102,17 +107,17 @@ void Game::draw()
             renderer->drawText(&pos, AppConfig::game_over_text, {255, 10, 10, 255});
         }
 
-        //===========Status gry===========
+        //===========Status do jogo===========
         SDL_Rect src = engine.getSpriteConfig()->getSpriteData(ST_LEFT_ENEMY)->rect;
         SDL_Rect dst;
         SDL_Point p_dst;
-        //wrogowie do zabicia
+        // inimigos restantes para eliminar
         for(int i = 0; i < m_enemy_to_kill; i++)
         {
             dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
             renderer->drawObject(&src, &dst);
         }
-        //życia graczy
+        // vidas dos jogadores
         int i = 0;
         for(auto player : m_players)
         {
@@ -122,7 +127,7 @@ void Game::draw()
             renderer->drawObject(&player->src_rect, &dst);
             renderer->drawText(&p_dst, Engine::intToString(player->lives_count), {0, 0, 0, 255}, 3);
         }
-        //numer mapy
+        // número do mapa/nível
         src = engine.getSpriteConfig()->getSpriteData(ST_STAGE_STATUS)->rect;
         dst = {AppConfig::status_rect.x + 8, static_cast<int>(185 + (m_players.size() + m_killed_players.size()) * 18), src.w, src.h};
         p_dst = {dst.x + 10, dst.y + 26};
@@ -136,6 +141,7 @@ void Game::draw()
     renderer->flush();
 }
 
+// Atualiza o estado do jogo
 void Game::update(Uint32 dt)
 {
     if(dt > 40) return;
@@ -154,21 +160,21 @@ void Game::update(Uint32 dt)
         std::vector<Player*>::iterator pl1, pl2;
         std::vector<Enemy*>::iterator en1, en2;
 
-        //sprawdzenie kolizji czołgów graczy ze sobą
+        // Verifica colisão entre tanques dos jogadores
         for(pl1 = m_players.begin(); pl1 != m_players.end(); pl1++)
             for(pl2 = pl1 + 1; pl2 != m_players.end(); pl2++)
                 checkCollisionTwoTanks(*pl1, *pl2, dt);
 
-
-        //sprawdzenie kolizji czołgów przeciwników ze sobą
+        // Verifica colisão entre tanques dos inimigos
         for(en1 = m_enemies.begin(); en1 != m_enemies.end(); en1++)
              for(en2 = en1 + 1; en2 != m_enemies.end(); en2++)
                 checkCollisionTwoTanks(*en1, *en2, dt);
 
-        //sprawdzenie kolizji kuli z lewelem
+        // Verifica colisão de balas dos inimigos com o cenário
         for(auto enemy : m_enemies)
             for(auto bullet : enemy->bullets)
                 checkCollisionBulletWithLevel(bullet);
+        // Verifica colisão de balas dos jogadores com o cenário e com arbustos
         for(auto player : m_players)
             for(auto bullet : player->bullets)
             {
@@ -176,36 +182,36 @@ void Game::update(Uint32 dt)
                 checkCollisionBulletWithBush(bullet);
             }
 
-
+        // Colisões entre jogadores e inimigos
         for(auto player : m_players)
             for(auto enemy : m_enemies)
             {
-                //sprawdzenie kolizji czołgów przeciwników z graczami
+                // Colisão entre tanque do jogador e do inimigo
                 checkCollisionTwoTanks(player, enemy, dt);
-                //sprawdzenie kolizji pocisków gracza z przeciwnikiem
+                // Colisão entre balas do jogador e inimigo
                 checkCollisionPlayerBulletsWithEnemy(player, enemy);
 
-                //sprawdzenie kolizji pocisku gracza z pociskiem przeciwnika
+                // Colisão entre balas do jogador e balas do inimigo
                 for(auto bullet1 : player->bullets)
                      for(auto bullet2 : enemy->bullets)
                             checkCollisionTwoBullets(bullet1, bullet2);
             }
 
-        //sprawdzenie kolizji pocisku przeciknika z graczem
+        // Colisão entre balas do inimigo e jogadores
         for(auto enemy : m_enemies)
             for(auto player : m_players)
                     checkCollisionEnemyBulletsWithPlayer(enemy, player);
 
-        //sprawdzanie kolizji gracza z bunusem
+        // Colisão entre jogadores e bônus
         for(auto player : m_players)
             for(auto bonus : m_bonuses)
                 checkCollisionPlayerWithBonus(player, bonus);
 
-        //Sprawdzenie kolizji czołgów z poziomem
+        // Colisão entre tanques e o cenário
         for(auto enemy : m_enemies) checkCollisionTankWithLevel(enemy, dt);
         for(auto player : m_players) checkCollisionTankWithLevel(player, dt);
 
-        //nadanie celów przeciwników
+        // Definir alvo dos inimigos (jogadores ou águia)
         int min_metric; // 2 * 26 * 16
         int metric;
         SDL_Point target;
@@ -232,7 +238,7 @@ void Game::update(Uint32 dt)
             enemy->target_position = target;
         }
 
-        //Update wszystkich obiektów
+        // Atualiza todos os objetos do jogo
         for(auto enemy : m_enemies) enemy->update(dt);
         for(auto player : m_players) player->update(dt);
         for(auto bonus : m_bonuses) bonus->update(dt);
@@ -242,16 +248,15 @@ void Game::update(Uint32 dt)
             for(auto item : row)
                 if(item != nullptr) item->update(dt);
 
-
         for(auto bush : m_bushes) bush->update(dt);
 
-        //usunięcie niepotrzebnych elementów
+        // Remove elementos que devem ser apagados
         m_enemies.erase(std::remove_if(m_enemies.begin(), m_enemies.end(), [](Enemy*e){if(e->to_erase) {delete e; return true;} return false;}), m_enemies.end());
         m_players.erase(std::remove_if(m_players.begin(), m_players.end(), [this](Player*p){if(p->to_erase) {m_killed_players.push_back(p); return true;} return false;}), m_players.end());
         m_bonuses.erase(std::remove_if(m_bonuses.begin(), m_bonuses.end(), [](Bonus*b){if(b->to_erase) {delete b; return true;} return false;}), m_bonuses.end());
         m_bushes.erase(std::remove_if(m_bushes.begin(), m_bushes.end(), [](Object*b){if(b->to_erase) {delete b; return true;} return false;}), m_bushes.end());
 
-        //dodanie nowego przeciwnika
+        // Adiciona novo inimigo se necessário
         m_enemy_redy_time += dt;
         if(m_enemies.size() < static_cast<size_t>(AppConfig::enemy_max_count_on_map < m_enemy_to_kill ? AppConfig::enemy_max_count_on_map : m_enemy_to_kill) && m_enemy_redy_time > AppConfig::enemy_redy_time)
         {
@@ -259,6 +264,7 @@ void Game::update(Uint32 dt)
             generateEnemy();
         }
 
+        // Verifica se o nível terminou (todos inimigos eliminados)
         if(m_enemies.empty() && m_enemy_to_kill <= 0)
         {
             m_level_end_time += dt;
@@ -266,6 +272,7 @@ void Game::update(Uint32 dt)
                 m_finished = true;
         }
 
+        // Verifica se todos os jogadores morreram
         if(m_players.empty() && !m_game_over)
         {
             m_eagle->destroy();
@@ -273,12 +280,14 @@ void Game::update(Uint32 dt)
             m_game_over = true;
         }
 
+        // Animação de game over
         if(m_game_over)
         {
             if(m_game_over_position < 10) m_finished = true;
             else m_game_over_position -= AppConfig::game_over_entry_speed * dt;
         }
 
+        // Lógica de proteção temporária da águia
         if(m_protect_eagle)
         {
             m_protect_eagle_time += dt;
@@ -286,6 +295,7 @@ void Game::update(Uint32 dt)
             {
                 m_protect_eagle = false;
                 m_protect_eagle_time = 0;
+                // Restaura os tijolos ao redor da águia
                 for(int i = 0; i < 3; i++)
                 {
                     if(m_level.at(m_level_rows_count - i - 1).at(11) != nullptr)
@@ -304,6 +314,7 @@ void Game::update(Uint32 dt)
                 }
             }
 
+            // Pisca a proteção da águia nos últimos instantes
             if(m_protect_eagle && m_protect_eagle_time > AppConfig::protect_eagle_time / 4 * 3 && m_protect_eagle_time / AppConfig::bonus_blink_time % 2)
             {
                 for(int i = 0; i < 3; i++)
@@ -323,6 +334,7 @@ void Game::update(Uint32 dt)
                     m_level.at(m_level_rows_count - 3).at(i) = new Brick(i * AppConfig::tile_rect.w, (m_level_rows_count - 3) * AppConfig::tile_rect.h);
                 }
             }
+            // Proteção ativa: coloca paredes de pedra ao redor da águia
             else if(m_protect_eagle)
             {
                 for(int i = 0; i < 3; i++)
@@ -346,6 +358,7 @@ void Game::update(Uint32 dt)
     }
 }
 
+// Processa eventos do teclado
 void Game::eventProcess(SDL_Event *ev)
 {
     if(ev->type == SDL_KEYDOWN)
@@ -375,14 +388,15 @@ void Game::eventProcess(SDL_Event *ev)
 }
 
 /*
-. = puste pole
-# = murek
-@ = kamień
-% = krzaki
-~ = woda
-- = lód
- */
+. = campo vazio
+# = parede de tijolo
+@ = parede de pedra
+% = arbustos
+~ = água
+- = gelo
+*/
 
+// Carrega o nível a partir de um arquivo
 void Game::loadLevel(std::string path)
 {
     std::fstream level(path, std::ios::in);
@@ -419,10 +433,10 @@ void Game::loadLevel(std::string path)
         m_level_columns_count = m_level.at(0).size();
     else m_level_columns_count = 0;
 
-    //tworzymy orzełka
+    // Cria a águia (eagle) no mapa
     m_eagle = new Eagle(12 * AppConfig::tile_rect.w, (m_level_rows_count - 2) * AppConfig::tile_rect.h);
 
-    //wyczyszczenie miejsca orzełeka
+    // Limpa o espaço ao redor da águia
     for(int i = 12; i < 14 && i < m_level_columns_count; i++)
     {
         for(int j = m_level_rows_count - 2; j < m_level_rows_count; j++)
@@ -436,11 +450,13 @@ void Game::loadLevel(std::string path)
     }
 }
 
+// Retorna se o jogo terminou
 bool Game::finished() const
 {
     return m_finished;
 }
 
+// Retorna o próximo estado do jogo (menu ou placar)
 AppState* Game::nextState()
 {
     if(m_game_over || m_enemy_to_kill <= 0)
@@ -453,6 +469,7 @@ AppState* Game::nextState()
     return m;
 }
 
+// Limpa todos os elementos do nível atual
 void Game::clearLevel()
 {
     for(auto enemy : m_enemies) delete enemy;
@@ -478,6 +495,7 @@ void Game::clearLevel()
     m_eagle = nullptr;
 }
 
+// Verifica colisão do tanque com o cenário e limites do mapa
 void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
 {
     if(tank->to_erase) return;
@@ -488,7 +506,7 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     SDL_Rect pr, *lr;
     Object* o;
 
-    //========================kolizja z elementami mapy========================
+    //========================colisão com elementos do mapa========================
     switch(tank->direction)
     {
     case D_UP:
@@ -524,7 +542,6 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     pr = tank->nextCollisionRect(dt);
     SDL_Rect intersect_rect;
 
-
     for(int i = row_start; i <= row_end; i++)
         for(int j = column_start; j <= column_end ;j++)
         {
@@ -550,9 +567,9 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
             }
         }
 
-    //========================kolizja z granicami mapy========================
+    //========================colisão com limites do mapa========================
     SDL_Rect outside_map_rect;
-    //prostokąt po lewej stronie mapy
+    // retângulo à esquerda do mapa
     outside_map_rect.x = -AppConfig::tile_rect.w;
     outside_map_rect.y = -AppConfig::tile_rect.h;
     outside_map_rect.w = AppConfig::tile_rect.w;
@@ -561,7 +578,7 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    //prostokąt po prawej stronie mapy
+    // retângulo à direita do mapa
     outside_map_rect.x = AppConfig::map_rect.w;
     outside_map_rect.y = -AppConfig::tile_rect.h;
     outside_map_rect.w = AppConfig::tile_rect.w;
@@ -570,7 +587,7 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    //prostokąt po górnej stronie mapy
+    // retângulo acima do mapa
     outside_map_rect.x = 0;
     outside_map_rect.y = -AppConfig::tile_rect.h;
     outside_map_rect.w = AppConfig::map_rect.w;
@@ -579,7 +596,7 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-    //prostokąt po dolnej stronie mapy
+    // retângulo abaixo do mapa
     outside_map_rect.x = 0;
     outside_map_rect.y = AppConfig::map_rect.h;
     outside_map_rect.w = AppConfig::map_rect.w;
@@ -588,13 +605,13 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-
-   //========================kolizja z orzełkiem========================
+   //========================colisão com a águia========================
     intersect_rect = intersectRect(&m_eagle->collision_rect, &pr);
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 }
 
+// Verifica colisão entre dois tanques
 void Game::checkCollisionTwoTanks(Tank* tank1, Tank* tank2, Uint32 dt)
 {
     SDL_Rect cr1 = tank1->nextCollisionRect(dt);
@@ -608,6 +625,7 @@ void Game::checkCollisionTwoTanks(Tank* tank1, Tank* tank2, Uint32 dt)
     }
 }
 
+// Verifica colisão da bala com o cenário e a águia
 void Game::checkCollisionBulletWithLevel(Bullet* bullet)
 {
     if(bullet == nullptr) return;
@@ -620,7 +638,7 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
     SDL_Rect intersect_rect;
     Object* o;
 
-    //========================kolizja z elementami mapy========================
+    //========================colisão com elementos do mapa========================
     switch(bullet->direction)
     {
     case D_UP:
@@ -682,12 +700,12 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
             }
         }
 
-    //========================kolizja z granicami mapy========================
+    //========================colisão com limites do mapa========================
     if(br->x < 0 || br->y < 0 || br->x + br->w > AppConfig::map_rect.w || br->y + br->h > AppConfig::map_rect.h)
     {
         bullet->destroy();
     }
-    //========================kolizja z orzełkiem========================
+    //========================colisão com a águia========================
     if(m_eagle->type == ST_EAGLE && !m_game_over)
     {
         intersect_rect = intersectRect(&m_eagle->collision_rect, br);
@@ -701,6 +719,7 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
     }
 }
 
+// Verifica colisão da bala com arbustos (só se for bala forte)
 void Game::checkCollisionBulletWithBush(Bullet *bullet)
 {
     if(bullet == nullptr) return;
@@ -725,6 +744,7 @@ void Game::checkCollisionBulletWithBush(Bullet *bullet)
     }
 }
 
+// Verifica colisão das balas do jogador com o inimigo
 void Game::checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy)
 {
     if(player->to_erase || enemy->to_erase) return;
@@ -749,6 +769,7 @@ void Game::checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy)
     }
 }
 
+// Verifica colisão das balas do inimigo com o jogador
 void Game::checkCollisionEnemyBulletsWithPlayer(Enemy *enemy, Player *player)
 {
     if(enemy->to_erase || player->to_erase) return;
@@ -769,6 +790,7 @@ void Game::checkCollisionEnemyBulletsWithPlayer(Enemy *enemy, Player *player)
     }
 }
 
+// Verifica colisão entre duas balas
 void Game::checkCollisionTwoBullets(Bullet *bullet1, Bullet *bullet2)
 {
     if(bullet1 == nullptr || bullet2 == nullptr) return;
@@ -783,6 +805,7 @@ void Game::checkCollisionTwoBullets(Bullet *bullet1, Bullet *bullet2)
     }
 }
 
+// Verifica colisão do jogador com bônus e aplica efeito
 void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
 {
     if(player->to_erase || bonus->to_erase) return;
@@ -794,6 +817,7 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
 
         if(bonus->type == ST_BONUS_GRENADE)
         {
+            // Elimina todos os inimigos
             for(auto enemy : m_enemies)
             {
                 if(!enemy->to_erase)
@@ -806,14 +830,17 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
         }
         else if(bonus->type == ST_BONUS_HELMET)
         {
+            // Dá escudo ao jogador
             player->setFlag(TSF_SHIELD);
         }
         else if(bonus->type == ST_BONUS_CLOCK)
         {
+            // Congela todos os inimigos
             for(auto enemy : m_enemies) if(!enemy->to_erase) enemy->setFlag(TSF_FROZEN);
         }
         else if(bonus->type == ST_BONUS_SHOVEL)
         {
+            // Protege a águia com paredes de pedra
             m_protect_eagle = true;
             m_protect_eagle_time = 0;
             for(int i = 0; i < 3; i++)
@@ -835,24 +862,29 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
         }
         else if(bonus->type == ST_BONUS_TANK)
         {
+            // Dá uma vida extra ao jogador
             player->lives_count++;
         }
         else if(bonus->type == ST_BONUS_STAR)
         {
+            // Aumenta o nível de estrela do jogador
             player->changeStarCountBy(1);
         }
         else if(bonus->type == ST_BONUS_GUN)
         {
+            // Aumenta o nível de estrela do jogador em 3
             player->changeStarCountBy(3);
         }
         else if(bonus->type == ST_BONUS_BOAT)
         {
+            // Permite atravessar água
             player->setFlag(TSF_BOAT);
         }
         bonus->to_erase = true;
     }
 }
 
+// Avança para o próximo nível
 void Game::nextLevel()
 {
     m_current_level++;
@@ -868,6 +900,7 @@ void Game::nextLevel()
     std::string level_path = AppConfig::levels_path + Engine::intToString(m_current_level);
     loadLevel(level_path);
 
+    // Cria jogadores se necessário
     if(m_players.empty())
     {
         if(m_player_count == 2)
@@ -889,6 +922,7 @@ void Game::nextLevel()
     }
 }
 
+// Gera um novo inimigo no mapa
 void Game::generateEnemy()
 {
     float p = static_cast<float>(rand()) / RAND_MAX;
@@ -923,6 +957,7 @@ void Game::generateEnemy()
     m_enemies.push_back(e);
 }
 
+// Gera um bônus aleatório no mapa, evitando sobreposição com a águia
 void Game::generateBonus()
 {
     Bonus* b = new Bonus(0, 0, static_cast<SpriteType>(rand() % (ST_BONUS_BOAT - ST_BONUS_GRENADE + 1) + ST_BONUS_GRENADE));

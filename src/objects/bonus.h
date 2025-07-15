@@ -4,40 +4,50 @@
 #include "object.h"
 
 /**
- * @brief Klasa zajumująca wyświetlaniem bonusu.
+ * @brief Classe responsável por exibir e gerenciar o bônus no jogo.
+ * Herda de Object e adiciona lógica de tempo de exibição e piscar.
  */
 class Bonus : public Object
 {
 public:
     /**
-     * Tworzenie domyślnego bonusu - gwiazdki w położeniu (0, 0).
+     * Construtor padrão: cria um bônus do tipo estrela na posição (0, 0).
+     * Útil para inicialização rápida ou testes.
      */
     Bonus();
+
     /**
-     * Tworzenie bonusu.
-     * @param x - pozycja początkowa pozioma
-     * @param y - pozycja początkowa pionowa
-     * @param type - typ bonusu
+     * Construtor parametrizado: cria um bônus em uma posição e tipo específicos.
+     * @param x - posição horizontal inicial do bônus
+     * @param y - posição vertical inicial do bônus
+     * @param type - tipo do bônus (ex: estrela, granada, capacete, etc)
      */
     Bonus(double x, double y, SpriteType type);
 
     /**
-     * Funkcja rysująca bonus.
+     * Desenha o bônus na tela, se estiver visível.
+     * Chama o método draw da classe base Object.
      */
     void draw();
+
     /**
-     * Funkcja uaktualniająca animacje bonusu. Pozwolenie na usunięcie po odpowiednim czasie.
-     * Zwiększenie częstotliwości migania jeżeli bonus ma niedługo zostać usunięty.
-     * @param dt - czas od ostatniego wywołania funkcji
+     * Atualiza a animação e o estado do bônus.
+     * Controla o tempo de exibição, define quando o bônus deve ser removido
+     * e aumenta a frequência do piscar quando está próximo de sumir.
+     * @param dt - tempo (em ms) desde a última atualização
      */
     void update(Uint32 dt);
+
 private:
     /**
-     * Czas od stworzenie bonusu.
+     * Tempo (em ms) desde a criação do bônus.
+     * Usado para controlar duração e frequência do piscar.
      */
     Uint32 m_bonus_show_time;
+
     /**
-     * Zmienna przechowująca informacje o tym czy bonus jest aktualnie wyświetlany; wykorzystywana do migania.
+     * Indica se o bônus está visível no momento.
+     * Usado para efeito de piscar antes de sumir.
      */
     bool m_show;
 };

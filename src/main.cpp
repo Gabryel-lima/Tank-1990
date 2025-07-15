@@ -1,20 +1,25 @@
 /**
  * \mainpage
  * \par Tanks
- * Gra w czołgi wzorowana na Battle City / Tank 1990 umożliwiająca grę przez jednego lub dwóch graczy
+ * Jogo de tanques inspirado em Battle City / Tank 1990, permitindo jogar sozinho ou em dupla.
  * \author Krystian Kałużny
  * \date 12.05.215
  * \version 1.0
- * \par Kontakt:
+ * \par Contato:
  * \a k.kaluzny141@gmail.com
-*/
+ */
 
 #include "app.h"
 
-int main( int argc, char* args[] )
+// Função principal do programa.
+// Inicializa a aplicação e executa o loop principal do jogo.
+int main(int argc, char* args[])
 {
+    // Cria a instância principal da aplicação
     App app;
+    // Inicia o loop principal do jogo
     app.run();
 
+    // Retorna 0 indicando execução bem-sucedida
     return 0;
 }
