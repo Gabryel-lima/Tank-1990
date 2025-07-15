@@ -13,6 +13,7 @@ Menu::Menu()
     // Adiciona as opções do menu
     m_menu_texts.push_back("1 Player");
     m_menu_texts.push_back("2 Players");
+    m_menu_texts.push_back("3 Players");
     m_menu_texts.push_back("Exit");
     m_menu_index = 0;
 
@@ -135,6 +136,12 @@ AppState* Menu::nextState()
     else if(m_menu_index == 1)
     {
         Game* g = new Game(2);
+        return g;
+    }
+    // Se a opção for "2 Players", inicia o jogo para 3 jogadores
+    else if (m_menu_index == 2)
+    {
+        Game* g = new Game(3);
         return g;
     }
     // Caso padrão: retorna nullptr

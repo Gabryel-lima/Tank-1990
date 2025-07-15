@@ -14,6 +14,7 @@ enum SpriteType
 
     ST_PLAYER_1,       // Sprite do jogador 1
     ST_PLAYER_2,       // Sprite do jogador 2
+    ST_PLAYER_3,       // Sprite do jogador 3
 
     ST_BRICK_WALL,     // Parede de tijolos (destrutível)
     ST_STONE_WALL,     // Parede de pedra (indestrutível)
