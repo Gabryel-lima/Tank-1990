@@ -18,7 +18,7 @@ Menu::Menu()
     m_menu_index = 0;
 
     // Cria o tanque que serve como ponteiro visual no menu
-    m_tank_pointer = new Player(0, 0 , ST_PLAYER_1);
+    m_tank_pointer = new Player(Player::PlayerKeys(), 0); // PlayerKeys() = teclado desconhecido, idx=0
     m_tank_pointer->direction = D_RIGHT;
     m_tank_pointer->pos_x = 144;
     m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 112;

@@ -10,7 +10,7 @@
 class Player : public Tank
 {
 public:
-
+    virtual ~Player();
     /**
      * @brief Estrutura que armazena os códigos das teclas responsáveis pelo controle do tanque do jogador.
      * Permite configurar quais teclas controlam cada direção e o disparo.
@@ -58,10 +58,11 @@ public:
 
     /**
      * Construtor padrão.
-     * Cria o jogador na primeira posição inicial definida em AppConfig.
-     * @see AppConfig::player_starting_point
+     * Cria o jogador na posição inicial definida em AppConfig.
+     * @param keys - configuração de teclas/controle
+     * @param idx - índice do controle
      */
-    Player();
+    Player(const PlayerKeys& keys, int idx);
 
     /**
      * Construtor parametrizado.
@@ -69,8 +70,9 @@ public:
      * @param x - posição horizontal inicial
      * @param y - posição vertical inicial
      * @param type - tipo do sprite do jogador
+     * @param idx - índice do controle
      */
-    Player(double x, double y, SpriteType type);
+    Player(double x, double y, SpriteType type, int idx);
 
     /**
      * Atualiza o estado do jogador.
@@ -120,6 +122,10 @@ public:
     unsigned score;
 
 private:
+    /**
+     * Ponteiro para o controle do jogador (caso use controle).
+     */
+    SDL_GameController* m_controller = nullptr;
     /**
      * Quantidade atual de estrelas do jogador; varia de 0 a 3.
      * Estrelas aumentam habilidades do tanque.

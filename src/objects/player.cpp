@@ -5,22 +5,30 @@
 
 // Construtor padrão do jogador.
 // Inicializa o jogador na posição inicial definida em AppConfig.
-Player::Player()
-    : Tank(AppConfig::player_starting_point.at(0).x, AppConfig::player_starting_point.at(0).y, ST_PLAYER_1)
+Player::Player(const PlayerKeys& keys, int idx)
+    : Tank(AppConfig::player_starting_point.at(idx).x, AppConfig::player_starting_point.at(idx).y, static_cast<SpriteType>(ST_PLAYER_1 + idx)), player_keys(keys)
 {
     speed = 0; // Velocidade inicial
     lives_count = 11; // Número inicial de vidas
     m_bullet_max_size = AppConfig::player_bullet_max_size; // Máximo de balas simultâneas
     score = 0; // Pontuação inicial
     star_count = 0; // Nível de power-up (estrelas)
-    m_shield = new Object(0, 0, ST_SHIELD); // Cria o escudo do jogador
+    m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
     m_shield_time = 0; // Tempo de escudo inicial
+    m_controller = nullptr;
+    if(player_keys.type == Player::InputType::Controller)
+    {
+        m_controller = SDL_GameControllerOpen(idx);
+        if (!m_controller) {
+            std::cerr << "Não abriu controller " << idx << ": " << SDL_GetError() << "\n";
+        }
+    }
     respawn(); // Posiciona o jogador e reseta estados
 }
 
 // Construtor parametrizado do jogador.
 // Permite definir posição e tipo do sprite.
-Player::Player(double x, double y, SpriteType type)
+Player::Player(double x, double y, SpriteType type, int idx)
     : Tank(x, y, type)
 {
    speed = 0;
@@ -30,54 +38,127 @@ Player::Player(double x, double y, SpriteType type)
    star_count = 0;
    m_shield = new Object(x, y, ST_SHIELD);
    m_shield_time = 0;
+   m_controller = nullptr;
+   if(player_keys.type == Player::InputType::Controller)
+   {
+       m_controller = SDL_GameControllerOpen(idx);
+       if (!m_controller) {
+           std::cerr << "Não abriu controller " << idx << ": " << SDL_GetError() << "\n";
+       }
+   }
    respawn();
+}
+
+// Destrutor do jogador.
+// Fecha o controle do jogador se aberto e libera o escudo se alocado.
+Player::~Player()
+{
+    if(m_controller)
+    {
+        SDL_GameControllerClose(m_controller);
+        m_controller = nullptr;
+    }
+    if(m_shield)
+    {
+        delete m_shield;
+        m_shield = nullptr;
+    }
 }
 
 // Atualiza o estado do jogador a cada frame.
 // Processa entrada do teclado, movimentação, tiro e animação.
 void Player::update(Uint32 dt)
 {
-    const Uint8 *key_state = SDL_GetKeyboardState(NULL); // Estado atual do teclado
-
     Tank::update(dt); // Atualiza lógica base do tanque
 
     // Só processa input se não estiver no menu
-    if(key_state != nullptr && !testFlag(TSF_MENU))
+    if(!testFlag(TSF_MENU))
     {
-        // Movimentação: verifica teclas direcionais
-        if(key_state[player_keys.up])
+        if(player_keys.type == Player::InputType::Keyboard)
         {
-            setDirection(D_UP);
-            speed = default_speed;
-        }
-        else if(key_state[player_keys.down])
-        {
-            setDirection(D_DOWN);
-            speed = default_speed;
-        }
-        else if(key_state[player_keys.left])
-        {
-            setDirection(D_LEFT);
-            speed = default_speed;
-        }
-        else if(key_state[player_keys.right])
-        {
-            setDirection(D_RIGHT);
-            speed = default_speed;
-        }
-        else
-        {
-            // Se não está no gelo ou não está escorregando, para o tanque
-            if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
-                speed = 0.0;
-        }
+            const Uint8 *key_state = SDL_GetKeyboardState(NULL); // Estado atual do teclado
+            if(key_state != nullptr)
+            {
+                // Movimentação: verifica teclas direcionais
+                if(key_state[player_keys.up])
+                {
+                    setDirection(D_UP);
+                    speed = default_speed;
+                }
+                else if(key_state[player_keys.down])
+                {
+                    setDirection(D_DOWN);
+                    speed = default_speed;
+                }
+                else if(key_state[player_keys.left])
+                {
+                    setDirection(D_LEFT);
+                    speed = default_speed;
+                }
+                else if(key_state[player_keys.right])
+                {
+                    setDirection(D_RIGHT);
+                    speed = default_speed;
+                }
+                else
+                {
+                    // Se não está no gelo ou não está escorregando, para o tanque
+                    if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
+                        speed = 0.0;
+                }
 
-        // Disparo: verifica tecla de tiro e tempo de recarga
-        if(key_state[player_keys.fire] && m_fire_time > AppConfig::player_reload_time)
-        {
-            fire();
-            m_fire_time = 0;
+                // Disparo: verifica tecla de tiro e tempo de recarga
+                if(key_state[player_keys.fire] && m_fire_time > AppConfig::player_reload_time)
+                {
+                    fire();
+                    m_fire_time = 0;
+                }
+            }
         }
+        else if (player_keys.type == Player::InputType::Controller && m_controller)
+        {
+            const Sint16 DEADZONE = 8000;
+        
+            // --- Vertical ---
+            Sint16 axis_v = SDL_GameControllerGetAxis(
+                m_controller,
+                SDL_GameControllerAxis(player_keys.axis_up)
+            );
+            if (axis_v < -DEADZONE) {
+                setDirection(D_UP);
+                speed = default_speed;
+            }
+            else if (axis_v > DEADZONE) {
+                setDirection(D_DOWN);
+                speed = default_speed;
+            }
+        
+            // --- Horizontal ---
+            Sint16 axis_h = SDL_GameControllerGetAxis(
+                m_controller,
+                SDL_GameControllerAxis(player_keys.axis_left)
+            );
+            if (axis_h < -DEADZONE) {
+                setDirection(D_LEFT);
+                speed = default_speed;
+            }
+            else if (axis_h > DEADZONE) {
+                setDirection(D_RIGHT);
+                speed = default_speed;
+            }
+        
+            // --- Disparo ---
+            if (player_keys.button_fire >= 0 &&
+                SDL_GameControllerGetButton(
+                    m_controller,
+                    SDL_GameControllerButton(player_keys.button_fire)
+                ) &&
+                m_fire_time > AppConfig::player_reload_time)
+            {
+                fire();
+                m_fire_time = 0;
+            }
+        }        
     }
 
     m_fire_time += dt; // Atualiza tempo desde o último tiro

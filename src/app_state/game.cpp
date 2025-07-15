@@ -905,30 +905,23 @@ void Game::nextLevel()
     {
         if(m_player_count == 2)
         {
-            Player* p1 = new Player(AppConfig::player_starting_point.at(0).x, AppConfig::player_starting_point.at(0).y, ST_PLAYER_1);
-            Player* p2 = new Player(AppConfig::player_starting_point.at(1).x, AppConfig::player_starting_point.at(1).y, ST_PLAYER_2);
-            p1->player_keys = AppConfig::player_keys.at(0);
-            p2->player_keys = AppConfig::player_keys.at(1);
+            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
+            Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
             m_players.push_back(p1);
             m_players.push_back(p2);
-
         }
-        if (m_player_count == 3) 
+        else if (m_player_count == 3) 
         {
-            Player* p1 = new Player(AppConfig::player_starting_point.at(0).x, AppConfig::player_starting_point.at(0).y, ST_PLAYER_1);
-            Player* p2 = new Player(AppConfig::player_starting_point.at(1).x, AppConfig::player_starting_point.at(1).y, ST_PLAYER_2);
-            Player* p3 = new Player(AppConfig::player_starting_point.at(2).x, AppConfig::player_starting_point.at(2).y, ST_PLAYER_3);
-            p1->player_keys = AppConfig::player_keys.at(0);
-            p2->player_keys = AppConfig::player_keys.at(1);
-            p3->player_keys = AppConfig::player_keys.at(2);
+            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
+            Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
+            Player* p3 = new Player(AppConfig::player_keys.at(2), 2);
             m_players.push_back(p1);
             m_players.push_back(p2);
             m_players.push_back(p3);
         }
         else
         {
-            Player* p1 = new Player(AppConfig::player_starting_point.at(0).x, AppConfig::player_starting_point.at(0).y, ST_PLAYER_1);
-            p1->player_keys = AppConfig::player_keys.at(0);
+            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
             m_players.push_back(p1);
         }
     }
