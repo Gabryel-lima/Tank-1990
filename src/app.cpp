@@ -32,7 +32,7 @@ void App::run()
     is_running = true;
     // Inicialização do SDL e criação da janela
 
-    if(SDL_Init(SDL_INIT_VIDEO) == 0)
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
     {
         // Cria a janela principal do jogo
         m_window = SDL_CreateWindow("TANKS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

@@ -63,7 +63,7 @@ public:
     static SDL_Rect tile_rect;
 
     /**
-     * Vetor com as duas posições iniciais dos jogadores (Player 1 e Player 2).
+     * Vetor com as duas posições iniciais dos jogadores (Player 1, Player 2 e Player 3).
      * Cada posição é um SDL_Point (x, y).
      */
     static vector<SDL_Point> player_starting_point;

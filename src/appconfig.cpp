@@ -27,7 +27,7 @@ SDL_Rect AppConfig::tile_rect = {0, 0, 16, 16};
 #else
     #define P1_FIRE_KEY SDL_SCANCODE_SPACE
     #define P2_FIRE_KEY SDL_SCANCODE_RCTRL
-    #define P3_FIRE_KEY SDL_SCANCODE_N
+    #define P3_FIRE_KEY SDL_SCANCODE_N // Não está legal isso aqui
 #endif
 
 // Pontos iniciais dos jogadores (posição de respawn)
@@ -54,12 +54,18 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
 vector<Player::PlayerKeys> AppConfig::player_keys =
 []{
     vector<Player::PlayerKeys> v;
-    // Jogador 1: setas + tecla de disparo
-    v.push_back({SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY});
-    // Jogador 2: WASD + tecla de disparo
-    v.push_back({SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY});
+    // Jogador 1: WASD + tecla de disparo
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY));
+    // Jogador 2: setas + tecla de disparo
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY));
     // Jogador 3: IJKL + tecla de disparo 
-    v.push_back({SDL_SCANCODE_I, SDL_SCANCODE_K, SDL_SCANCODE_J, SDL_SCANCODE_L, P3_FIRE_KEY});
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_I, SDL_SCANCODE_K, SDL_SCANCODE_J, SDL_SCANCODE_L, P3_FIRE_KEY));
+    // Jogador 1 (controle Xbox): analógico esquerdo + botão de disparo (X)
+    v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, SDL_CONTROLLER_AXIS_LEFTY, SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_BUTTON_X));
+    // Jogador 2 (controle Xbox): analógico esquerdo + botão de disparo (A)
+    v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, SDL_CONTROLLER_AXIS_LEFTY, SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_BUTTON_A));
+    // Jogador 3 (controle Xbox): analógico esquerdo + botão de disparo (B)
+    v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, SDL_CONTROLLER_AXIS_LEFTY, SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_AXIS_LEFTX, SDL_CONTROLLER_BUTTON_B));
     return v;
 }();
 

@@ -15,30 +15,45 @@ public:
      * @brief Estrutura que armazena os códigos das teclas responsáveis pelo controle do tanque do jogador.
      * Permite configurar quais teclas controlam cada direção e o disparo.
      */
+    enum class InputType {
+        Keyboard,
+        Controller
+    };
+    
     struct PlayerKeys
     {
-        PlayerKeys(): up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN), left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN) {}
-        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f): up(u), down(d), left(l), right(r), fire(f) {}
-        /**
-         * Tecla para mover para cima.
-         */
+        InputType type;
+
+        // Para teclado
         SDL_Scancode up;
-        /**
-         * Tecla para mover para baixo.
-         */
         SDL_Scancode down;
-        /**
-         * Tecla para mover para a esquerda.
-         */
         SDL_Scancode left;
-        /**
-         * Tecla para mover para a direita.
-         */
         SDL_Scancode right;
-        /**
-         * Tecla para disparar projétil.
-         */
         SDL_Scancode fire;
+
+        // Para controle
+        int axis_up;
+        int axis_down;
+        int axis_left;
+        int axis_right;
+        int button_fire;
+
+        // Construtor para teclado
+        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f)
+            : type(InputType::Keyboard), up(u), down(d), left(l), right(r), fire(f),
+              axis_up(-1), axis_down(-1), axis_left(-1), axis_right(-1), button_fire(-1) {}
+
+        // Construtor para controle
+        PlayerKeys(int a_up, int a_down, int a_left, int a_right, int b_fire)
+            : type(InputType::Controller), up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN),
+              left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN),
+              axis_up(a_up), axis_down(a_down), axis_left(a_left), axis_right(a_right), button_fire(b_fire) {}
+
+        // Construtor padrão
+        PlayerKeys()
+            : type(InputType::Keyboard), up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN),
+              left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN),
+              axis_up(-1), axis_down(-1), axis_left(-1), axis_right(-1), button_fire(-1) {}
     };
 
     /**
