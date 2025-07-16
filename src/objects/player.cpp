@@ -9,7 +9,7 @@ Player::Player(const PlayerKeys& keys, int idx)
     : Tank(AppConfig::player_starting_point.at(idx).x, AppConfig::player_starting_point.at(idx).y, static_cast<SpriteType>(ST_PLAYER_1 + idx)), player_keys(keys)
 {
     speed = 0; // Velocidade inicial
-    lives_count = 11; // Número inicial de vidas
+    lives_count = 4; // Número inicial de vidas
     m_bullet_max_size = AppConfig::player_bullet_max_size; // Máximo de balas simultâneas
     score = 0; // Pontuação inicial
     star_count = 0; // Nível de power-up (estrelas)
