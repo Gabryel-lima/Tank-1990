@@ -18,7 +18,8 @@ Menu::Menu()
     m_menu_index = 0;
 
     // Cria o tanque que serve como ponteiro visual no menu
-    m_tank_pointer = new Player(Player::PlayerKeys(), 0); // PlayerKeys() = teclado desconhecido, idx=0
+    // Usa controle configurado para o primeiro jogador
+    m_tank_pointer = new Player(AppConfig::player_keys.at(0), 0);
     m_tank_pointer->direction = D_RIGHT;
     m_tank_pointer->pos_x = 144;
     m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 112;
@@ -28,6 +29,10 @@ Menu::Menu()
     m_tank_pointer->clearFlag(TSF_SHIELD);
     m_tank_pointer->setFlag(TSF_MENU);
     m_finished = false;
+    
+    // Inicializa flags de controle
+    m_controller_up_pressed = false;
+    m_controller_down_pressed = false;
 }
 
 // Destrutor do Menu: libera o ponteiro do tanque
@@ -75,7 +80,7 @@ void Menu::update(Uint32 dt)
     m_tank_pointer->update(dt);
 }
 
-// Processa eventos de teclado para navegação e seleção no menu
+// Processa eventos de teclado e controle para navegação e seleção no menu
 void Menu::eventProcess(SDL_Event *ev)
 {
     if(ev->type == SDL_KEYDOWN)
@@ -107,6 +112,54 @@ void Menu::eventProcess(SDL_Event *ev)
         }
         // ESC: sai do menu
         else if(ev->key.keysym.sym == SDLK_ESCAPE)
+        {
+            m_menu_index = -1;
+            m_finished = true;
+        }
+    }
+    else if(ev->type == SDL_CONTROLLERAXISMOTION)
+    {
+        // Processa movimento do analógico do controle
+        const Sint16 DEADZONE = 8000;
+        
+        if(ev->caxis.axis == SDL_CONTROLLER_AXIS_LEFTY)
+        {
+            // Eixo vertical - apenas quando cruza a deadzone
+            if(ev->caxis.value < -DEADZONE && !m_controller_up_pressed)
+            {
+                m_controller_up_pressed = true;
+                m_menu_index--;
+                if(m_menu_index < 0)
+                    m_menu_index = m_menu_texts.size() - 1;
+                m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 110;
+            }
+            else if(ev->caxis.value > DEADZONE && !m_controller_down_pressed)
+            {
+                m_controller_down_pressed = true;
+                m_menu_index++;
+                if(m_menu_index >= static_cast<int>(m_menu_texts.size()))
+                    m_menu_index = 0;
+                m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 110;
+            }
+            else if(ev->caxis.value >= -DEADZONE && ev->caxis.value <= DEADZONE)
+            {
+                // Reset dos flags quando o analógico volta para o centro
+                m_controller_up_pressed = false;
+                m_controller_down_pressed = false;
+            }
+        }
+    }
+    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
+    {
+        // Botão A ou Start para selecionar
+        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_A || 
+           ev->cbutton.button == SDL_CONTROLLER_BUTTON_START)
+        {
+            m_finished = true;
+        }
+        // Botão B ou Back para sair
+        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_B || 
+                ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
         {
             m_menu_index = -1;
             m_finished = true;

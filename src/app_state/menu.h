@@ -38,10 +38,10 @@ public:
     void update(Uint32 dt) override;
 
     /**
-     * Processa eventos de teclado para navegação e seleção no menu.
-     * - Seta para cima/baixo: altera a opção selecionada.
-     * - Enter ou Espaço: confirma a seleção atual.
-     * - Esc: sai do programa.
+     * Processa eventos de teclado e controle para navegação e seleção no menu.
+     * - Seta para cima/baixo ou analógico: altera a opção selecionada.
+     * - Enter, Espaço, A ou Start: confirma a seleção atual.
+     * - Esc, B ou Back: sai do programa.
      * @param ev Ponteiro para a união SDL_Event contendo o tipo e parâmetros dos eventos.
      */
     void eventProcess(SDL_Event* ev) override;
@@ -72,6 +72,18 @@ private:
      * Indica se o menu deve ser finalizado e o estado deve ser trocado (iniciar jogo ou sair).
      */
     bool m_finished;
+
+    /**
+     * Flag para controlar se o botão "cima" do controle foi pressionado.
+     * Evita repetição de eventos quando o analógico é mantido pressionado.
+     */
+    bool m_controller_up_pressed;
+
+    /**
+     * Flag para controlar se o botão "baixo" do controle foi pressionado.
+     * Evita repetição de eventos quando o analógico é mantido pressionado.
+     */
+    bool m_controller_down_pressed;
 };
 
 #endif // MENU_H
