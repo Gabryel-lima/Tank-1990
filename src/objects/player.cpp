@@ -32,7 +32,7 @@ Player::Player(double x, double y, SpriteType type, int idx)
     : Tank(x, y, type)
 {
    speed = 0;
-   lives_count = 11;
+   lives_count = 4;
    m_bullet_max_size = AppConfig::player_bullet_max_size;
    score = 0;
    star_count = 0;
