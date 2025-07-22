@@ -61,8 +61,8 @@ vector<Player::PlayerKeys> AppConfig::player_keys =
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
     // Jogador 3: Controle 2
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
-    // Jogador 4: Teclado (setas + M)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_D, SDL_SCANCODE_A, SDL_SCANCODE_S, SDL_SCANCODE_SPACE));
+    // Jogador 4: Teclado (WASD + Space)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE));
     return v;
 }();
 
