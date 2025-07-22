@@ -37,6 +37,7 @@ vector<SDL_Point> AppConfig::player_starting_point =
     v.push_back({128, 384}); // Jogador 1
     v.push_back({256, 384}); // Jogador 2
     v.push_back({256, 320}); // Jogador 3
+    v.push_back({128, 320}); // Jogador 4
     return v;
 }();
 
@@ -60,6 +61,8 @@ vector<Player::PlayerKeys> AppConfig::player_keys =
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
     // Jogador 3: Controle 2
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
+    // Jogador 4: Teclado (setas + M)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_M));
     return v;
 }();
 
@@ -72,7 +75,7 @@ unsigned AppConfig::enemy_start_count = 20;
 // Tempo de espera (ms) para o próximo inimigo aparecer
 unsigned AppConfig::enemy_redy_time = 500;
 // Quantidade máxima de projéteis do jogador simultâneos
-unsigned AppConfig::player_bullet_max_size = 2;
+unsigned AppConfig::player_bullet_max_size = 1;
 // Tempo de exibição da pontuação (ms)
 unsigned AppConfig::score_show_time = 3000;
 // Tempo de exibição do bônus (ms)

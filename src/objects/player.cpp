@@ -191,16 +191,11 @@ void Player::respawn()
         return;
     }
 
-    // Define posição inicial conforme o tipo do jogador
-    if(type == ST_PLAYER_1)
-    {
-        pos_x = AppConfig::player_starting_point.at(0).x;
-        pos_y = AppConfig::player_starting_point.at(0).y;
-    }
-    else
-    {
-        pos_x = AppConfig::player_starting_point.at(1).x;
-        pos_y = AppConfig::player_starting_point.at(1).y;
+    // Usa o índice do tipo do jogador para buscar a posição correta
+    int idx = static_cast<int>(type) - static_cast<int>(ST_PLAYER_1);
+    if (idx >= 0 && idx < static_cast<int>(AppConfig::player_starting_point.size())) {
+        pos_x = AppConfig::player_starting_point.at(idx).x;
+        pos_y = AppConfig::player_starting_point.at(idx).y;
     }
 
     // Atualiza retângulo de destino do sprite

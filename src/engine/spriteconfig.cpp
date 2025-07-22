@@ -16,6 +16,7 @@ SpriteConfig::SpriteConfig()
     insert(ST_PLAYER_1, 640, 0, 32, 32, 2, 50, true);     // Jogador 1
     insert(ST_PLAYER_2, 768, 0, 32, 32, 2, 50, true);     // Jogador 2
     insert(ST_PLAYER_3, 768, 0, 32, 32, 2, 50, true);     // Jogador 3 mesma sprite do player 2
+    insert(ST_PLAYER_4, 640, 0, 32, 32, 2, 50, true);     // Jogador 4 mesma sprite do player 1
 
     // Elementos do cenário
     insert(ST_BRICK_WALL, 928, 0, 16, 16, 1, 200, false);     // Parede de tijolo

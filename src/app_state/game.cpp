@@ -919,6 +919,17 @@ void Game::nextLevel()
             m_players.push_back(p2);
             m_players.push_back(p3);
         }
+        else if (m_player_count == 4) 
+        {
+            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
+            Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
+            Player* p3 = new Player(AppConfig::player_keys.at(2), 2);
+            Player* p4 = new Player(AppConfig::player_keys.at(3), 3);
+            m_players.push_back(p1);
+            m_players.push_back(p2);
+            m_players.push_back(p3);
+            m_players.push_back(p4);
+        }
         else
         {
             Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
