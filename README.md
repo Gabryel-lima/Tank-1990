@@ -6,15 +6,22 @@ Jogo de tanques inspirado no clássico Battle City (Tank 1990), desenvolvido em 
 ![Primeira Fase](resources/img/stage_1.png)
 
 ## Sumário
-- [Descrição](#descrição)
-- [Estrutura do Código](#estrutura-do-código)
-- [Controles](#controles)
-- [Inimigos](#inimigos)
-- [Bônus](#bônus)
-- [Fases e Mapas](#fases-e-mapas)
-- [Compilação e Execução](#compilação-e-execução)
-- [Créditos e Contribuição](#créditos-e-contribuição)
-- [Dicas de Depuração](#dicas-de-depuração)
+- [Tank 1990 (Battle City Clone)](#tank-1990-battle-city-clone)
+  - [Sumário](#sumário)
+  - [Descrição](#descrição)
+  - [Estrutura do Código](#estrutura-do-código)
+  - [Controles](#controles)
+    - [Jogadores](#jogadores)
+    - [Teclas Globais](#teclas-globais)
+  - [Inimigos](#inimigos)
+  - [Bônus](#bônus)
+  - [Fases e Mapas](#fases-e-mapas)
+  - [Compilação e Execução](#compilação-e-execução)
+    - [Linux](#linux)
+    - [Mac](#mac)
+    - [Windows](#windows)
+  - [Créditos e Contribuição](#créditos-e-contribuição)
+  - [Dicas de Depuração](#dicas-de-depuração)
 
 ---
 
@@ -131,7 +138,7 @@ cd build/bin && ./Tanks.exe
 ## Créditos e Contribuição
 
 - Código original: Krystian Kałużny
-- Adaptação, engenharia reversa e documentação: [Seu Nome Aqui]
+- Adaptação, engenharia reversa e documentação: [Gabryel-lima]
 - SDL2: https://www.libsdl.org/
 
 Contribuições são bem-vindas! Para sugerir melhorias, abra um *pull request* ou *issue*.
