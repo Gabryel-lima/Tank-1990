@@ -1,144 +1,153 @@
-# Tanks
+# Tank 1990 (Battle City Clone)
 
-Implementation of Battle City / Tank 1990.
-Game was written in C++11 and SDL2 2D graphic library.
+Jogo de tanques inspirado no clássico Battle City (Tank 1990), desenvolvido em C++11 utilizando a biblioteca SDL2 para gráficos 2D. Permite jogar sozinho, em dupla ou até quatro jogadores (com controles). O projeto é modular, fácil de compilar e extensível.
 
-![Start menu](resources/img/start.png)
-![Stage one](resources/img/stage_1.png)
+![Menu Inicial](resources/img/start.png)
+![Primeira Fase](resources/img/stage_1.png)
 
-## Controls:
+## Sumário
+- [Descrição](#descrição)
+- [Estrutura do Código](#estrutura-do-código)
+- [Controles](#controles)
+- [Inimigos](#inimigos)
+- [Bônus](#bônus)
+- [Fases e Mapas](#fases-e-mapas)
+- [Compilação e Execução](#compilação-e-execução)
+- [Créditos e Contribuição](#créditos-e-contribuição)
+- [Dicas de Depuração](#dicas-de-depuração)
 
- - Player 1: arrows and right CTRL to fire
- - Player 2: WSAD and left CTRL to fire
- - Pause: ENTER
- - Jump to next stage: n
- - Jump to previous stage: b
- - Show targets of enemies: t
+---
 
-## Enemies
-Each enemy may fire only one bullet in the same time.
-If bullet hits target, brick or stage border and explodes then enemy may fire next one.
-Enemies may have one of four different armour levels. Each level have a different colour.
-After bullet hit armour level decrease.
-If the armour level falls to zero, then enemy is destroyed.
+## Descrição
 
-If enemy blinks, each hit create new bonus item on a map.
+Clone fiel do clássico Battle City/Tank 1990, com suporte a múltiplos jogadores, IA de inimigos, power-ups, física de gelo, destruição de cenário e sistema de fases. O código é organizado em módulos para facilitar manutenção e expansão.
 
-### Enemy types
+## Estrutura do Código
 
- - ![Enemy A](resources/img/enemy_a.png) A:
-    - target: closest player or eagle; 
-    - speed: normal: 
-    - behaviour: 80% to move towards the target, 20% to move in random direction,
-    - constantly fires in movement direction
- - ![Enemy B](resources/img/enemy_b.png) B: 
-    - target: eagle; 
-    - speed: 1.3 * normal; 
-    - behaviour: 50% to move towards the target, 50% to move in random direction, 
-    - constantly fires in movement direction
- - ![Enemy C](resources/img/enemy_c.png) C: 
-    - target: eagle; 
-    - speed: normal;
-    - behaviour: 50% to move towards the target, 50% to move in random direction, 
-    - constantly fires in movement direction
- - ![Enemy D](resources/img/enemy_d.png) D:
-    - target: closest player or eagle;
-    - speed: normal;
-    - behaviour: 50% to move towards the target, 50% to move in random direction,
-    - fires if target is in front of
+- `src/engine/` — Motor de renderização, sprites e lógica de física
+- `src/app_state/` — Estados da aplicação: menu, jogo, placar
+- `src/objects/` — Objetos do jogo: tanques, inimigos, projéteis, bônus, cenário
+- `src/app.cpp`/`app.h` — Ciclo principal da aplicação (main loop)
+- `src/appconfig.cpp`/`appconfig.h` — Configurações globais e parâmetros do jogo
+- `resources/` — Imagens, fontes, fases e DLLs (Windows)
 
+## Controles
 
-## Bonus items
+### Jogadores
+- **Jogador 1:** Controle (gamepad) 0
+- **Jogador 2:** Controle (gamepad) 1
+- **Jogador 3:** Controle (gamepad) 2
+- **Jogador 4:** Teclado (WASD para mover, Espaço para atirar)
 
- - ![Bonus grenade](resources/img/bonus_grenade.png) Grenade: all enemies are destroyed
- - ![Bonus helmet](resources/img/bonus_helmet.png) Helmet: active player shield for 10 seconds
- - ![Bonus clock](resources/img/bonus_clock.png) Clock: freeze all enemies for 8 seconds
- - ![Bonus shovel](resources/img/bonus_shovel.png) Shovel: create stone wall around eagle for 15 seconds
- - ![Bonus tank](resources/img/bonus_tank.png) Tank: increase player lives count 
- - ![Bonus star](resources/img/bonus_star.png) Star: increase player speed, each next one increase max bullets count
- - ![Bonus gun](resources/img/bonus_gun.png) Gun: same as three starts
- - ![Bonus boat](resources/img/bonus_boat.png) Boat: allows to move on the water
+> *Nota: Em Macbooks, o disparo pode ser adaptado para a tecla Alt caso não haja Ctrl direito.*
 
-## Levels
+### Teclas Globais
+- **Pause:** ENTER
+- **Próxima fase:** N
+- **Fase anterior:** B
+- **Mostrar alvo dos inimigos (debug):** T
+- **Sair/Voltar ao menu:** ESC
 
-Levels are plain text files in that are located in **levels** directory.
-Each level is a two dimensional array with 26 rows and 26 columns.
-Each field in the array should be one of following elements:
+## Inimigos
 
- - **.** Empty field
- - **#** ![Brick wall](resources/img/brick.png) Brick wall: it can be destroyed with two bullets or one if you collect three Stars or Gun
- - **@** ![Stone wall](resources/img/stone.png) Stone wall: it can be destroyed only if you collect three Stars or Gun bonus
- - **%** ![Bush](resources/img/bush.png) Bush: it can be erased only if you collect three Stars or Gun bonus
- - **~** ![Water](resources/img/water.png) Water: it is natural obstacle unless you collect Boat bonus
- - **-** ![Ice](resources/img/ice.png) Ice: tanks are slipping on it
+Cada inimigo pode disparar apenas um projétil por vez. Existem quatro tipos de inimigos, cada um com cor, armadura e comportamento distintos:
 
-## Build
+- **A:** Persegue o jogador ou águia, velocidade normal, comportamento 80% alvo/20% aleatório
+- **B:** Persegue a águia, 30% mais rápido, comportamento 50% alvo/50% aleatório
+- **C:** Persegue a águia, velocidade normal, comportamento 50% alvo/50% aleatório
+- **D:** Persegue o jogador ou águia, velocidade normal, comportamento 50% alvo/50% aleatório, só atira se o alvo está à frente
+
+Inimigos piscando ao serem atingidos podem gerar bônus.
+
+## Bônus
+
+- ![Granada](resources/img/bonus_grenade.png) **Granada:** destrói todos os inimigos visíveis
+- ![Capacete](resources/img/bonus_helmet.png) **Capacete:** escudo temporário (10s)
+- ![Relógio](resources/img/bonus_clock.png) **Relógio:** congela inimigos (8s)
+- ![Pá](resources/img/bonus_shovel.png) **Pá:** cria muralha de pedra ao redor da águia (15s)
+- ![Tanque](resources/img/bonus_tank.png) **Tanque:** +1 vida
+- ![Estrela](resources/img/bonus_star.png) **Estrela:** aumenta velocidade e projéteis
+- ![Arma](resources/img/bonus_gun.png) **Arma:** maximiza upgrades
+- ![Barco](resources/img/bonus_boat.png) **Barco:** permite atravessar água
+
+## Fases e Mapas
+
+Os mapas estão em `resources/levels/` e são arquivos texto 26x26:
+- `.`: vazio
+- `#`: parede de tijolo (destrutível)
+- `@`: pedra (só destrói com upgrades máximos)
+- `%`: arbusto (destrutível com upgrades máximos)
+- `~`: água (só atravessa com barco)
+- `-`: gelo (tanques escorregam)
+
+## Compilação e Execução
 
 ### Linux
+**Requisitos:**
+- make
+- libsdl2-dev
+- libsdl2-ttf-dev
+- libsdl2-image-dev
 
-#### Requirements
-
- - make
- - libsdl2-dev
- - libsdl2-ttf-dev
- - libsdl2-image-dev
- - doxygen-gui - _for docs generation (optional)_
- - doxygen - _for docs generation (optional)_
-
-On Debian based systems you can run (**apt** can by replaced with **apt-get** or **aptitude**):
-
-`sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev` 
+Instale com:
+```sh
+sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev
+```
+Compile e execute:
+```sh
+make clean all
+cd build/bin && ./Tanks
+```
 
 ### Mac
+**Requisitos:**
+- make
+- sdl2, sdl2_ttf, sdl2_image (via Homebrew)
 
-#### Requirements
-
- - make
- - sdl2
- - sdl2_ttf
- - sdl2_image
-
-`brew install sdl2 sdl2_ttf sdl2_image`
-
-#### Compilation
-
-In the project directory run:
-
-`make clean all`
-
-As a result **build** directory should be created.
-In **build/bin** there will be **Tanks** binary file with all necessary resources files.
-
-The Tanks has to be run from bin directory otherwise you got black screen.
-Have fun.
-
-`cd build/bin && ./Tanks`
-
-#### Documentation in Polish
-
-In the project directory run:
-
-`make doc`
+Instale com:
+```sh
+brew install sdl2 sdl2_ttf sdl2_image
+```
+Compile e execute:
+```sh
+make clean all
+cd build/bin && ./Tanks
+```
 
 ### Windows
+**Requisitos:**
+- MinGW (g++)
+- Variável MINGW_HOME configurada
+- Git Bash ou similar
 
-#### Requirements
+Compile e execute:
+```sh
+mingw32-make.exe clean all
+cd build/bin && ./Tanks.exe
+```
 
- - MinGW
- - mingw32-base-bin
- - mingw32-gcc-g++-bin
- - MINGW_HOME environment variable pointing to MinGW directory (eg. C:\MinGW)
- - MinGW bin directory added to **Path** environment variable (eg. C:\MinGW\bin)
- - GitBash or any similar package providing **cp** and **rm** commands
+> **Atenção:** Execute SEMPRE a partir do diretório `build/bin` para garantir que os recursos sejam encontrados.
 
-#### Compilation
+## Créditos e Contribuição
 
-In the project directory run GitBash and run:
+- Código original: Krystian Kałużny
+- Adaptação, engenharia reversa e documentação: [Seu Nome Aqui]
+- SDL2: https://www.libsdl.org/
 
-`mingw32-make.exe clean all`
+Contribuições são bem-vindas! Para sugerir melhorias, abra um *pull request* ou *issue*.
 
-As a result **build** directory should be created.
-In **build/bin** there will be **Tanks.exe** binary file with all necessary resources files.
-Have fun.
+## Dicas de Depuração
 
-`cd build/bin && ./Tanks.exe`
+- Para inspecionar variáveis críticas, adicione `printf` ou use breakpoints em funções de atualização de estado (ex: `Player::update`, `Game::update`).
+- Comandos básicos GDB:
+  - `break main` — para no início
+  - `break NomeDaFuncao` — para em função específica
+  - `run` — inicia o programa
+  - `next`/`step` — avança linha a linha
+  - `print variavel` — imprime valor
+  - `backtrace` — mostra pilha de chamadas
+- Para ver o alvo dos inimigos em tempo real, pressione `T` durante o jogo.
+
+---
+
+Divirta-se e sinta-se à vontade para modificar e expandir o projeto!
