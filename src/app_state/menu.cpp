@@ -7,6 +7,12 @@
 
 #include <iostream>
 
+// ----------------------------------------------------- //
+#include <SDL2/SDL_mixer.h>
+// Ponteiro global para o efeito sonoro do disparo
+extern Mix_Chunk* fxPlayerExp;
+// ----------------------------------------------------- //
+
 // Construtor do Menu: inicializa os textos do menu, índice e tanque indicador
 Menu::Menu()
 {
@@ -109,6 +115,8 @@ void Menu::eventProcess(SDL_Event *ev)
         // Espaço ou Enter: seleciona a opção atual
         else if(ev->key.keysym.sym == SDLK_SPACE || ev->key.keysym.sym == SDLK_RETURN)
         {
+            // sound, vem do extern de app.cpp
+            Mix_PlayChannel(1, fxPlayerExp, 0);
             m_finished = true;
         }
         // ESC: sai do menu
@@ -152,6 +160,9 @@ void Menu::eventProcess(SDL_Event *ev)
     }
     else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
     {
+        // sound, vem do extern de app.cpp
+        Mix_PlayChannel(1, fxPlayerExp, 0);
+
         // Botão A ou Start para selecionar
         if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_A || 
            ev->cbutton.button == SDL_CONTROLLER_BUTTON_START)

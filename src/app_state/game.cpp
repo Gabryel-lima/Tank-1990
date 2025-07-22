@@ -12,6 +12,12 @@
 #include <iostream>
 #include <cmath>
 
+// ----------------------------------------------------- //
+#include <SDL2/SDL_mixer.h>
+// Ponteiro global para o efeito sonoro do disparo
+extern Mix_Chunk* fxBonus;
+// ----------------------------------------------------- //
+
 // Construtor padrão do jogo
 Game::Game()
 {
@@ -813,6 +819,10 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
     SDL_Rect intersect_rect = intersectRect(&player->collision_rect, &bonus->collision_rect);
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
     {
+
+        // sound, vem do extern de app.cpp
+        Mix_PlayChannel(2, fxBonus, 0);
+
         player->score += 300;
 
         if(bonus->type == ST_BONUS_GRENADE)

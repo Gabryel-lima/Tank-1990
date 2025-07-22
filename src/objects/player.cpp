@@ -1,7 +1,13 @@
 #include "player.h"
 #include "../appconfig.h"
-#include <SDL2/SDL.h>
 #include <iostream>
+#include <SDL2/SDL.h>
+
+// ----------------------------------------------------- //
+#include <SDL2/SDL_mixer.h>
+// Ponteiro global para o efeito sonoro do disparo
+extern Mix_Chunk* fxPlayerExp;
+// ----------------------------------------------------- //
 
 // Construtor padrão do jogador.
 // Inicializa o jogador na posição inicial definida em AppConfig.
@@ -214,6 +220,9 @@ void Player::respawn()
 // Considera escudo, barco e nível de estrela antes de destruir de fato.
 void Player::destroy()
 {
+    // sound, vem do extern de app.cpp
+    Mix_PlayChannel(1, fxPlayerExp, 0);
+
     if(testFlag(TSF_SHIELD)) return; // Não destrói se estiver com escudo
     if(testFlag(TSF_BOAT))
     {
