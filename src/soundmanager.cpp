@@ -16,10 +16,13 @@ bool SoundManager::init() {
 }
 
 void SoundManager::loadSounds() {
-    m_sounds["shoot"] = Mix_LoadWAV("resources/sound/ShotFiring.wav");
     m_sounds["shell_exp"] = Mix_LoadWAV("resources/sound/ShellExplosion.wav");
     m_sounds["player_exp"] = Mix_LoadWAV("resources/sound/TankExplosion.wav");
-    m_sounds["bonus"] = Mix_LoadWAV("resources/sound/ShotCharging.wav");
+    m_sounds["shoot"] = Mix_LoadWAV("resources/sound/test/shoot.ogg");
+    m_sounds["game_over"] = Mix_LoadWAV("resources/sound/test/gameover.ogg");
+    m_sounds["bonus"] = Mix_LoadWAV("resources/sound/test/bonus.ogg");
+    m_sounds["level_starting"] = Mix_LoadWAV("resources/sound/test/levelstarting.ogg");
+    m_sounds["brick_hit"] = Mix_LoadWAV("resources/sound/test/brickhit.ogg");
 
     for (auto& [name, chunk] : m_sounds) {
         if (!chunk) {

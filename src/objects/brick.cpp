@@ -1,4 +1,5 @@
 #include "brick.h"
+#include "../soundmanager.h"
 #include <iostream>
 
 // Construtor padrão: inicializa o tijolo na posição (0,0) com sprite de parede de tijolo
@@ -25,6 +26,9 @@ void Brick::update(Uint32 dt)
 // Função chamada quando o tijolo é atingido por um tiro
 void Brick::bulletHit(Direction bullet_direction)
 {
+    // sound
+    SoundManager::getInstance().playSound("brick_hit");
+
     int bd = bullet_direction;
     m_collision_count++; // incrementa o número de colisões
 

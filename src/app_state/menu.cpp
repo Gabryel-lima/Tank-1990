@@ -110,9 +110,6 @@ void Menu::eventProcess(SDL_Event *ev)
         // Espaço ou Enter: seleciona a opção atual
         else if(ev->key.keysym.sym == SDLK_SPACE || ev->key.keysym.sym == SDLK_RETURN)
         {
-            // sound
-            SoundManager::getInstance().playSound("bonus");
-
             m_finished = true;
         }
         // ESC: sai do menu
@@ -156,9 +153,6 @@ void Menu::eventProcess(SDL_Event *ev)
     }
     else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
     {
-        // sound
-        SoundManager::getInstance().playSound("bonus");
-
         // Botão A ou Start para selecionar
         if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_A || 
            ev->cbutton.button == SDL_CONTROLLER_BUTTON_START)
