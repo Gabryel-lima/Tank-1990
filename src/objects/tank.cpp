@@ -1,10 +1,8 @@
 #include "tank.h"
 #include "../appconfig.h"
+#include "../soundmanager.h"
 #include <algorithm>
 
-#include <SDL2/SDL_mixer.h>
-extern Mix_Chunk* fxShoot;   // ← declara ponteiro carregado em app.cpp
-extern Mix_Chunk* fxShellExp;
 
 // Construtor padrão do Tank. Inicializa o tanque na posição inicial do inimigo 0.
 Tank::Tank()
@@ -181,8 +179,8 @@ Bullet* Tank::fire()
     if(bullets.size() < m_bullet_max_size)
     {
 
-        // sound, vem do extern de app.cpp
-        Mix_PlayChannel(0, fxShoot, 0);
+        // sound
+        // SoundManager::getInstance().playSound("shoot");
 
         // Inicializa o projétil em uma posição qualquer, pois ainda não sabemos o tamanho do projétil
         Bullet* bullet = new Bullet(pos_x, pos_y);
@@ -322,8 +320,8 @@ void Tank::destroy()
 {
     if(!testFlag(TSF_LIFE)) return;
 
-    // sound, vem do extern de app.cpp
-    Mix_PlayChannel(-1, fxShellExp, 0);
+    // sound
+    SoundManager::getInstance().playSound("shell_exp");
 
     stop = true;
     m_flags = TSF_DESTROYED;

@@ -3,6 +3,7 @@
 #include "engine/engine.h"
 #include "app_state/game.h"
 #include "app_state/menu.h"
+#include "soundmanager.h"
 
 #include <ctime>
 #include <iostream>
@@ -11,16 +12,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
-// ----------------------------------------------------- //
-#include <SDL2/SDL_mixer.h>
-// Ponteiro global para o efeito sonoro do disparo
-Mix_Chunk* fxShoot = nullptr;
-Mix_Chunk* fxShellExp = nullptr;
-Mix_Chunk* fxPlayerExp = nullptr;
-Mix_Chunk* fxBonus = nullptr;
-// ----------------------------------------------------- //
-
-#define VERSION "1.0.0"
+#define VERSION "1.2.1"
 
 // Construtor da classe App. Inicializa ponteiro da janela como nulo.
 App::App()
@@ -44,20 +36,9 @@ void App::run()
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
     {
 
-        // inicializa SDL_mixer
-        Mix_OpenAudio(48000, MIX_DEFAULT_FORMAT, 2, 1024);
-
-        // carrega efeito sonoro globalmente
-        fxShoot = Mix_LoadWAV("resources/sound/ShotFiring.wav");
-        fxShellExp = Mix_LoadWAV("resources/sound/ShellExplosion.wav");
-        fxPlayerExp = Mix_LoadWAV("resources/sound/TankExplosion.wav");
-        fxBonus = Mix_LoadWAV("resources/sound/ShotCharging.wav");
-        
-        // 50% de volume (0‑128)
-        Mix_VolumeChunk(fxShellExp, 64);
-        Mix_VolumeChunk(fxShoot, 64);
-        Mix_VolumeChunk(fxPlayerExp, 64);
-        Mix_VolumeChunk(fxBonus, 64);
+        // Inicializa e carrega sons
+        if (!SoundManager::getInstance().init()) return;
+        SoundManager::getInstance().loadSounds();
 
         // Cria a janela principal do jogo
         m_window = SDL_CreateWindow("TANKS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -134,15 +115,8 @@ void App::run()
     SDL_DestroyWindow(m_window);
     m_window = nullptr;
 
-    Mix_FreeChunk(fxShoot);
-    fxShoot = nullptr;
-    Mix_FreeChunk(fxShellExp);
-    fxShellExp = nullptr;
-    Mix_FreeChunk(fxPlayerExp);
-    fxPlayerExp = nullptr;
-    Mix_FreeChunk(fxBonus);
-    fxBonus = nullptr;
-    Mix_CloseAudio();
+    // No final da run()
+    SoundManager::getInstance().cleanup();
 
     TTF_Quit();
     IMG_Quit();

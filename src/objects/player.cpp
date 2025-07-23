@@ -1,13 +1,10 @@
 #include "player.h"
 #include "../appconfig.h"
+#include "../soundmanager.h"
+
 #include <iostream>
 #include <SDL2/SDL.h>
 
-// ----------------------------------------------------- //
-#include <SDL2/SDL_mixer.h>
-// Ponteiro global para o efeito sonoro do disparo
-extern Mix_Chunk* fxPlayerExp;
-// ----------------------------------------------------- //
 
 // Construtor padrão do jogador.
 // Inicializa o jogador na posição inicial definida em AppConfig.
@@ -220,8 +217,8 @@ void Player::respawn()
 // Considera escudo, barco e nível de estrela antes de destruir de fato.
 void Player::destroy()
 {
-    // sound, vem do extern de app.cpp
-    Mix_PlayChannel(1, fxPlayerExp, 0);
+    // sound
+    SoundManager::getInstance().playSound("player_exp");
 
     if(testFlag(TSF_SHIELD)) return; // Não destrói se estiver com escudo
     if(testFlag(TSF_BOAT))
@@ -248,6 +245,8 @@ Bullet* Player::fire()
     Bullet* b = Tank::fire();
     if(b != nullptr)
     {
+        // sound
+        SoundManager::getInstance().playSound("shoot");
         // Se tem pelo menos uma estrela, aumenta a velocidade do tiro
         if(star_count > 0) b->speed = AppConfig::bullet_default_speed * 1.3;
         // Se está no nível máximo, o tiro causa mais dano

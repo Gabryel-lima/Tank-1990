@@ -20,14 +20,13 @@ SDL_Rect AppConfig::tile_rect = {0, 0, 16, 16};
 
 // Teclas de disparo adaptadas para Macbooks (não possuem tecla Ctrl direita)
 // Macbook: usa Alt direito/esquerdo; outros: usa Ctrl direito/esquerdo
+// TODO:
 #if defined(__APPLE__) && defined(__MACH__)
     #define P1_FIRE_KEY SDL_SCANCODE_SPACE
     #define P2_FIRE_KEY SDL_SCANCODE_RALT
-    #define P3_FIRE_KEY SDL_SCANCODE_N
 #else
     #define P1_FIRE_KEY SDL_SCANCODE_SPACE
     #define P2_FIRE_KEY SDL_SCANCODE_RCTRL
-    #define P3_FIRE_KEY SDL_SCANCODE_N // Não está legal isso aqui
 #endif
 
 // Pontos iniciais dos jogadores (posição de respawn)

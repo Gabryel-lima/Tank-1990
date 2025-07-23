@@ -40,7 +40,7 @@ else
     endif
 
     LFLAGS = -O
-    CFLAGS = -c -Wall -std=c++11
+    CFLAGS = -c -Wall -std=c++17
     LIBS   = -lSDL2main -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf
     APP_RESOURCES = font/prstartk.ttf png/texture.png levels
     RESOURCES = $(APP_RESOURCES)

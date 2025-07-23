@@ -1,6 +1,7 @@
 #include "game.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
+#include "../soundmanager.h"
 #include "menu.h"
 #include "scores.h"
 
@@ -11,12 +12,6 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
-
-// ----------------------------------------------------- //
-#include <SDL2/SDL_mixer.h>
-// Ponteiro global para o efeito sonoro do disparo
-extern Mix_Chunk* fxBonus;
-// ----------------------------------------------------- //
 
 // Construtor padrão do jogo
 Game::Game()
@@ -820,8 +815,8 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
     {
 
-        // sound, vem do extern de app.cpp
-        Mix_PlayChannel(2, fxBonus, 0);
+        // sound
+        SoundManager::getInstance().playSound("bonus");
 
         player->score += 300;
 
