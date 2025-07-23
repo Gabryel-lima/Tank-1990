@@ -1,6 +1,6 @@
 # Tank 1990 (Battle City Clone)
 
-Jogo de tanques inspirado no clássico Battle City (Tank 1990), desenvolvido em C++11 utilizando a biblioteca SDL2 para gráficos 2D. Permite jogar sozinho, em dupla ou até quatro jogadores (com controles). O projeto é modular, fácil de compilar e extensível.
+Jogo de tanques inspirado no clássico Battle City (Tank 1990), desenvolvido em C++17 utilizando a biblioteca SDL2 para gráficos 2D. Permite jogar sozinho, em dupla ou até quatro jogadores (com controles). O projeto é modular, fácil de compilar e extensível.
 
 ![Menu Inicial](resources/img/start.png)
 ![Primeira Fase](resources/img/stage_1.png)
@@ -98,7 +98,7 @@ Os mapas estão em `resources/levels/` e são arquivos texto 26x26:
 
 Instale com:
 ```sh
-sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev
+sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-dev libsdl2-mixer-dev
 ```
 Compile e execute:
 ```sh
