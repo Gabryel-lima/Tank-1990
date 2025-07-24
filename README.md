@@ -95,10 +95,11 @@ Os mapas estão em `resources/levels/` e são arquivos texto 26x26:
 - libsdl2-dev
 - libsdl2-ttf-dev
 - libsdl2-image-dev
+- libsdl2-mixer-dev
 
 Instale com:
 ```sh
-sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-dev libsdl2-mixer-dev
+sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev
 ```
 Compile e execute:
 ```sh
