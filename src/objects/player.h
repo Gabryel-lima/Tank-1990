@@ -121,6 +121,18 @@ public:
      */
     unsigned score;
 
+    /**
+     * Adiciona uma vida ao jogador.
+     * Incrementa o contador de vidas do jogador.
+     */
+    void addLife();
+
+    /**
+     * Notifica que o escudo do jogador foi atingido.
+     * Pode ser usado para efeitos visuais ou lógicos ao receber impacto com escudo ativo.
+     */
+    void shieldHit();
+
 private:
     /**
      * Ponteiro para o controle do jogador (caso use controle).

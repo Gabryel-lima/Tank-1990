@@ -28,6 +28,9 @@ void Brick::bulletHit(Direction bullet_direction)
 {
     // sound
     SoundManager::getInstance().playSound("brick_hit");
+    if (type == ST_STONE_WALL) {
+        SoundManager::getInstance().playSound("steelhit");
+    }
 
     int bd = bullet_direction;
     m_collision_count++; // incrementa o número de colisões

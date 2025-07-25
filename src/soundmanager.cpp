@@ -23,6 +23,15 @@ void SoundManager::loadSounds() {
     m_sounds["bonus"] = Mix_LoadWAV("resources/sound/test/bonus.ogg");
     m_sounds["level_starting"] = Mix_LoadWAV("resources/sound/test/levelstarting.ogg");
     m_sounds["brick_hit"] = Mix_LoadWAV("resources/sound/test/brickhit.ogg");
+    // Nem todos os sons estão sendo utilizados. Melhor conferir daqui para baixo...
+    m_sounds["steelhit"] = Mix_LoadWAV("resources/sound/test/steelhit.ogg");
+    m_sounds["shieldhit"] = Mix_LoadWAV("resources/sound/test/shieldhit.ogg");
+    m_sounds["tbonushit"] = Mix_LoadWAV("resources/sound/test/tbonushit.ogg");
+    m_sounds["pause"] = Mix_LoadWAV("resources/sound/test/pause.ogg");
+    m_sounds["life"] = Mix_LoadWAV("resources/sound/test/life.ogg");
+    m_sounds["ice"] = Mix_LoadWAV("resources/sound/test/ice.ogg");
+    m_sounds["fexplosion"] = Mix_LoadWAV("resources/sound/test/fexplosion.ogg");
+    m_sounds["eexplosion"] = Mix_LoadWAV("resources/sound/test/eexplosion.ogg");
 
     for (auto& [name, chunk] : m_sounds) {
         if (!chunk) {

@@ -344,14 +344,21 @@ void Tank::destroy()
     dest_rect.y = pos_y + (dest_rect.h - m_sprite->rect.h)/2;
     dest_rect.h = m_sprite->rect.h;
     dest_rect.w = m_sprite->rect.w;
+
+    // No método destroy, se for inimigo:
+    if (type == ST_TANK_A || type == ST_TANK_B || type == ST_TANK_C || type == ST_TANK_D) {
+        SoundManager::getInstance().playSound("eexplosion");
+    }
 }
 
 // Seta uma flag de estado do tanque e inicializa efeitos especiais.
 void Tank::setFlag(TankStateFlag flag)
 {
     // Se ativando efeito de gelo, salva direção atual
-    if(!testFlag(flag) && flag == TSF_ON_ICE)
+    if(!testFlag(flag) && flag == TSF_ON_ICE) {
         new_direction = direction;
+        SoundManager::getInstance().playSound("ice");
+    }
 
     // Ativa escudo
     if(flag == TSF_SHIELD)
