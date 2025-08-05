@@ -17,7 +17,8 @@ public:
      */
     enum class InputType {
         Keyboard,
-        Controller
+        Controller,
+        Hybrid  // Suporte para teclado + controle simultaneamente
     };
     
     struct PlayerKeys
@@ -47,6 +48,12 @@ public:
         PlayerKeys(int a_up, int a_down, int a_left, int a_right, int b_fire)
             : type(InputType::Controller), up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN),
               left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN),
+              axis_up(a_up), axis_down(a_down), axis_left(a_left), axis_right(a_right), button_fire(b_fire) {}
+
+        // Construtor para input híbrido (teclado + controle)
+        PlayerKeys(SDL_Scancode k_up, SDL_Scancode k_down, SDL_Scancode k_left, SDL_Scancode k_right, SDL_Scancode k_fire,
+                   int a_up, int a_down, int a_left, int a_right, int b_fire)
+            : type(InputType::Hybrid), up(k_up), down(k_down), left(k_left), right(k_right), fire(k_fire),
               axis_up(a_up), axis_down(a_down), axis_left(a_left), axis_right(a_right), button_fire(b_fire) {}
 
         // Construtor padrão
