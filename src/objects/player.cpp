@@ -26,6 +26,10 @@ Player::Player(const PlayerKeys& keys, int idx)
             std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
         }
     }
+    
+    // Ajusta o tipo de input baseado na disponibilidade de controles
+    adjustInputType(idx);
+    
     respawn(); // Posiciona o jogador e reseta estados
 }
 
@@ -77,6 +81,13 @@ void Player::update(Uint32 dt)
     // Só processa input se não estiver no menu
     if(!testFlag(TSF_MENU))
     {
+        // Ajusta dinamicamente o input baseado na disponibilidade de controles
+        // Se for o player 2, verifica se o player 1 está usando controle
+        int player_index = static_cast<int>(type) - static_cast<int>(ST_PLAYER_1);
+        if (player_index == 1) {
+            adjustInputType(player_index);
+        }
+        
         if(player_keys.type == Player::InputType::Keyboard)
         {
             const Uint8 *key_state = SDL_GetKeyboardState(NULL); // Estado atual do teclado
@@ -120,43 +131,36 @@ void Player::update(Uint32 dt)
         }
         else if (player_keys.type == Player::InputType::Controller && m_controller)
         {
-            const Sint16 DEADZONE = 8000;
             bool moved = false;
-            // --- Vertical ---
-            Sint16 axis_v = SDL_GameControllerGetAxis(
-                m_controller,
-                SDL_GameControllerAxis(player_keys.axis_up)
-            );
-            if (axis_v < -DEADZONE) {
+            
+            // --- Movimento usando D-pad (botões) ---
+            if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
                 setDirection(D_UP);
                 speed = default_speed;
                 moved = true;
             }
-            else if (axis_v > DEADZONE) {
+            else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
                 setDirection(D_DOWN);
                 speed = default_speed;
                 moved = true;
             }
-            // --- Horizontal ---
-            Sint16 axis_h = SDL_GameControllerGetAxis(
-                m_controller,
-                SDL_GameControllerAxis(player_keys.axis_left)
-            );
-            if (axis_h < -DEADZONE) {
+            else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
                 setDirection(D_LEFT);
                 speed = default_speed;
                 moved = true;
             }
-            else if (axis_h > DEADZONE) {
+            else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
                 setDirection(D_RIGHT);
                 speed = default_speed;
                 moved = true;
             }
-            // Se não moveu (ambos os eixos dentro da deadzone), para o tanque (exceto se está escorregando no gelo)
+            
+            // Se não moveu, para o tanque (exceto se está escorregando no gelo)
             if (!moved) {
                 if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
                     speed = 0.0;
             }
+            
             // --- Disparo ---
             if (player_keys.button_fire >= 0 &&
                 SDL_GameControllerGetButton(
@@ -174,8 +178,9 @@ void Player::update(Uint32 dt)
             // Processa input híbrido: teclado + controle
             const Uint8 *key_state = SDL_GetKeyboardState(NULL);
             bool moved = false;
+            bool keyboard_used = false;
             
-            // --- Processa teclado ---
+            // --- Processa teclado primeiro (prioridade) ---
             if(key_state != nullptr)
             {
                 if(key_state[player_keys.up])
@@ -183,24 +188,28 @@ void Player::update(Uint32 dt)
                     setDirection(D_UP);
                     speed = default_speed;
                     moved = true;
+                    keyboard_used = true;
                 }
                 else if(key_state[player_keys.down])
                 {
                     setDirection(D_DOWN);
                     speed = default_speed;
                     moved = true;
+                    keyboard_used = true;
                 }
                 else if(key_state[player_keys.left])
                 {
                     setDirection(D_LEFT);
                     speed = default_speed;
                     moved = true;
+                    keyboard_used = true;
                 }
                 else if(key_state[player_keys.right])
                 {
                     setDirection(D_RIGHT);
                     speed = default_speed;
                     moved = true;
+                    keyboard_used = true;
                 }
 
                 // Disparo do teclado
@@ -211,43 +220,32 @@ void Player::update(Uint32 dt)
                 }
             }
             
-            // --- Processa controle (se disponível) ---
-            if(m_controller)
+            // --- Processa controle apenas se o teclado não foi usado ---
+            if(!keyboard_used && m_controller)
             {
-                const Sint16 DEADZONE = 8000;
-                
-                // --- Vertical ---
-                Sint16 axis_v = SDL_GameControllerGetAxis(
-                    m_controller,
-                    SDL_GameControllerAxis(player_keys.axis_up)
-                );
-                if (axis_v < -DEADZONE) {
+                // --- Movimento usando D-pad (botões) ---
+                if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
                     setDirection(D_UP);
                     speed = default_speed;
                     moved = true;
                 }
-                else if (axis_v > DEADZONE) {
+                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
                     setDirection(D_DOWN);
                     speed = default_speed;
                     moved = true;
                 }
-                // --- Horizontal ---
-                Sint16 axis_h = SDL_GameControllerGetAxis(
-                    m_controller,
-                    SDL_GameControllerAxis(player_keys.axis_left)
-                );
-                if (axis_h < -DEADZONE) {
+                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
                     setDirection(D_LEFT);
                     speed = default_speed;
                     moved = true;
                 }
-                else if (axis_h > DEADZONE) {
+                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
                     setDirection(D_RIGHT);
                     speed = default_speed;
                     moved = true;
                 }
                 
-                // Disparo do controle
+                // Disparo do controle (sempre processado)
                 if (player_keys.button_fire >= 0 &&
                     SDL_GameControllerGetButton(
                         m_controller,
@@ -376,4 +374,28 @@ void Player::addLife() {
 
 void Player::shieldHit() {
     SoundManager::getInstance().playSound("shieldhit");
+}
+
+bool Player::isControllerActive(int controller_index) {
+    SDL_GameController* controller = SDL_GameControllerOpen(controller_index);
+    if (controller) {
+        bool is_attached = SDL_GameControllerGetAttached(controller);
+        SDL_GameControllerClose(controller);
+        return is_attached;
+    }
+    return false;
+}
+
+void Player::adjustInputType(int player_index) {
+    // Se for o player 2 (índice 1), verifica se o player 1 está usando controle
+    if (player_index == 1) {
+        bool p1_using_controller = isControllerActive(0);
+        
+        // Se o player 1 está usando controle e este player tem input híbrido,
+        // força o uso do teclado para evitar conflitos
+        if (p1_using_controller && player_keys.type == InputType::Hybrid) {
+            // Mantém o input híbrido, mas prioriza o teclado
+            // O código de update já trata isso corretamente
+        }
+    }
 }

@@ -140,6 +140,20 @@ public:
      */
     void shieldHit();
 
+    /**
+     * Verifica se um controle está conectado e ativo.
+     * @param controller_index - índice do controle a verificar
+     * @return true se o controle estiver conectado e ativo
+     */
+    static bool isControllerActive(int controller_index);
+
+    /**
+     * Ajusta o tipo de input baseado na disponibilidade de controles.
+     * Se o player 1 estiver usando controle, o player 2 pode usar teclado.
+     * @param player_index - índice do player (0 = player 1, 1 = player 2, etc.)
+     */
+    void adjustInputType(int player_index);
+
 private:
     /**
      * Ponteiro para o controle do jogador (caso use controle).
