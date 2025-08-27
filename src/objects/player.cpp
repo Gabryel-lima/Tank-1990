@@ -133,26 +133,64 @@ void Player::update(Uint32 dt)
         {
             bool moved = false;
             
-            // --- Movimento usando D-pad (botões) ---
-            if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
-                setDirection(D_UP);
-                speed = default_speed;
-                moved = true;
+            // --- Movimento usando analógicos ou D-pad ---
+            // Verifica se são analógicos (valores negativos indicam analógicos)
+            if (player_keys.axis_up < 0 || player_keys.axis_down < 0 || 
+                player_keys.axis_left < 0 || player_keys.axis_right < 0)
+            {
+                // Processa analógicos
+                const Sint16 DEADZONE = 4000;
+                
+                // Lê os valores dos analógicos
+                Sint16 axis_y = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY);
+                Sint16 axis_x = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTX);
+                
+                // Processa movimento vertical (eixo Y)
+                if (axis_y < -DEADZONE) {
+                    setDirection(D_UP);
+                    speed = default_speed;
+                    moved = true;
+                }
+                else if (axis_y > DEADZONE) {
+                    setDirection(D_DOWN);
+                    speed = default_speed;
+                    moved = true;
+                }
+                // Processa movimento horizontal (eixo X)
+                else if (axis_x < -DEADZONE) {
+                    setDirection(D_LEFT);
+                    speed = default_speed;
+                    moved = true;
+                }
+                else if (axis_x > DEADZONE) {
+                    setDirection(D_RIGHT);
+                    speed = default_speed;
+                    moved = true;
+                }
             }
-            else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
-                setDirection(D_DOWN);
-                speed = default_speed;
-                moved = true;
-            }
-            else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
-                setDirection(D_LEFT);
-                speed = default_speed;
-                moved = true;
-            }
-            else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
-                setDirection(D_RIGHT);
-                speed = default_speed;
-                moved = true;
+            else
+            {
+                // Processa D-pad (botões)
+                if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
+                    setDirection(D_UP);
+                    speed = default_speed;
+                    moved = true;
+                }
+                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
+                    setDirection(D_DOWN);
+                    speed = default_speed;
+                    moved = true;
+                }
+                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
+                    setDirection(D_LEFT);
+                    speed = default_speed;
+                    moved = true;
+                }
+                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
+                    setDirection(D_RIGHT);
+                    speed = default_speed;
+                    moved = true;
+                }
             }
             
             // Se não moveu, para o tanque (exceto se está escorregando no gelo)
@@ -223,26 +261,64 @@ void Player::update(Uint32 dt)
             // --- Processa controle apenas se o teclado não foi usado ---
             if(!keyboard_used && m_controller)
             {
-                // --- Movimento usando D-pad (botões) ---
-                if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
-                    setDirection(D_UP);
-                    speed = default_speed;
-                    moved = true;
+                // --- Movimento usando analógicos ou D-pad ---
+                // Verifica se são analógicos (valores negativos indicam analógicos)
+                if (player_keys.axis_up < 0 || player_keys.axis_down < 0 || 
+                    player_keys.axis_left < 0 || player_keys.axis_right < 0)
+                {
+                    // Processa analógicos
+                    const Sint16 DEADZONE = 8000;
+                    
+                    // Lê os valores dos analógicos
+                    Sint16 axis_y = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY);
+                    Sint16 axis_x = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTX);
+                    
+                    // Processa movimento vertical (eixo Y)
+                    if (axis_y < -DEADZONE) {
+                        setDirection(D_UP);
+                        speed = default_speed;
+                        moved = true;
+                    }
+                    else if (axis_y > DEADZONE) {
+                        setDirection(D_DOWN);
+                        speed = default_speed;
+                        moved = true;
+                    }
+                    // Processa movimento horizontal (eixo X)
+                    else if (axis_x < -DEADZONE) {
+                        setDirection(D_LEFT);
+                        speed = default_speed;
+                        moved = true;
+                    }
+                    else if (axis_x > DEADZONE) {
+                        setDirection(D_RIGHT);
+                        speed = default_speed;
+                        moved = true;
+                    }
                 }
-                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
-                    setDirection(D_DOWN);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
-                    setDirection(D_LEFT);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
-                    setDirection(D_RIGHT);
-                    speed = default_speed;
-                    moved = true;
+                else
+                {
+                    // Processa D-pad (botões)
+                    if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
+                        setDirection(D_UP);
+                        speed = default_speed;
+                        moved = true;
+                    }
+                    else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
+                        setDirection(D_DOWN);
+                        speed = default_speed;
+                        moved = true;
+                    }
+                    else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
+                        setDirection(D_LEFT);
+                        speed = default_speed;
+                        moved = true;
+                    }
+                    else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
+                        setDirection(D_RIGHT);
+                        speed = default_speed;
+                        moved = true;
+                    }
                 }
                 
                 // Disparo do controle (sempre processado)

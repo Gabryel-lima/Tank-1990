@@ -8,17 +8,19 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 - Suporte a 1-4 jogadores
 - Controles configuráveis (teclado e gamepad)
 - **Controle adaptativo**: Player 2 pode usar WASD + Space automaticamente quando Player 1 estiver usando controle
+- **Analógicos para Player 1**: Suporte completo aos analógicos do controle para movimento suave
 - Sistema de pontuação
 - Power-ups e bônus
 - Efeitos sonoros
-- D-pad digital para controles (mais preciso que analógico)
+- D-pad digital para controles (Players 2-4)
 
 ## Controles
 
 ### Player 1
 - **Teclado**: WASD para movimento, Space para atirar
-- **Controle**: D-pad para movimento, X para atirar
-- **Híbrido**: Ambos simultaneamente
+- **Controle**: Analógicos para movimento, X para atirar
+- **Híbrido**: Ambos simultaneamente (teclado tem prioridade)
+- **Deadzone**: 4000 para precisão nos analógicos
 
 ### Player 2
 - **Teclado**: WASD para movimento, Space para atirar
@@ -43,7 +45,7 @@ O jogo detecta automaticamente quando o Player 1 está usando controle e ajusta 
 ## Configuração Atual
 
 ```cpp
-// Player 1: Híbrido (WASD + Space + D-pad + X)
+// Player 1: Híbrido (WASD + Space + Analógicos + X)
 // Player 2: Híbrido (WASD + Space + D-pad + X) - adaptativo
 // Player 3: Controle (D-pad + X)
 // Player 4: Controle (D-pad + X)
@@ -59,8 +61,20 @@ make
 ## Execução
 
 ```bash
-./tank1990
+./build/bin/Tanks
 ```
+
+### Como Usar os Analógicos (Player 1):
+
+1. **Conecte um controle** ao computador
+2. **Execute o jogo** e selecione "1 Player" no menu
+3. **Use o analógico esquerdo** para mover o tanque:
+   - **Para cima**: Empurre o analógico para cima
+   - **Para baixo**: Empurre o analógico para baixo
+   - **Para esquerda**: Empurre o analógico para a esquerda
+   - **Para direita**: Empurre o analógico para a direita
+4. **Use o botão X** para atirar
+5. **Alternativamente**: Use WASD + Space no teclado (tem prioridade)
 
 ## Estrutura do Projeto
 
@@ -74,7 +88,9 @@ make
 - ✅ Detecção automática de controles conectados
 - ✅ Ajuste dinâmico de input baseado na disponibilidade de controles
 - ✅ Priorização inteligente de teclado vs controle
-- ✅ Suporte completo ao D-pad digital
+- ✅ **Suporte completo aos analógicos do Player 1**
+- ✅ Suporte completo ao D-pad digital (Players 2-4)
+- ✅ Deadzone configurável para analógicos (4000)
 - ✅ Funciona em tempo real durante o jogo
 - ✅ Sistema de power-ups e estrelas
 - ✅ Múltiplos níveis com dificuldade progressiva
@@ -86,6 +102,29 @@ make
 2. **Ajuste**: Se Player 1 usa controle, Player 2 pode usar teclado sem conflitos
 3. **Priorização**: O teclado tem prioridade sobre o controle para Player 2
 4. **Tempo Real**: Ajustes são feitos dinamicamente durante o jogo
+
+## Suporte aos Analógicos (Player 1)
+
+O Player 1 possui suporte completo aos analógicos do controle:
+
+### Características:
+- **Eixo Y (Vertical)**: Movimento para cima/baixo
+- **Eixo X (Horizontal)**: Movimento para esquerda/direita
+- **Deadzone**: 4000 para evitar movimento acidental
+- **Detecção Automática**: O sistema detecta automaticamente se são analógicos ou botões
+- **Compatibilidade**: Funciona com qualquer controle compatível com SDL2
+
+### Como Funciona:
+1. **Detecção**: Valores negativos nos eixos indicam analógicos
+2. **Leitura**: `SDL_GameControllerGetAxis()` lê os valores dos analógicos
+3. **Processamento**: Aplica deadzone e converte para direções do jogo
+4. **Prioridade**: Teclado tem prioridade sobre analógicos no modo híbrido
+
+### Configuração Técnica:
+```cpp
+// Player 1: Analógicos configurados
+SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X
+```
 
 ## Tecnologias Utilizadas
 
