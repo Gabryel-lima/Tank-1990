@@ -22,15 +22,15 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 - **Fallback**: WASD + Space (se controle não disponível)
 
 ### Player 2
-- **Teclado Dedicado**: WASD para movimento, Space para atirar
+- **Teclado Dedicado**: Setas direcionais (↑ ↓ ← →) para movimento, Space para atirar
 - **Sempre usa teclado**: Configurado exclusivamente para teclado
 
 ### Player 3
-- **Controle Físico 1**: D-pad para movimento, X para atirar
+- **Controle Físico 2**: D-pad para movimento, X para atirar
 - **Fallback**: Setas direcionais + Right Shift (se controle não disponível)
 
 ### Player 4
-- **Controle Físico 2**: D-pad para movimento, X para atirar
+- **Controle Físico 3**: D-pad para movimento, X para atirar
 - **Fallback**: Teclado numérico (8456 + Enter) (se controle não disponível)
 
 ## Sistema Inteligente de Controles
@@ -49,7 +49,7 @@ O jogo possui um sistema robusto de detecção e atribuição de controles:
 
 ### Teclas de Fallback por Jogador
 - **Player 1**: W A S D + Space
-- **Player 2**: W A S D + Space (dedicado)
+- **Player 2**: ↑ ↓ ← → + Space (dedicado)
 - **Player 3**: ↑ ↓ ← → + Right Shift
 - **Player 4**: Numpad 8 4 5 6 + Enter
 
@@ -57,9 +57,9 @@ O jogo possui um sistema robusto de detecção e atribuição de controles:
 
 ```cpp
 // Player 1: Controle 0 (Analógicos + X)
-// Player 2: Teclado (WASD + Space) - dedicado
-// Player 3: Controle 1 (D-pad + X)
-// Player 4: Controle 2 (D-pad + X)
+// Player 2: Teclado (Setas + Space) - dedicado
+// Player 3: Controle 2 (D-pad + X)
+// Player 4: Controle 3 (D-pad + X)
 ```
 
 ## Compilação
@@ -77,13 +77,13 @@ make
 
 ### Como Configurar Múltiplos Jogadores:
 
-1. **Conecte os controles** ao computador (até 3 controles para 4 jogadores)
+1. **Conecte os controles** ao computador (até 4 controles para 4 jogadores, sendo que Player 2 usa teclado)
 2. **Execute o jogo** e selecione quantos jogadores no menu
 3. **Configuração automática**:
    - Player 1 usa o primeiro controle (analógicos)
-   - Player 2 sempre usa teclado (WASD + Space)
-   - Player 3 usa o segundo controle (D-pad)
-   - Player 4 usa o terceiro controle (D-pad)
+   - Player 2 sempre usa teclado (Setas + Space)
+   - Player 3 usa o terceiro controle (D-pad)
+   - Player 4 usa o quarto controle (D-pad)
 4. **Se não há controles suficientes**: Jogadores sem controle usam teclas exclusivas
 5. **Mensagens de debug**: O console mostra quais controles foram detectados
 
@@ -140,13 +140,13 @@ O Player 1 possui suporte completo aos analógicos do controle:
 SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X
 
 // Player 2: Teclado dedicado
-SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE
+SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_SPACE
 
-// Player 3: D-pad (controle físico 1)
+// Player 3: D-pad (controle físico 2)
 SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, 
 SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
 
-// Player 4: D-pad (controle físico 2)
+// Player 4: D-pad (controle físico 3)
 SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN,
 SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
 ```

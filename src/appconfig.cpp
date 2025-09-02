@@ -57,8 +57,8 @@ vector<Player::PlayerKeys> AppConfig::player_keys =
     // Jogador 1: Controle 0 (analógicos)
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
 
-    // Jogador 2: Apenas teclado
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE));
+    // Jogador 2: Apenas teclado (setas direcionais)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_SPACE));
 
     // Jogador 3: Controle 2 (D-pad)
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X));
