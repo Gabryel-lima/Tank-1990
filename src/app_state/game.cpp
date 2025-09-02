@@ -925,7 +925,7 @@ void Game::nextLevel()
         {
             Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
             Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
-            Player* p3 = new Player(AppConfig::player_keys.at(2), 2);
+            Player* p3 = new Player(AppConfig::player_keys.at(2), 1); // Player 3 usa controle físico 1
             m_players.push_back(p1);
             m_players.push_back(p2);
             m_players.push_back(p3);
@@ -934,8 +934,8 @@ void Game::nextLevel()
         {
             Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
             Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
-            Player* p3 = new Player(AppConfig::player_keys.at(2), 2);
-            Player* p4 = new Player(AppConfig::player_keys.at(3), 3);
+            Player* p3 = new Player(AppConfig::player_keys.at(2), 1); // Player 3 usa controle físico 1
+            Player* p4 = new Player(AppConfig::player_keys.at(3), 2); // Player 4 usa controle físico 2
             m_players.push_back(p1);
             m_players.push_back(p2);
             m_players.push_back(p3);

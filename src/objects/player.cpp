@@ -21,9 +21,15 @@ Player::Player(const PlayerKeys& keys, int idx)
     m_controller = nullptr;
     if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
     {
-        m_controller = SDL_GameControllerOpen(idx);
-        if (!m_controller) {
-            std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
+        // Verifica se há controles suficientes conectados
+        int num_joysticks = SDL_NumJoysticks();
+        if (idx < num_joysticks && SDL_IsGameController(idx)) {
+            m_controller = SDL_GameControllerOpen(idx);
+            if (!m_controller) {
+                std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
+            }
+        } else {
+            std::cerr << "Controle " << idx << " não disponível ou não é um game controller válido. Controles conectados: " << num_joysticks << "\n";
         }
     }
     
@@ -48,9 +54,15 @@ Player::Player(double x, double y, SpriteType type, int idx)
    m_controller = nullptr;
    if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
    {
-       m_controller = SDL_GameControllerOpen(idx);
-       if (!m_controller) {
-           std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
+       // Verifica se há controles suficientes conectados
+       int num_joysticks = SDL_NumJoysticks();
+       if (idx < num_joysticks && SDL_IsGameController(idx)) {
+           m_controller = SDL_GameControllerOpen(idx);
+           if (!m_controller) {
+               std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
+           }
+       } else {
+           std::cerr << "Controle " << idx << " não disponível ou não é um game controller válido. Controles conectados: " << num_joysticks << "\n";
        }
    }
    respawn();
@@ -455,20 +467,75 @@ void Player::shieldHit() {
 }
 
 bool Player::isControllerActive(int controller_index) {
-    SDL_GameController* controller = SDL_GameControllerOpen(controller_index);
-    if (controller) {
-        bool is_attached = SDL_GameControllerGetAttached(controller);
-        SDL_GameControllerClose(controller);
-        return is_attached;
+    int num_joysticks = SDL_NumJoysticks();
+    if (controller_index < num_joysticks && SDL_IsGameController(controller_index)) {
+        SDL_GameController* controller = SDL_GameControllerOpen(controller_index);
+        if (controller) {
+            bool is_attached = SDL_GameControllerGetAttached(controller);
+            SDL_GameControllerClose(controller);
+            return is_attached;
+        }
     }
     return false;
 }
 
 void Player::adjustInputType(int player_index) {
+    // Verifica se há controles suficientes para todos os jogadores
+    int num_joysticks = SDL_NumJoysticks();
+    int available_controllers = 0;
+    for (int i = 0; i < num_joysticks; ++i) {
+        if (SDL_IsGameController(i)) {
+            available_controllers++;
+        }
+    }
+
+    // Se não há controles suficientes, força o uso do teclado para jogadores que precisam de controle
+    if (available_controllers < player_index + 1) {
+        if (player_keys.type == InputType::Controller) {
+            std::cerr << "Não há controle suficiente para o jogador " << (player_index + 1) << ". Usando apenas teclado.\n";
+            player_keys.type = InputType::Keyboard;
+            // Define teclas exclusivas do teclado para cada jogador
+            switch (player_index) {
+                case 0: // Player 1
+                    player_keys.up = SDL_SCANCODE_W;
+                    player_keys.down = SDL_SCANCODE_S;
+                    player_keys.left = SDL_SCANCODE_A;
+                    player_keys.right = SDL_SCANCODE_D;
+                    player_keys.fire = SDL_SCANCODE_SPACE;
+                    break;
+                case 1: // Player 2
+                    player_keys.up = SDL_SCANCODE_I;
+                    player_keys.down = SDL_SCANCODE_K;
+                    player_keys.left = SDL_SCANCODE_J;
+                    player_keys.right = SDL_SCANCODE_L;
+                    player_keys.fire = SDL_SCANCODE_RETURN;
+                    break;
+                case 2: // Player 3
+                    player_keys.up = SDL_SCANCODE_UP;
+                    player_keys.down = SDL_SCANCODE_DOWN;
+                    player_keys.left = SDL_SCANCODE_LEFT;
+                    player_keys.right = SDL_SCANCODE_RIGHT;
+                    player_keys.fire = SDL_SCANCODE_RSHIFT;
+                    break;
+                case 3: // Player 4
+                    player_keys.up = SDL_SCANCODE_KP_8;
+                    player_keys.down = SDL_SCANCODE_KP_5;
+                    player_keys.left = SDL_SCANCODE_KP_4;
+                    player_keys.right = SDL_SCANCODE_KP_6;
+                    player_keys.fire = SDL_SCANCODE_KP_ENTER;
+                    break;
+            }
+        } else if (player_keys.type == InputType::Hybrid) {
+            std::cerr << "Não há controle suficiente para o jogador " << (player_index + 1) << ". Usando apenas teclado.\n";
+            player_keys.type = InputType::Keyboard;
+            // Para input híbrido, mantém as teclas originais do teclado
+        }
+    }
+
     // Se for o player 2 (índice 1), verifica se o player 1 está usando controle
     if (player_index == 1) {
         bool p1_using_controller = isControllerActive(0);
-        
+
         // Se o player 1 está usando controle e este player tem input híbrido,
         // força o uso do teclado para evitar conflitos
         if (p1_using_controller && player_keys.type == InputType::Hybrid) {

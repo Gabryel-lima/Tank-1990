@@ -54,16 +54,16 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
 vector<Player::PlayerKeys> AppConfig::player_keys =
 []{
     vector<Player::PlayerKeys> v;
-    // Jogador 1: Input híbrido (teclado WASD + Space + controle 0)
+    // Jogador 1: Controle 0 (analógicos)
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
-                                   
-    // Jogador 2: Input híbrido (teclado WASD + Space + controle 1) - pode usar teclado se player 1 usar controle
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE,
-                                   SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X));
-    // Jogador 3: Controle 2
+
+    // Jogador 2: Apenas teclado
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE));
+
+    // Jogador 3: Controle 2 (D-pad)
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X));
 
-    // Jogador 4: Controle 3
+    // Jogador 4: Controle 3 (D-pad)
     v.push_back(Player::PlayerKeys(SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X));
     return v;
 }();

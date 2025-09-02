@@ -5,50 +5,61 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 ## Funcionalidades
 
 - Jogo completo com múltiplos níveis (36 níveis)
-- Suporte a 1-4 jogadores
-- Controles configuráveis (teclado e gamepad)
-- **Controle adaptativo**: Player 2 pode usar WASD + Space automaticamente quando Player 1 estiver usando controle
-- **Analógicos para Player 1**: Suporte completo aos analógicos do controle para movimento suave
+- Suporte a 1-4 jogadores simultâneos
+- Controles exclusivos e sem conflitos para cada jogador
+- **Sistema inteligente de controles**: Detecção automática e fallback para teclado
+- **Analógicos para Player 1**: Suporte completo aos analógicos do controle
+- **Controles dedicados**: Cada jogador tem seu próprio controle físico
 - Sistema de pontuação
 - Power-ups e bônus
 - Efeitos sonoros
-- D-pad digital para controles (Players 2-4)
+- Validação robusta de controles conectados
 
 ## Controles
 
 ### Player 1
-- **Teclado**: WASD para movimento, Space para atirar
-- **Controle**: Analógicos para movimento, X para atirar
-- **Híbrido**: Ambos simultaneamente (teclado tem prioridade)
-- **Deadzone**: 8192 para controle puro, 6144 para input híbrido
+- **Controle Físico 0**: Analógicos para movimento, X para atirar
+- **Fallback**: WASD + Space (se controle não disponível)
 
 ### Player 2
-- **Teclado**: WASD para movimento, Space para atirar
-- **Controle**: D-pad para movimento, X para atirar
-- **Híbrido**: Ambos simultaneamente, com prioridade para teclado quando Player 1 usa controle
+- **Teclado Dedicado**: WASD para movimento, Space para atirar
+- **Sempre usa teclado**: Configurado exclusivamente para teclado
 
 ### Player 3
-- **Controle**: D-pad para movimento, X para atirar
+- **Controle Físico 1**: D-pad para movimento, X para atirar
+- **Fallback**: Setas direcionais + Right Shift (se controle não disponível)
 
 ### Player 4
-- **Controle**: D-pad para movimento, X para atirar
+- **Controle Físico 2**: D-pad para movimento, X para atirar
+- **Fallback**: Teclado numérico (8456 + Enter) (se controle não disponível)
 
-## Controle Adaptativo
+## Sistema Inteligente de Controles
 
-O jogo detecta automaticamente quando o Player 1 está usando controle e ajusta o comportamento do Player 2:
+O jogo possui um sistema robusto de detecção e atribuição de controles:
 
-- Se Player 1 estiver usando controle, Player 2 pode usar teclado (WASD + Space) sem conflitos
-- O sistema prioriza o teclado para Player 2 quando há conflito de controles
-- Funciona em tempo real, detectando mudanças durante o jogo
-- Permite que dois jogadores usem o mesmo teclado quando necessário
+### Detecção Automática
+- Verifica quantos controles estão conectados usando `SDL_NumJoysticks()`
+- Valida se cada dispositivo é um game controller com `SDL_IsGameController()`
+- Atribui controles físicos sequencialmente aos jogadores
+
+### Fallback Inteligente
+- **Controles suficientes**: Cada jogador usa seu controle dedicado
+- **Controles insuficientes**: Jogadores sem controle usam teclas exclusivas do teclado
+- **Player 2 sempre teclado**: Configurado para usar teclado independentemente
+
+### Teclas de Fallback por Jogador
+- **Player 1**: W A S D + Space
+- **Player 2**: W A S D + Space (dedicado)
+- **Player 3**: ↑ ↓ ← → + Right Shift
+- **Player 4**: Numpad 8 4 5 6 + Enter
 
 ## Configuração Atual
 
 ```cpp
-// Player 1: Híbrido (WASD + Space + Analógicos + X)
-// Player 2: Híbrido (WASD + Space + D-pad + X) - adaptativo
-// Player 3: Controle (D-pad + X)
-// Player 4: Controle (D-pad + X)
+// Player 1: Controle 0 (Analógicos + X)
+// Player 2: Teclado (WASD + Space) - dedicado
+// Player 3: Controle 1 (D-pad + X)
+// Player 4: Controle 2 (D-pad + X)
 ```
 
 ## Compilação
@@ -64,17 +75,17 @@ make
 ./build/bin/Tanks
 ```
 
-### Como Usar os Analógicos (Player 1):
+### Como Configurar Múltiplos Jogadores:
 
-1. **Conecte um controle** ao computador
-2. **Execute o jogo** e selecione "1 Player" no menu
-3. **Use o analógico esquerdo** para mover o tanque:
-   - **Para cima**: Empurre o analógico para cima
-   - **Para baixo**: Empurre o analógico para baixo
-   - **Para esquerda**: Empurre o analógico para a esquerda
-   - **Para direita**: Empurre o analógico para a direita
-4. **Use o botão X** para atirar
-5. **Alternativamente**: Use WASD + Space no teclado (tem prioridade)
+1. **Conecte os controles** ao computador (até 3 controles para 4 jogadores)
+2. **Execute o jogo** e selecione quantos jogadores no menu
+3. **Configuração automática**:
+   - Player 1 usa o primeiro controle (analógicos)
+   - Player 2 sempre usa teclado (WASD + Space)
+   - Player 3 usa o segundo controle (D-pad)
+   - Player 4 usa o terceiro controle (D-pad)
+4. **Se não há controles suficientes**: Jogadores sem controle usam teclas exclusivas
+5. **Mensagens de debug**: O console mostra quais controles foram detectados
 
 ## Estrutura do Projeto
 
@@ -85,23 +96,26 @@ make
 
 ## Funcionalidades Implementadas
 
-- ✅ Detecção automática de controles conectados
-- ✅ Ajuste dinâmico de input baseado na disponibilidade de controles
-- ✅ Priorização inteligente de teclado vs controle
+- ✅ **Detecção automática de controles conectados**
+- ✅ **Validação robusta com SDL_NumJoysticks() e SDL_IsGameController()**
+- ✅ **Atribuição exclusiva de controles físicos por jogador**
+- ✅ **Sistema de fallback inteligente para teclado**
 - ✅ **Suporte completo aos analógicos do Player 1**
-- ✅ Suporte completo ao D-pad digital (Players 2-4)
-- ✅ Deadzone configurável para analógicos (8192/6144)
-- ✅ Funciona em tempo real durante o jogo
-- ✅ Sistema de power-ups e estrelas
-- ✅ Múltiplos níveis com dificuldade progressiva
-- ✅ Efeitos sonoros e visuais
+- ✅ **D-pad digital para Players 3-4**
+- ✅ **Teclado dedicado para Player 2**
+- ✅ **Teclas exclusivas para cada jogador (sem conflitos)**
+- ✅ **Mensagens de debug informativas**
+- ✅ **Sistema de power-ups e estrelas**
+- ✅ **Múltiplos níveis com dificuldade progressiva**
+- ✅ **Efeitos sonoros e visuais**
 
-## Como Funciona o Controle Adaptativo
+## Como Funciona a Detecção de Controles
 
-1. **Detecção**: O sistema verifica se o Player 1 está usando controle
-2. **Ajuste**: Se Player 1 usa controle, Player 2 pode usar teclado sem conflitos
-3. **Priorização**: O teclado tem prioridade sobre o controle para Player 2
-4. **Tempo Real**: Ajustes são feitos dinamicamente durante o jogo
+1. **Inicialização**: Verifica quantos joysticks estão conectados
+2. **Validação**: Confirma se cada dispositivo é um game controller válido
+3. **Atribuição**: Cada jogador recebe um controle físico específico
+4. **Fallback**: Jogadores sem controle usam teclas exclusivas do teclado
+5. **Debug**: Console mostra informações sobre controles detectados
 
 ## Suporte aos Analógicos (Player 1)
 
@@ -122,8 +136,19 @@ O Player 1 possui suporte completo aos analógicos do controle:
 
 ### Configuração Técnica:
 ```cpp
-// Player 1: Analógicos configurados
+// Player 1: Analógicos configurados (controle físico 0)
 SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X
+
+// Player 2: Teclado dedicado
+SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE
+
+// Player 3: D-pad (controle físico 1)
+SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, 
+SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
+
+// Player 4: D-pad (controle físico 2)
+SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN,
+SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
 ```
 
 ## Tecnologias Utilizadas
