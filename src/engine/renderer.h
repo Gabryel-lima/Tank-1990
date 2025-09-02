@@ -45,6 +45,14 @@ public:
     void drawObject(const SDL_Rect *texture_src, const SDL_Rect *window_dest);
 
     /**
+     * Desenha um fragmento da textura principal com uma cor específica aplicada.
+     * @param texture_src Retângulo fonte na textura.
+     * @param window_dest Retângulo de destino no buffer de renderização.
+     * @param color Cor a ser aplicada ao sprite (RGB).
+     */
+    void drawObjectWithColor(const SDL_Rect *texture_src, const SDL_Rect *window_dest, SDL_Color color);
+
+    /**
      * Define o fator de escala do renderizador e centraliza o conteúdo no meio da janela.
      * Mantém as proporções do mapa.
      * @param xs Fator de escala horizontal (largura da janela / largura do mapa).

@@ -159,6 +159,24 @@ public:
      */
     void adjustInputType(int player_index);
 
+    /**
+     * Define a cor do tanque do jogador.
+     * @param player_color - cor a ser aplicada ao tanque
+     */
+    void setPlayerColor(SDL_Color player_color);
+
+    /**
+     * Cores predefinidas para os jogadores.
+     */
+    static SDL_Color getPlayerColor(int player_index);
+
+    /**
+     * Seta uma flag de estado do tanque (sobrescreve Tank::setFlag).
+     * Garante que o escudo tenha a mesma cor do jogador.
+     * @param flag - flag a ser ativada
+     */
+    void setFlag(TankStateFlag flag);
+
 private:
     /**
      * Ponteiro para o controle do jogador (caso use controle).

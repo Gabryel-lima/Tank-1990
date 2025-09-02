@@ -95,6 +95,12 @@ public:
      */
     double pos_y;
 
+    /**
+     * Cor do objeto para colorização de sprites.
+     * Valor padrão: branco (255, 255, 255, 255) - não altera a cor original.
+     */
+    SDL_Color color;
+
 protected:
     /**
      * Retorna um retângulo deslocado a partir de rect, útil para animação de sprites.

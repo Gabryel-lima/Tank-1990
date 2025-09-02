@@ -36,6 +36,9 @@ Player::Player(const PlayerKeys& keys, int idx)
     // Ajusta o tipo de input baseado na disponibilidade de controles
     adjustInputType(idx);
     
+    // Define a cor do jogador baseada no índice
+    setPlayerColor(getPlayerColor(idx));
+    
     respawn(); // Posiciona o jogador e reseta estados
 }
 
@@ -65,6 +68,10 @@ Player::Player(double x, double y, SpriteType type, int idx)
            std::cerr << "Controle " << idx << " não disponível ou não é um game controller válido. Controles conectados: " << num_joysticks << "\n";
        }
    }
+   
+   // Define a cor do jogador baseada no índice
+   setPlayerColor(getPlayerColor(idx));
+   
    respawn();
 }
 
@@ -396,6 +403,14 @@ void Player::respawn()
     Tank::respawn(); // Chama respawn da classe base
     setFlag(TSF_SHIELD); // Ativa escudo temporário
     m_shield_time = AppConfig::tank_shield_time / 2; // Tempo reduzido de escudo
+    
+    // Atualiza a posição e cor do escudo
+    if(m_shield != nullptr)
+    {
+        m_shield->pos_x = pos_x;
+        m_shield->pos_y = pos_y;
+        m_shield->color = color; // Aplica a mesma cor do jogador ao escudo
+    }
 }
 
 // Lógica de destruição do jogador.
@@ -542,5 +557,45 @@ void Player::adjustInputType(int player_index) {
             // Mantém o input híbrido, mas prioriza o teclado
             // O código de update já trata isso corretamente
         }
+    }
+}
+
+void Player::setPlayerColor(SDL_Color player_color)
+{
+    color = player_color;
+    // Também aplica a cor ao escudo, se existir
+    if(m_shield != nullptr)
+    {
+        m_shield->color = player_color;
+    }
+}
+
+SDL_Color Player::getPlayerColor(int player_index)
+{
+    // Define cores específicas para cada jogador
+    switch(player_index)
+    {
+        case 0: // Player 1 - Amarelo dourado
+            return {255, 215, 0, 255};
+        case 1: // Player 2 - Verde
+            return {0, 255, 0, 255};
+        case 2: // Player 3 - Azul
+            return {0, 100, 255, 255};
+        case 3: // Player 4 - Vermelho
+            return {255, 50, 50, 255};
+        default: // Cor padrão (branco)
+            return {255, 255, 255, 255};
+    }
+}
+
+void Player::setFlag(TankStateFlag flag)
+{
+    // Chama o método da classe base
+    Tank::setFlag(flag);
+    
+    // Se o escudo foi ativado, aplica a cor do jogador
+    if(flag == TSF_SHIELD && m_shield != nullptr)
+    {
+        m_shield->color = color;
     }
 }

@@ -13,6 +13,7 @@ Object::Object()
     m_sprite = nullptr;
     m_frame_display_time = 0;
     m_current_frame = 0;
+    color = {255, 255, 255, 255}; // Cor padrão (branco - não altera a cor original)
 }
 
 // Construtor: inicializa o objeto em (x, y) com o tipo de sprite fornecido
@@ -25,6 +26,7 @@ Object::Object(double x, double y, SpriteType type)
     m_sprite = Engine::getEngine().getSpriteConfig()->getSpriteData(type);
     m_frame_display_time = 0;
     m_current_frame = 0;
+    color = {255, 255, 255, 255}; // Cor padrão (branco - não altera a cor original)
 
     // Inicializa o retângulo de origem do sprite
     src_rect.x = m_sprite->rect.x;
@@ -55,6 +57,7 @@ Object::Object(double x, double y, const SpriteData *sprite)
     m_sprite = sprite;
     m_frame_display_time = 0;
     m_current_frame = 0;
+    color = {255, 255, 255, 255}; // Cor padrão (branco - não altera a cor original)
 
     // Inicializa o retângulo de origem do sprite
     src_rect.x = m_sprite->rect.x;
@@ -84,7 +87,16 @@ Object::~Object()
 void Object::draw()
 {
     if(m_sprite == nullptr || to_erase) return;
-    Engine::getEngine().getRenderer()->drawObject(&src_rect, &dest_rect);
+    
+    // Se a cor não é branca padrão, usa renderização com cor
+    if(color.r != 255 || color.g != 255 || color.b != 255 || color.a != 255)
+    {
+        Engine::getEngine().getRenderer()->drawObjectWithColor(&src_rect, &dest_rect, color);
+    }
+    else
+    {
+        Engine::getEngine().getRenderer()->drawObject(&src_rect, &dest_rect);
+    }
 }
 
 // Atualiza o estado do objeto, incluindo animação de frames e retângulos de colisão/destino

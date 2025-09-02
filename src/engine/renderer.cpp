@@ -77,6 +77,27 @@ void Renderer::drawObject(const SDL_Rect *texture_src, const SDL_Rect *window_de
     SDL_RenderCopy(m_renderer, m_texture, texture_src, window_dest); // Desenha no back buffer
 }
 
+// Desenha um objeto (sprite) na tela com uma cor específica aplicada
+void Renderer::drawObjectWithColor(const SDL_Rect *texture_src, const SDL_Rect *window_dest, SDL_Color color)
+{
+    // Salva a cor atual da textura
+    Uint8 r, g, b, a;
+    SDL_GetTextureColorMod(m_texture, &r, &g, &b);
+    SDL_GetTextureAlphaMod(m_texture, &a);
+    
+    // Aplica a nova cor
+    SDL_SetTextureColorMod(m_texture, color.r, color.g, color.b);
+    if(color.a != 255)
+        SDL_SetTextureAlphaMod(m_texture, color.a);
+    
+    // Desenha o objeto com a cor aplicada
+    SDL_RenderCopy(m_renderer, m_texture, texture_src, window_dest);
+    
+    // Restaura a cor original
+    SDL_SetTextureColorMod(m_texture, r, g, b);
+    SDL_SetTextureAlphaMod(m_texture, a);
+}
+
 // Define o fator de escala e o viewport do renderizador
 void Renderer::setScale(float xs, float ys)
 {
