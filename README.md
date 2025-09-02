@@ -20,7 +20,7 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 - **Teclado**: WASD para movimento, Space para atirar
 - **Controle**: Analógicos para movimento, X para atirar
 - **Híbrido**: Ambos simultaneamente (teclado tem prioridade)
-- **Deadzone**: 4000 para precisão nos analógicos
+- **Deadzone**: 8192 para controle puro, 6144 para input híbrido
 
 ### Player 2
 - **Teclado**: WASD para movimento, Space para atirar
@@ -90,7 +90,7 @@ make
 - ✅ Priorização inteligente de teclado vs controle
 - ✅ **Suporte completo aos analógicos do Player 1**
 - ✅ Suporte completo ao D-pad digital (Players 2-4)
-- ✅ Deadzone configurável para analógicos (4000)
+- ✅ Deadzone configurável para analógicos (8192/6144)
 - ✅ Funciona em tempo real durante o jogo
 - ✅ Sistema de power-ups e estrelas
 - ✅ Múltiplos níveis com dificuldade progressiva
@@ -110,7 +110,7 @@ O Player 1 possui suporte completo aos analógicos do controle:
 ### Características:
 - **Eixo Y (Vertical)**: Movimento para cima/baixo
 - **Eixo X (Horizontal)**: Movimento para esquerda/direita
-- **Deadzone**: 4000 para evitar movimento acidental
+- **Deadzone**: 8192 para controle puro, 6144 para input híbrido
 - **Detecção Automática**: O sistema detecta automaticamente se são analógicos ou botões
 - **Compatibilidade**: Funciona com qualquer controle compatível com SDL2
 

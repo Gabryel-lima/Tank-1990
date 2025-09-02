@@ -10,6 +10,11 @@
 class Player : public Tank
 {
 public:
+    // Constantes para zonas mortas dos analógicos
+    static const Sint16 ANALOG_DEADZONE_CONTROLLER = 8192;    // 25% do range total (-32768 a +32767)
+    static const Sint16 ANALOG_DEADZONE_HYBRID = 6144;        // 18.75% do range total
+    static const Sint16 ANALOG_DEADZONE_MENU = 8000;          // Para navegação no menu
+    
     virtual ~Player();
     /**
      * @brief Estrutura que armazena os códigos das teclas responsáveis pelo controle do tanque do jogador.

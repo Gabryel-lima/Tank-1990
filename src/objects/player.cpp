@@ -139,7 +139,8 @@ void Player::update(Uint32 dt)
                 player_keys.axis_left < 0 || player_keys.axis_right < 0)
             {
                 // Processa analógicos
-                const Sint16 DEADZONE = 4000;
+                // Zona morta otimizada para controle puro
+                const Sint16 DEADZONE = ANALOG_DEADZONE_CONTROLLER;
                 
                 // Lê os valores dos analógicos
                 Sint16 axis_y = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY);
@@ -267,7 +268,8 @@ void Player::update(Uint32 dt)
                     player_keys.axis_left < 0 || player_keys.axis_right < 0)
                 {
                     // Processa analógicos
-                    const Sint16 DEADZONE = 8000;
+                    // Zona morta para input híbrido
+                    const Sint16 DEADZONE = ANALOG_DEADZONE_HYBRID;
                     
                     // Lê os valores dos analógicos
                     Sint16 axis_y = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY);
