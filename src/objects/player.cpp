@@ -25,11 +25,6 @@ Player::Player(const PlayerKeys& keys, int idx)
         int num_joysticks = SDL_NumJoysticks();
         if (idx < num_joysticks && SDL_IsGameController(idx)) {
             m_controller = SDL_GameControllerOpen(idx);
-            if (!m_controller) {
-                std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
-            }
-        } else {
-            std::cerr << "Controle " << idx << " não disponível ou não é um game controller válido. Controles conectados: " << num_joysticks << "\n";
         }
     }
     
@@ -38,6 +33,37 @@ Player::Player(const PlayerKeys& keys, int idx)
     
     // Define a cor do jogador baseada no índice
     setPlayerColor(getPlayerColor(idx));
+    
+    respawn(); // Posiciona o jogador e reseta estados
+}
+
+// Construtor com índices separados.
+// Permite separar o índice do jogador (cor/posição) do índice do controle físico.
+Player::Player(const PlayerKeys& keys, int player_idx, int controller_idx)
+    : Tank(AppConfig::player_starting_point.at(player_idx).x, AppConfig::player_starting_point.at(player_idx).y, static_cast<SpriteType>(ST_PLAYER_1 + player_idx)), player_keys(keys)
+{
+    speed = 0; // Velocidade inicial
+    lives_count = 4; // Número inicial de vidas
+    m_bullet_max_size = AppConfig::player_bullet_max_size; // Máximo de balas simultâneas
+    score = 0; // Pontuação inicial
+    star_count = 0; // Nível de power-up (estrelas)
+    m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
+    m_shield_time = 0; // Tempo de escudo inicial
+    m_controller = nullptr;
+    if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
+    {
+        // Verifica se há controles suficientes conectados
+        int num_joysticks = SDL_NumJoysticks();
+        if (controller_idx < num_joysticks && SDL_IsGameController(controller_idx)) {
+            m_controller = SDL_GameControllerOpen(controller_idx);
+        }
+    }
+    
+    // Ajusta o tipo de input baseado na disponibilidade de controles
+    adjustInputType(player_idx);
+    
+    // Define a cor do jogador baseada no índice do jogador (não do controle)
+    setPlayerColor(getPlayerColor(player_idx));
     
     respawn(); // Posiciona o jogador e reseta estados
 }
@@ -61,11 +87,6 @@ Player::Player(double x, double y, SpriteType type, int idx)
        int num_joysticks = SDL_NumJoysticks();
        if (idx < num_joysticks && SDL_IsGameController(idx)) {
            m_controller = SDL_GameControllerOpen(idx);
-           if (!m_controller) {
-               std::cerr << "Não foi possível abrir o controle " << idx << ": " << SDL_GetError() << "\n";
-           }
-       } else {
-           std::cerr << "Controle " << idx << " não disponível ou não é um game controller válido. Controles conectados: " << num_joysticks << "\n";
        }
    }
    
@@ -495,7 +516,7 @@ bool Player::isControllerActive(int controller_index) {
 }
 
 void Player::adjustInputType(int player_index) {
-    // Verifica se há controles suficientes para todos os jogadores
+    // Função simplificada - apenas verifica disponibilidade sem logs
     int num_joysticks = SDL_NumJoysticks();
     int available_controllers = 0;
     for (int i = 0; i < num_joysticks; ++i) {
@@ -503,61 +524,7 @@ void Player::adjustInputType(int player_index) {
             available_controllers++;
         }
     }
-
-    // Se não há controles suficientes, força o uso do teclado para jogadores que precisam de controle
-    if (available_controllers < player_index + 1) {
-        if (player_keys.type == InputType::Controller) {
-            std::cerr << "Não há controle suficiente para o jogador " << (player_index + 1) << ". Usando apenas teclado.\n";
-            player_keys.type = InputType::Keyboard;
-            // Define teclas exclusivas do teclado para cada jogador
-            switch (player_index) {
-                case 0: // Player 1
-                    player_keys.up = SDL_SCANCODE_W;
-                    player_keys.down = SDL_SCANCODE_S;
-                    player_keys.left = SDL_SCANCODE_A;
-                    player_keys.right = SDL_SCANCODE_D;
-                    player_keys.fire = SDL_SCANCODE_SPACE;
-                    break;
-                case 1: // Player 2
-                    player_keys.up = SDL_SCANCODE_I;
-                    player_keys.down = SDL_SCANCODE_K;
-                    player_keys.left = SDL_SCANCODE_J;
-                    player_keys.right = SDL_SCANCODE_L;
-                    player_keys.fire = SDL_SCANCODE_RETURN;
-                    break;
-                case 2: // Player 3
-                    player_keys.up = SDL_SCANCODE_UP;
-                    player_keys.down = SDL_SCANCODE_DOWN;
-                    player_keys.left = SDL_SCANCODE_LEFT;
-                    player_keys.right = SDL_SCANCODE_RIGHT;
-                    player_keys.fire = SDL_SCANCODE_RSHIFT;
-                    break;
-                case 3: // Player 4
-                    player_keys.up = SDL_SCANCODE_KP_8;
-                    player_keys.down = SDL_SCANCODE_KP_5;
-                    player_keys.left = SDL_SCANCODE_KP_4;
-                    player_keys.right = SDL_SCANCODE_KP_6;
-                    player_keys.fire = SDL_SCANCODE_KP_ENTER;
-                    break;
-            }
-        } else if (player_keys.type == InputType::Hybrid) {
-            std::cerr << "Não há controle suficiente para o jogador " << (player_index + 1) << ". Usando apenas teclado.\n";
-            player_keys.type = InputType::Keyboard;
-            // Para input híbrido, mantém as teclas originais do teclado
-        }
-    }
-
-    // Se for o player 2 (índice 1), verifica se o player 1 está usando controle
-    if (player_index == 1) {
-        bool p1_using_controller = isControllerActive(0);
-
-        // Se o player 1 está usando controle e este player tem input híbrido,
-        // força o uso do teclado para evitar conflitos
-        if (p1_using_controller && player_keys.type == InputType::Hybrid) {
-            // Mantém o input híbrido, mas prioriza o teclado
-            // O código de update já trata isso corretamente
-        }
-    }
+    // Função mantida para compatibilidade, mas sem logs ou alterações automáticas
 }
 
 void Player::setPlayerColor(SDL_Color player_color)

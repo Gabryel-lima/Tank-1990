@@ -77,6 +77,15 @@ public:
     Player(const PlayerKeys& keys, int idx);
 
     /**
+     * Construtor com índices separados.
+     * Permite separar o índice do jogador (cor/posição) do índice do controle físico.
+     * @param keys - configuração de teclas/controle
+     * @param player_idx - índice do jogador (para cor e posição)
+     * @param controller_idx - índice do controle físico
+     */
+    Player(const PlayerKeys& keys, int player_idx, int controller_idx);
+
+    /**
      * Construtor parametrizado.
      * Cria o tanque do jogador em uma posição e tipo específicos.
      * @param x - posição horizontal inicial

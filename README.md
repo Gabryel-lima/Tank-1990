@@ -7,7 +7,7 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 - Jogo completo com múltiplos níveis (36 níveis)
 - Suporte a 1-4 jogadores simultâneos
 - Controles exclusivos e sem conflitos para cada jogador
-- **Sistema inteligente de controles**: Detecção automática e fallback para teclado
+- **Sistema de detecção de controles**: Identifica controles conectados sem troca automática
 - **Analógicos para Player 1**: Suporte completo aos analógicos do controle
 - **Controles dedicados**: Cada jogador tem seu próprio controle físico
 - Sistema de pontuação
@@ -19,47 +19,52 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 
 ### Player 1
 - **Controle Físico 0**: Analógicos para movimento, X para atirar
-- **Fallback**: WASD + Space (se controle não disponível)
+- **Cor**: Amarelo Dourado
+- **Posição Inicial**: Canto inferior esquerdo (128, 384)
 
 ### Player 2
-- **Teclado Dedicado**: Setas direcionais (↑ ↓ ← →) para movimento, Space para atirar
-- **Sempre usa teclado**: Configurado exclusivamente para teclado
+- **Teclado WASD**: W/A/S/D para movimento, Space para atirar
+- **Cor**: Verde
+- **Posição Inicial**: Canto inferior direito (256, 384)
 
 ### Player 3
-- **Controle Físico 2**: D-pad para movimento, X para atirar
-- **Fallback**: Setas direcionais + Right Shift (se controle não disponível)
+- **Controle Físico 1**: D-pad para movimento, X para atirar
+- **Cor**: Azul
+- **Posição Inicial**: Canto superior esquerdo (128, 320)
 
 ### Player 4
-- **Controle Físico 3**: D-pad para movimento, X para atirar
-- **Fallback**: Teclado numérico (8456 + Enter) (se controle não disponível)
+- **Controle Físico 2**: D-pad para movimento, X para atirar
+- **Cor**: Vermelho
+- **Posição Inicial**: Canto superior direito (256, 320)
 
-## Sistema Inteligente de Controles
+## Sistema de Controles
 
-O jogo possui um sistema robusto de detecção e atribuição de controles:
+O jogo possui um sistema de detecção e configuração de controles:
 
-### Detecção Automática
+### Detecção de Controles
 - Verifica quantos controles estão conectados usando `SDL_NumJoysticks()`
 - Valida se cada dispositivo é um game controller com `SDL_IsGameController()`
-- Atribui controles físicos sequencialmente aos jogadores
+- Atribui controles físicos específicos a cada jogador
 
-### Fallback Inteligente
-- **Controles suficientes**: Cada jogador usa seu controle dedicado
-- **Controles insuficientes**: Jogadores sem controle usam teclas exclusivas do teclado
-- **Player 2 sempre teclado**: Configurado para usar teclado independentemente
+### Configuração Fixa
+- **Player 1**: Sempre usa controle físico 0 (analógicos)
+- **Player 2**: Sempre usa teclado WASD
+- **Player 3**: Sempre usa controle físico 1 (D-pad)
+- **Player 4**: Sempre usa controle físico 2 (D-pad)
 
-### Teclas de Fallback por Jogador
-- **Player 1**: W A S D + Space
-- **Player 2**: ↑ ↓ ← → + Space (dedicado)
-- **Player 3**: ↑ ↓ ← → + Right Shift
-- **Player 4**: Numpad 8 4 5 6 + Enter
+### Mapeamento de Controles
+- **Controle 0** → Player 1 (analógicos + X)
+- **Controle 1** → Player 3 (D-pad + X)
+- **Controle 2** → Player 4 (D-pad + X)
+- **Teclado WASD** → Player 2 (dedicado)
 
 ## Configuração Atual
 
 ```cpp
-// Player 1: Controle 0 (Analógicos + X)
-// Player 2: Teclado (Setas + Space) - dedicado
-// Player 3: Controle 2 (D-pad + X)
-// Player 4: Controle 3 (D-pad + X)
+// Player 1: Controle 0 (Analógicos + X) - Amarelo
+// Player 2: Teclado WASD + Space - Verde
+// Player 3: Controle 1 (D-pad + X) - Azul
+// Player 4: Controle 2 (D-pad + X) - Vermelho
 ```
 
 ## Compilação
@@ -77,15 +82,17 @@ make
 
 ### Como Configurar Múltiplos Jogadores:
 
-1. **Conecte os controles** ao computador (até 4 controles para 4 jogadores, sendo que Player 2 usa teclado)
+1. **Conecte os controles** ao computador:
+   - Para 2 jogadores: 1 controle (Player 1) + teclado (Player 2)
+   - Para 3 jogadores: 2 controles (Players 1 e 3) + teclado (Player 2)
+   - Para 4 jogadores: 3 controles (Players 1, 3 e 4) + teclado (Player 2)
 2. **Execute o jogo** e selecione quantos jogadores no menu
-3. **Configuração automática**:
-   - Player 1 usa o primeiro controle (analógicos)
-   - Player 2 sempre usa teclado (Setas + Space)
-   - Player 3 usa o terceiro controle (D-pad)
-   - Player 4 usa o quarto controle (D-pad)
-4. **Se não há controles suficientes**: Jogadores sem controle usam teclas exclusivas
-5. **Mensagens de debug**: O console mostra quais controles foram detectados
+3. **Configuração fixa**:
+   - Player 1: Controle físico 0 (analógicos) - Amarelo
+   - Player 2: Teclado WASD - Verde
+   - Player 3: Controle físico 1 (D-pad) - Azul
+   - Player 4: Controle físico 2 (D-pad) - Vermelho
+4. **Cada jogador mantém sua configuração** independentemente dos controles disponíveis
 
 ## Estrutura do Projeto
 
@@ -96,26 +103,26 @@ make
 
 ## Funcionalidades Implementadas
 
-- ✅ **Detecção automática de controles conectados**
+- ✅ **Sistema de cores únicas para cada jogador**
+- ✅ **Posições iniciais distintas e organizadas**
+- ✅ **Detecção de controles conectados**
 - ✅ **Validação robusta com SDL_NumJoysticks() e SDL_IsGameController()**
-- ✅ **Atribuição exclusiva de controles físicos por jogador**
-- ✅ **Sistema de fallback inteligente para teclado**
+- ✅ **Mapeamento fixo de controles por jogador**
 - ✅ **Suporte completo aos analógicos do Player 1**
 - ✅ **D-pad digital para Players 3-4**
-- ✅ **Teclado dedicado para Player 2**
-- ✅ **Teclas exclusivas para cada jogador (sem conflitos)**
-- ✅ **Mensagens de debug informativas**
+- ✅ **Teclado WASD dedicado para Player 2**
+- ✅ **Construtor com índices separados (jogador vs controle físico)**
 - ✅ **Sistema de power-ups e estrelas**
 - ✅ **Múltiplos níveis com dificuldade progressiva**
 - ✅ **Efeitos sonoros e visuais**
 
-## Como Funciona a Detecção de Controles
+## Como Funciona o Sistema de Controles
 
-1. **Inicialização**: Verifica quantos joysticks estão conectados
+1. **Detecção**: Verifica quantos joysticks estão conectados
 2. **Validação**: Confirma se cada dispositivo é um game controller válido
-3. **Atribuição**: Cada jogador recebe um controle físico específico
-4. **Fallback**: Jogadores sem controle usam teclas exclusivas do teclado
-5. **Debug**: Console mostra informações sobre controles detectados
+3. **Mapeamento Fixo**: Cada jogador tem um controle físico específico atribuído
+4. **Sem Troca Automática**: Configurações mantidas independentemente da disponibilidade
+5. **Operação Silenciosa**: Sem logs desnecessários no console
 
 ## Suporte aos Analógicos (Player 1)
 
