@@ -23,7 +23,7 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 - **Posição Inicial**: Canto inferior esquerdo (128, 384)
 
 ### Player 2
-- **Teclado WASD**: W/A/S/D para movimento, Space para atirar
+- **Teclado Setas**: Setas direcionais para movimento, Space para atirar
 - **Cor**: Verde
 - **Posição Inicial**: Canto inferior direito (256, 384)
 
@@ -48,7 +48,7 @@ O jogo possui um sistema de detecção e configuração de controles:
 
 ### Configuração Fixa
 - **Player 1**: Sempre usa controle físico 0 (analógicos)
-- **Player 2**: Sempre usa teclado WASD
+- **Player 2**: Sempre usa teclado (setas direcionais)
 - **Player 3**: Sempre usa controle físico 1 (D-pad)
 - **Player 4**: Sempre usa controle físico 2 (D-pad)
 
@@ -56,13 +56,13 @@ O jogo possui um sistema de detecção e configuração de controles:
 - **Controle 0** → Player 1 (analógicos + X)
 - **Controle 1** → Player 3 (D-pad + X)
 - **Controle 2** → Player 4 (D-pad + X)
-- **Teclado WASD** → Player 2 (dedicado)
+- **Teclado Setas** → Player 2 (dedicado)
 
 ## Configuração Atual
 
 ```cpp
 // Player 1: Controle 0 (Analógicos + X) - Amarelo
-// Player 2: Teclado WASD + Space - Verde
+// Player 2: Teclado Setas + Space - Verde
 // Player 3: Controle 1 (D-pad + X) - Azul
 // Player 4: Controle 2 (D-pad + X) - Vermelho
 ```
@@ -89,7 +89,7 @@ make
 2. **Execute o jogo** e selecione quantos jogadores no menu
 3. **Configuração fixa**:
    - Player 1: Controle físico 0 (analógicos) - Amarelo
-   - Player 2: Teclado WASD - Verde
+   - Player 2: Teclado (setas direcionais) - Verde
    - Player 3: Controle físico 1 (D-pad) - Azul
    - Player 4: Controle físico 2 (D-pad) - Vermelho
 4. **Cada jogador mantém sua configuração** independentemente dos controles disponíveis
@@ -110,7 +110,7 @@ make
 - ✅ **Mapeamento fixo de controles por jogador**
 - ✅ **Suporte completo aos analógicos do Player 1**
 - ✅ **D-pad digital para Players 3-4**
-- ✅ **Teclado WASD dedicado para Player 2**
+- ✅ **Teclado (setas direcionais) dedicado para Player 2**
 - ✅ **Construtor com índices separados (jogador vs controle físico)**
 - ✅ **Sistema de power-ups e estrelas**
 - ✅ **Múltiplos níveis com dificuldade progressiva**

@@ -13,7 +13,7 @@ Foi implementado um sistema completo de cores e controles para diferenciar os jo
 
 ### Jogador 2 - Verde  
 - **Cor**: RGB (0, 255, 0)
-- **Controle**: Teclado WASD + Space
+- **Controle**: Teclado Setas Direcionais + Space
 - **Posição**: Canto inferior direito (256, 384)
 
 ### Jogador 3 - Azul
@@ -62,7 +62,7 @@ As cores são aplicadas automaticamente quando os jogadores são criados. Não �
 ## Mudanças Recentes (2024)
 
 ### Controles Otimizados
-- **Jogador 2**: Alterado de setas direcionais para WASD
+- **Jogador 2**: Utiliza setas direcionais do teclado (↑↓←→ + Space)
 - **Jogador 3**: Corrigido mapeamento do controle físico (agora usa controle 1)
 - **Remoção de logs**: Sistema opera silenciosamente sem mensagens de debug
 - **Configuração fixa**: Não há mais troca automática de controle para teclado
