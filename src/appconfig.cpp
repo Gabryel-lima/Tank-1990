@@ -54,8 +54,11 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
 vector<Player::PlayerKeys> AppConfig::player_keys =
 []{
     vector<Player::PlayerKeys> v;
-    // Jogador 1: Controle 0 (analógicos)
-    v.push_back(Player::PlayerKeys(SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X));
+    // Jogador 1: Modo híbrido - Teclado WASD + Space e Controle USB (analógicos)
+    // Teclado: W, S, A, D, SPACE
+    // Controle: Analógicos (LEFTY/LEFTX) + Botão X para disparo
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE,
+                                   -1, -1, -1, -1, SDL_CONTROLLER_BUTTON_X));
 
     // Jogador 2: Apenas teclado (Setas direcionais)
     // UP, DOWN, LEFT, RIGHT, SPACE

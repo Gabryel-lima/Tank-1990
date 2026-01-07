@@ -1,3 +1,30 @@
+# ============================================================================
+# Tank-1990 - Makefile
+# ============================================================================
+# 
+# INSTRUÇÕES DE USO:
+# 
+# Para compilar o jogo:
+#   make build       # Compila o projeto completo
+#   make             # Mesmo que 'make build'
+# 
+# Para executar o jogo:
+#   make run         # Compila (se necessário) e executa o jogo
+# 
+# Para limpar arquivos de build:
+#   make clean       # Remove diretório build/
+# 
+# Para gerar documentação:
+#   make doc         # Gera documentação com Doxygen
+# 
+# Para ver informações do sistema:
+#   make info        # Mostra configurações de compilação
+# 
+# Para instalar dependências (Ubuntu/Debian):
+#   make install-deps
+# 
+# ============================================================================
+
 # Nome do projeto
 PROJECT_NAME = Tanks
 
@@ -57,15 +84,60 @@ OBJS    = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SOURCES))
 
 vpath %.cpp $(SRC_DIRS)
 
-# ------ Alvo principal ------
-all: print $(BUILD_DIRS) copy_resources $(RESOURCES) compile
-# ----------------------------
+# ============================================================================
+# ALVOS PRINCIPAIS
+# ============================================================================
+
+# Alvo padrão - compila o projeto
+all: build
+
+# Compila o projeto completo
+build: print $(BUILD_DIRS) copy_resources $(RESOURCES) compile
+	@echo ""
+	@echo "✅ Compilação concluída com sucesso!"
+	@echo "📁 Executável criado em: $(BIN)/$(PROJECT_NAME)"
+	@echo ""
+	@echo "Para executar o jogo, use:"
+	@echo "  make run"
+	@echo "  ou"
+	@echo "  cd $(BIN) && ./$(PROJECT_NAME)"
+	@echo ""
+
+# Executa o jogo (compila se necessário)
+run: build
+	@echo "🎮 Iniciando Tank-1990..."
+	@cd $(BIN) && ./$(PROJECT_NAME)
+
+# Mostra informações do sistema e configuração
+info:
+	@echo ""
+	@echo "📋 INFORMAÇÕES DO SISTEMA:"
+	@echo "=========================="
+	@echo "OS: $(shell uname -s) $(shell uname -r)"
+	@echo "Arquitetura: $(shell uname -m)"
+	@echo "Compilador: $(CC)"
+	@echo "Flags de compilação: $(CFLAGS)"
+	@echo "Flags de linkagem: $(LFLAGS)"
+	@echo "Bibliotecas: $(LIBS)"
+	@echo "Diretório de build: $(BUILD)"
+	@echo "Executável: $(BIN)/$(PROJECT_NAME)"
+	@echo ""
+
+# Instala dependências no Ubuntu/Debian
+install-deps:
+	@echo "📦 Instalando dependências SDL2..."
+	sudo apt update
+	sudo apt install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+	@echo "✅ Dependências instaladas!"
+	@echo ""
 
 print:
-	@echo "\nOS: $(OS)"
-	@echo "SOURCES: $(SOURCES)"
-	@echo "OBJS: $(OBJS)"
-	@echo "LIBS: $(LIBS)\n"
+	@echo ""
+	@echo "🔨 Compilando Tank-1990..."
+	@echo "========================="
+	@echo "Arquivos fonte encontrados: $(words $(SOURCES))"
+	@echo "Objetos a compilar: $(words $(OBJS))"
+	@echo ""
 
 # Cria diretórios de build
 $(BUILD_DIRS):
@@ -101,8 +173,57 @@ mingw_resources:
 	cp $(MINGW_HOME)/bin/libgcc_s_dw2-1.dll $(BIN)
 endif
 
-clean:
-	rm -rf $(BUILD) doc
+# ============================================================================
+# AJUDA
+# ============================================================================
 
+# Mostra ajuda com todos os comandos disponíveis
+help:
+	@echo ""
+	@echo "🎮 Tank-1990 - Sistema de Build"
+	@echo "==============================="
+	@echo ""
+	@echo "COMANDOS PRINCIPAIS:"
+	@echo "  make build       - Compila o projeto completo"
+	@echo "  make run         - Compila e executa o jogo"
+	@echo "  make clean       - Remove arquivos de build"
+	@echo ""
+	@echo "COMANDOS AUXILIARES:"
+	@echo "  make info        - Mostra informações do sistema"
+	@echo "  make doc         - Gera documentação (Doxygen)"
+	@echo "  make install-deps - Instala dependências (Ubuntu/Debian)"
+	@echo "  make help        - Mostra esta ajuda"
+	@echo ""
+	@echo "INÍCIO RÁPIDO:"
+	@echo "  1. make install-deps  # (primeira vez, no Ubuntu/Debian)"
+	@echo "  2. make run           # Compila e executa o jogo"
+	@echo ""
+	@echo "ESTRUTURA DO PROJETO:"
+	@echo "  src/              - Código fonte C++"
+	@echo "  resources/        - Recursos (imagens, sons, fontes)"
+	@echo "  build/            - Arquivos de build (gerado)"
+	@echo "  build/bin/        - Executável final"
+	@echo ""
+
+# Declara alvos que não são arquivos
+.PHONY: all build run clean doc info install-deps help print copy_resources compile mingw_resources
+
+# ============================================================================
+# ALVOS DE LIMPEZA E DOCUMENTAÇÃO
+# ============================================================================
+
+# Remove arquivos de build
+clean:
+	@echo "🧹 Limpando arquivos de build..."
+	rm -rf $(BUILD) doc
+	@echo "✅ Limpeza concluída!"
+
+# Gera documentação com Doxygen
 doc:
+	@echo "📚 Gerando documentação..."
 	doxywizard Doxyfile && doxygen
+	@echo "✅ Documentação gerada em doc/"
+
+# ============================================================================
+# ALVOS INTERNOS (não usar diretamente)
+# ============================================================================
