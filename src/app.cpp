@@ -18,6 +18,8 @@
 App::App()
 {
     m_window = nullptr;
+    m_app_state = nullptr; // evita delete de ponteiro nao inicializado no destrutor
+    is_running = false;
 }
 
 // Destrutor da classe App. Libera o estado atual da aplicação, se existir.

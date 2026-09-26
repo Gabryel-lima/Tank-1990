@@ -4,17 +4,78 @@ Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ u
 
 ## 🚀 Compilação e Execução
 
-### Início Rápido
+### Windows
+
+No Windows o jogo roda dentro do **WSL** (Windows Subsystem for Linux), numa
+distribuição Alpine Linux mínima. A janela do jogo abre normalmente na sua
+área de trabalho, como qualquer programa.
+
+> **Por que WSL e não um `.exe`?**
+> O **Smart App Control** do Windows 11 bloqueia executáveis compilados
+> localmente, porque eles não têm assinatura digital reconhecida. Não existe
+> lista de exceções, e desligá-lo é irreversível (só volta reinstalando o
+> Windows). O WSL contorna isso sem mexer na segurança da máquina.
+
+**1. Instale a base do WSL** (só na primeira vez)
+
+Abra o Terminal **como administrador** e rode:
+
+```powershell
+wsl --install --no-distribution
+```
+
+Reinicie o computador. O `--no-distribution` instala apenas a base, sem o
+Ubuntu — o jogo usa o Alpine, que é bem menor.
+
+**2. Instale o jogo**
+
+Dê um duplo clique em **`instalar.cmd`** (ou rode no terminal, sem admin):
+
+```
+instalar.cmd
+```
+
+Ele baixa o Alpine Linux (~3,5 MB), instala o SDL2, compila o jogo e remove o
+compilador no fim para não ocupar espaço.
+
+**3. Jogue**
+
+```
+jogar.cmd
+```
+
+**Para desinstalar:**
+
+```
+desinstalar.cmd
+```
+
+O desinstalador pergunta o que remover:
+
+| Opção | O que apaga | Libera |
+|---|---|---|
+| 1 | Só o jogo (mantém o Alpine no WSL) | ~200 MB |
+| 2 | O jogo e a distribuição Alpine | ~250 MB |
+| 3 | Tudo, incluindo a plataforma WSL | ~1,8 GB |
+
+**Espaço em disco**
+
+| Item | Tamanho |
+|---|---|
+| Plataforma WSL (uma vez, serve para tudo) | ~1,5 GB |
+| Alpine + SDL2 + jogo | ~250 MB |
+
+### Linux / macOS
 
 ```bash
-# 1. Instalar dependências (Ubuntu/Debian)
+# 1. Instalar dependências
 make install-deps
 
 # 2. Compilar e executar o jogo
 make run
 ```
 
-### Comandos Disponíveis
+### Comandos disponíveis (Linux, macOS e dentro do WSL)
 
 ```bash
 make build       # Compila o projeto completo
@@ -22,7 +83,24 @@ make run         # Compila e executa o jogo
 make clean       # Remove arquivos de build
 make info        # Mostra informações do sistema
 make doc         # Gera documentação (Doxygen)
+make install-deps # Instala as dependências (apk, apt, dnf ou brew)
 make help        # Mostra todos os comandos disponíveis
+```
+
+### Recompilar depois de mexer no código (Windows/WSL)
+
+Por padrão o instalador apaga o compilador no fim. Para manter o ambiente de
+desenvolvimento dentro do WSL:
+
+```
+instalar.cmd --keep-toolchain
+```
+
+Depois disso dá para compilar direto de dentro do WSL, de dentro da pasta do
+projeto:
+
+```bat
+wsl -d Tank1990 --cd "%CD%" -- make run
 ```
 
 ### Dependências
@@ -46,8 +124,30 @@ sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
 brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf
 ```
 
-**Windows:**
-- As DLLs necessárias estão incluídas no diretório `resources/`
+**Windows (WSL / Alpine):**
+
+O `instalar.cmd` cuida disso sozinho. Se quiser fazer à mão, dentro da
+distribuição:
+
+```sh
+apk add --no-cache g++ make sdl2-dev sdl2_image-dev sdl2_mixer-dev sdl2_ttf-dev mesa-dri-gallium
+make run
+```
+
+**Windows (`.exe` nativo, opcional):**
+
+O `Makefile` ainda compila um `.exe` com MinGW-w64, a partir do MSYS2 ou do
+Git Bash. O SDL2 é procurado em `$SDL2_DIR`, `third_party/SDL2/<arch>-w64-mingw32`,
+`$MINGW_HOME`, `resources/SDL/` e no `pkg-config`, nessa ordem:
+
+```bash
+make build                    # gera build/bin/Tanks.exe
+make build ARCH=i686          # 32 bits
+make build WIN_CONSOLE=1      # mantém o console aberto (depuração)
+```
+
+Lembrando que esse `.exe` provavelmente será **bloqueado pelo Smart App
+Control** ao ser executado — veja a explicação na seção do Windows acima.
 
 ## 🎮 Funcionalidades
 
@@ -335,9 +435,34 @@ A documentação será gerada no diretório `doc/` e pode ser visualizada abrind
 - Certifique-se de que o diretório `resources/` existe e contém todos os arquivos necessários
 - Execute `make clean && make build` para recopiar os recursos
 
+## 🙌 Créditos
+
+Este projeto é um **fork** do jogo criado por **Krystian Kałużny**:
+
+- **Repositório original:** https://github.com/krystiankaluzny/Tanks
+- **Autor original:** Krystian Kałużny ([@krystiankaluzny](https://github.com/krystiankaluzny)) — 2015
+- **Licença original:** MIT
+- **Descrição original:** *"Implementation of Battle City / Tank 1990. Game was written in C++11 and SDL2 2D graphic library."*
+
+Toda a base do motor do jogo (renderização SDL2, máquina de estados, IA dos inimigos,
+sistema de bônus, colisões e os 35 níveis) vem desse trabalho. Os créditos são dele.
+
+### O que foi feito neste fork
+
+Mantido por **Gabryel Lima** ([@Gabryel-lima](https://github.com/Gabryel-lima)):
+
+- Correção de diversos bugs do projeto base (ver [FIXES.md](FIXES.md))
+- Suporte a **3 e 4 jogadores** (o original ia até 2)
+- **Cores únicas por jogador**, com posições iniciais e controles próprios
+- Suporte a **controles USB / gamepads**, incluindo modo híbrido teclado + controle
+- Sistema de **sons** (`SoundManager`)
+- Comentários e documentação traduzidos para português
+- Build multiplataforma: `Makefile` (Linux/macOS/MSYS2) e instalador via WSL no Windows
+
 ## 📄 Licença
 
-Este projeto é uma implementação educacional do clássico jogo Tank 1990 (Battle City). Baseado no trabalho original de Krystian Kałużny.
+Projeto educacional baseado no clássico Tank 1990 (Battle City).
+O código herdado do projeto original permanece sob a **licença MIT** de Krystian Kałużny.
 
 ## 🙏 Contribuições
 

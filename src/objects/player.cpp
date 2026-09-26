@@ -18,6 +18,7 @@ Player::Player(const PlayerKeys& keys, int idx)
     star_count = 0; // Nível de power-up (estrelas)
     m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
     m_shield_time = 0; // Tempo de escudo inicial
+    m_fire_time = 0; // Tempo desde o ultimo disparo
     m_controller = nullptr;
     if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
     {
@@ -49,6 +50,7 @@ Player::Player(const PlayerKeys& keys, int player_idx, int controller_idx)
     star_count = 0; // Nível de power-up (estrelas)
     m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
     m_shield_time = 0; // Tempo de escudo inicial
+    m_fire_time = 0; // Tempo desde o ultimo disparo
     m_controller = nullptr;
     if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
     {
@@ -80,6 +82,7 @@ Player::Player(double x, double y, SpriteType type, int idx)
    star_count = 0;
    m_shield = new Object(x, y, ST_SHIELD);
    m_shield_time = 0;
+   m_fire_time = 0;
    m_controller = nullptr;
    if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
    {
@@ -516,15 +519,9 @@ bool Player::isControllerActive(int controller_index) {
 }
 
 void Player::adjustInputType(int player_index) {
-    // Função simplificada - apenas verifica disponibilidade sem logs
-    int num_joysticks = SDL_NumJoysticks();
-    int available_controllers = 0;
-    for (int i = 0; i < num_joysticks; ++i) {
-        if (SDL_IsGameController(i)) {
-            available_controllers++;
-        }
-    }
-    // Função mantida para compatibilidade, mas sem logs ou alterações automáticas
+    // Mantida por compatibilidade: hoje nao altera nada.
+    // Ver FIXES.md (#12) - a troca automatica de input foi desativada.
+    (void)player_index;
 }
 
 void Player::setPlayerColor(SDL_Color player_color)

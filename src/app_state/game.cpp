@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <cstdlib>
 
 // Construtor padrão do jogo
 Game::Game()
@@ -38,6 +39,7 @@ Game::Game(int players_count)
     m_current_level = 0;
     m_eagle = nullptr;
     m_player_count = players_count;
+    m_enemy_redy_time = 0;
     m_pause = false;
     m_level_end_time = 0;
     m_protect_eagle = false;
@@ -55,6 +57,7 @@ Game::Game(std::vector<Player *> players, int previous_level)
     m_eagle = nullptr;
     m_players = players;
     m_player_count = m_players.size();
+    m_enemy_redy_time = 0;
     for(auto player : m_players)
     {
         player->clearFlag(TSF_MENU);
@@ -215,21 +218,21 @@ void Game::update(Uint32 dt)
         // Definir alvo dos inimigos (jogadores ou águia)
         int min_metric; // 2 * 26 * 16
         int metric;
-        SDL_Point target;
+        SDL_Point target = {-1, -1};
         for(auto enemy : m_enemies)
         {
             min_metric = 832;
             if(enemy->type == ST_TANK_A || enemy->type == ST_TANK_D)
                 for(auto player : m_players)
                 {
-                    metric = fabs(player->dest_rect.x - enemy->dest_rect.x) + fabs(player->dest_rect.y - enemy->dest_rect.y);
+                    metric = std::abs(player->dest_rect.x - enemy->dest_rect.x) + std::abs(player->dest_rect.y - enemy->dest_rect.y);
                     if(metric < min_metric)
                     {
                         min_metric = metric;
                         target = {player->dest_rect.x + player->dest_rect.w / 2, player->dest_rect.y + player->dest_rect.h / 2};
                     }
                 }
-            metric = fabs(m_eagle->dest_rect.x - enemy->dest_rect.x) + fabs(m_eagle->dest_rect.y - enemy->dest_rect.y);
+            metric = std::abs(m_eagle->dest_rect.x - enemy->dest_rect.x) + std::abs(m_eagle->dest_rect.y - enemy->dest_rect.y);
             if(metric < min_metric)
             {
                 min_metric = metric;
@@ -409,6 +412,11 @@ void Game::loadLevel(std::string path)
         while(!level.eof())
         {
             std::getline(level, line);
+            // Arquivos de fase salvos no Windows terminam em CRLF; sem remover
+            // o '\r' o Linux cria uma coluna fantasma a mais no mapa.
+            while(!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+                line.pop_back();
+            if(line.empty()) continue; // ignora a linha em branco no fim do arquivo
             std::vector<Object*> row;
             j++;
             for(unsigned i = 0; i < line.size(); i++)
@@ -511,6 +519,7 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     Object* o;
 
     //========================colisão com elementos do mapa========================
+    row_start = row_end = column_start = column_end = 0;
     switch(tank->direction)
     {
     case D_UP:
@@ -643,6 +652,7 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
     Object* o;
 
     //========================colisão com elementos do mapa========================
+    row_start = row_end = column_start = column_end = 0;
     switch(bullet->direction)
     {
     case D_UP:

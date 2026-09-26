@@ -2,6 +2,7 @@
 #include "../appconfig.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <algorithm>
 #include <iostream>
 
 // Construtor: inicializa todos os ponteiros dos recursos gráficos como nulos
@@ -12,7 +13,7 @@ Renderer::Renderer()
     m_text_texture = nullptr;
     m_font1 = nullptr;
     m_font2 = nullptr;
-    // m_font3 será inicializado em loadFont()
+    m_font3 = nullptr;
 }
 
 // Destrutor: libera todos os recursos gráficos alocados
@@ -101,7 +102,7 @@ void Renderer::drawObjectWithColor(const SDL_Rect *texture_src, const SDL_Rect *
 // Define o fator de escala e o viewport do renderizador
 void Renderer::setScale(float xs, float ys)
 {
-    float scale = min(xs, ys);
+    float scale = std::min(xs, ys);
     if(scale < 0.1) return; // Evita escalas muito pequenas
 
     SDL_Rect viewport;
@@ -139,7 +140,11 @@ void Renderer::drawText(const SDL_Point* start, string text, SDL_Color text_colo
 
     // Cria a textura de texto a partir da superfície
     m_text_texture = SDL_CreateTextureFromSurface(m_renderer, text_surface);
-    if(m_text_texture == nullptr) return; // Falha ao criar textura
+    if(m_text_texture == nullptr)
+    {
+        SDL_FreeSurface(text_surface);
+        return; // Falha ao criar textura
+    }
 
     SDL_Rect window_dest;
     // Calcula a posição do texto: centralizado se start for nulo ou negativo
@@ -165,6 +170,9 @@ void Renderer::drawText(const SDL_Point* start, string text, SDL_Color text_colo
 
     // Renderiza o texto na tela
     SDL_RenderCopy(m_renderer, m_text_texture, NULL, &window_dest);
+
+    // Libera a superfície temporária (era vazada a cada frame)
+    SDL_FreeSurface(text_surface);
 }
 
 // Desenha um retângulo na tela, preenchido ou apenas contornado

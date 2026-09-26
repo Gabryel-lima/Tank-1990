@@ -1,17 +1,49 @@
 {
   "configurations": [
     {
+      "name": "Win32 (headers do WSL)",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "//wsl.localhost/Tank1990/usr/include",
+        "//wsl.localhost/Tank1990/usr/include/SDL2"
+      ],
+      "defines": [],
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "linux-gcc-x64"
+    },
+    {
       "name": "linux-gcc-x64",
       "includePath": [
-        "${workspaceFolder}/**"
+        "${workspaceFolder}/**",
+        "/usr/include/SDL2"
       ],
-      "compilerPath": "/usr/bin/gcc",
-      "cStandard": "${default}",
-      "cppStandard": "${default}",
-      "intelliSenseMode": "linux-gcc-x64",
+      "defines": [],
+      "compilerPath": "/usr/bin/g++",
       "compilerArgs": [
-        ""
-      ]
+        "-Wall"
+      ],
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "linux-gcc-x64"
+    },
+    {
+      "name": "macos-clang-arm64",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/opt/homebrew/include",
+        "/opt/homebrew/include/SDL2",
+        "/usr/local/include",
+        "/usr/local/include/SDL2"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/bin/clang++",
+      "compilerArgs": [
+        "-Wall"
+      ],
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "macos-clang-arm64"
     }
   ],
   "version": 4

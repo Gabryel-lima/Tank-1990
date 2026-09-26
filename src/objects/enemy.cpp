@@ -1,6 +1,7 @@
 #include "enemy.h"
 #include "../appconfig.h"
-#include <stdlib.h>
+#include <algorithm>
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 
@@ -69,17 +70,17 @@ void Enemy::draw()
     if(to_erase) return; // Não desenha se marcado para remoção
     if(AppConfig::show_enemy_target)
     {
-        SDL_Color c;
+        SDL_Color c = {255, 255, 255, 255};
         // Define a cor da linha de acordo com o tipo do tanque
         if(type == ST_TANK_A) c = {250, 0, 0, 250};
         if(type == ST_TANK_B) c = {0, 0, 250, 255};
         if(type == ST_TANK_C) c = {0, 255, 0, 250};
         if(type == ST_TANK_D) c = {250, 0, 255, 250};
         // Desenha linha horizontal até o alvo
-        SDL_Rect r = {min(target_position.x, dest_rect.x + dest_rect.w / 2), dest_rect.y + dest_rect.h / 2, abs(target_position.x - (dest_rect.x + dest_rect.w / 2)), 1};
+        SDL_Rect r = {std::min(target_position.x, dest_rect.x + dest_rect.w / 2), dest_rect.y + dest_rect.h / 2, std::abs(target_position.x - (dest_rect.x + dest_rect.w / 2)), 1};
         Engine::getEngine().getRenderer()->drawRect(&r, c,  true);
         // Desenha linha vertical até o alvo
-        r = {target_position.x, min(target_position.y, dest_rect.y + dest_rect.h / 2), 1, abs(target_position.y - (dest_rect.y + dest_rect.h / 2))};
+        r = {target_position.x, std::min(target_position.y, dest_rect.y + dest_rect.h / 2), 1, std::abs(target_position.y - (dest_rect.y + dest_rect.h / 2))};
         Engine::getEngine().getRenderer()->drawRect(&r, c, true);
     }
     Tank::draw(); // Chama o desenho padrão do tanque
