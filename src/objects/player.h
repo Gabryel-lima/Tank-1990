@@ -10,90 +10,45 @@
 class Player : public Tank
 {
 public:
-    // Constantes para zonas mortas dos analógicos
-    static const Sint16 ANALOG_DEADZONE_CONTROLLER = 8192;    // 25% do range total (-32768 a +32767)
-    static const Sint16 ANALOG_DEADZONE_HYBRID = 6144;        // 18.75% do range total
-    static const Sint16 ANALOG_DEADZONE_MENU = 8000;          // Para navegação no menu
-    
-    virtual ~Player();
     /**
-     * @brief Estrutura que armazena os códigos das teclas responsáveis pelo controle do tanque do jogador.
-     * Permite configurar quais teclas controlam cada direção e o disparo.
+     * Zona morta do analógico esquerdo (~25% do curso de -32768 a +32767).
      */
-    enum class InputType {
-        Keyboard,
-        Controller,
-        Hybrid  // Suporte para teclado + controle simultaneamente
-    };
-    
+    static const Sint16 ANALOG_DEADZONE = 8192;
+
+    virtual ~Player();
+
+    /**
+     * @brief Teclas do teclado que controlam o tanque do jogador.
+     * Jogadores sem teclado (3 e 4) usam o construtor padrão, com todas as
+     * teclas em SDL_SCANCODE_UNKNOWN. O controle (gamepad) de cada jogador é
+     * definido pela classe Controllers, não aqui.
+     */
     struct PlayerKeys
     {
-        InputType type;
-
-        // Para teclado
         SDL_Scancode up;
         SDL_Scancode down;
         SDL_Scancode left;
         SDL_Scancode right;
         SDL_Scancode fire;
 
-        // Para controle
-        int axis_up;
-        int axis_down;
-        int axis_left;
-        int axis_right;
-        int button_fire;
-
-        // Construtor para teclado
         PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f)
-            : type(InputType::Keyboard), up(u), down(d), left(l), right(r), fire(f),
-              axis_up(-1), axis_down(-1), axis_left(-1), axis_right(-1), button_fire(-1) {}
+            : up(u), down(d), left(l), right(r), fire(f) {}
 
-        // Construtor para controle
-        PlayerKeys(int a_up, int a_down, int a_left, int a_right, int b_fire)
-            : type(InputType::Controller), up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN),
-              left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN),
-              axis_up(a_up), axis_down(a_down), axis_left(a_left), axis_right(a_right), button_fire(b_fire) {}
-
-        // Construtor para input híbrido (teclado + controle)
-        PlayerKeys(SDL_Scancode k_up, SDL_Scancode k_down, SDL_Scancode k_left, SDL_Scancode k_right, SDL_Scancode k_fire,
-                   int a_up, int a_down, int a_left, int a_right, int b_fire)
-            : type(InputType::Hybrid), up(k_up), down(k_down), left(k_left), right(k_right), fire(k_fire),
-              axis_up(a_up), axis_down(a_down), axis_left(a_left), axis_right(a_right), button_fire(b_fire) {}
-
-        // Construtor padrão
+        // Sem teclado: o jogador só joga com controle
         PlayerKeys()
-            : type(InputType::Keyboard), up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN),
-              left(SDL_SCANCODE_UNKNOWN), right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN),
-              axis_up(-1), axis_down(-1), axis_left(-1), axis_right(-1), button_fire(-1) {}
+            : up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN), left(SDL_SCANCODE_UNKNOWN),
+              right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN) {}
+
+        bool hasKeyboard() const { return fire != SDL_SCANCODE_UNKNOWN; }
     };
 
     /**
      * Construtor padrão.
      * Cria o jogador na posição inicial definida em AppConfig.
-     * @param keys - configuração de teclas/controle
-     * @param idx - índice do controle
+     * @param keys - teclas do teclado do jogador
+     * @param idx - índice do jogador (0 = Jogador 1); define cor, posição e controle
      */
     Player(const PlayerKeys& keys, int idx);
-
-    /**
-     * Construtor com índices separados.
-     * Permite separar o índice do jogador (cor/posição) do índice do controle físico.
-     * @param keys - configuração de teclas/controle
-     * @param player_idx - índice do jogador (para cor e posição)
-     * @param controller_idx - índice do controle físico
-     */
-    Player(const PlayerKeys& keys, int player_idx, int controller_idx);
-
-    /**
-     * Construtor parametrizado.
-     * Cria o tanque do jogador em uma posição e tipo específicos.
-     * @param x - posição horizontal inicial
-     * @param y - posição vertical inicial
-     * @param type - tipo do sprite do jogador
-     * @param idx - índice do controle
-     */
-    Player(double x, double y, SpriteType type, int idx);
 
     /**
      * Atualiza o estado do jogador.
@@ -155,18 +110,9 @@ public:
     void shieldHit();
 
     /**
-     * Verifica se um controle está conectado e ativo.
-     * @param controller_index - índice do controle a verificar
-     * @return true se o controle estiver conectado e ativo
+     * Índice do jogador (0 = Jogador 1), derivado do tipo do sprite.
      */
-    static bool isControllerActive(int controller_index);
-
-    /**
-     * Ajusta o tipo de input baseado na disponibilidade de controles.
-     * Se o player 1 estiver usando controle, o player 2 pode usar teclado.
-     * @param player_index - índice do player (0 = player 1, 1 = player 2, etc.)
-     */
-    void adjustInputType(int player_index);
+    int playerIndex() const;
 
     /**
      * Define a cor do tanque do jogador.
@@ -187,10 +133,6 @@ public:
     void setFlag(TankStateFlag flag);
 
 private:
-    /**
-     * Ponteiro para o controle do jogador (caso use controle).
-     */
-    SDL_GameController* m_controller = nullptr;
     /**
      * Quantidade atual de estrelas do jogador; varia de 0 a 3.
      * Estrelas aumentam habilidades do tanque.

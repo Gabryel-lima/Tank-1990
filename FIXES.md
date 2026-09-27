@@ -138,6 +138,9 @@ Não mexi nestes porque envolvem decisões de design/jogabilidade.
 
 ### 8. 🟠 Jogador 1 e Jogador 2 atiram com a MESMA tecla
 
+> ✅ **Corrigido:** o Jogador 2 atira com `P2_FIRE_KEY` (`Ctrl direito`, `Alt direito` no Mac).
+
+
 **Onde:** `src/appconfig.cpp:65`
 
 ```cpp
@@ -200,6 +203,9 @@ sem explosão.
 **Sugestão:** mover o `playSound` para depois das checagens de escudo/barco.
 
 ### 12. 🟡 `adjustInputType()` não faz nada
+
+> ✅ **Corrigido:** removido junto com `InputType`; teclado e gamepad são lidos juntos em `Player::update()` e os gamepads vêm de `Controllers`.
+
 
 **Onde:** `src/objects/player.cpp`
 
@@ -327,6 +333,9 @@ comportamento fica dependente do driver.
 
 ### 23. 🟡 Saídas antecipadas em `App::run()` pulam a limpeza
 
+> ✅ **Corrigido:** toda saída passa por `App::cleanup()`, que também destrói o estado atual antes do `SDL_Quit()`. Sem áudio o jogo segue mudo em vez de fechar.
+
+
 **Onde:** `src/app.cpp`
 
 `if (!SoundManager::getInstance().init()) return;`, o `return` do
@@ -363,6 +372,9 @@ vazio, `m_level_rows_count == 0`, e cria a águia em
 `(m_level_rows_count - 2) * 16 == -32`. Não há nenhuma mensagem de erro.
 
 ### 26. 🟡 Construtor `Player(double, double, SpriteType, int)` inconsistente
+
+> ✅ **Corrigido:** construtor removido (não era usado).
+
 
 **Onde:** `src/objects/player.cpp`
 

@@ -9,22 +9,22 @@ control setup, so tanks are easy to tell apart in multiplayer games.
 
 ### Player 1 - Golden yellow
 - **Color**: RGB (255, 215, 0)
-- **Input**: physical controller 0 (analog sticks + X button)
+- **Input**: keyboard `W` `A` `S` `D` + `Space`, and/or a gamepad
 - **Position**: bottom left (128, 384)
 
 ### Player 2 - Green
 - **Color**: RGB (0, 255, 0)
-- **Input**: keyboard arrow keys + Space
+- **Input**: keyboard arrow keys + `Right Ctrl` (`Right Alt` on Mac), and/or a gamepad
 - **Position**: bottom right (256, 384)
 
 ### Player 3 - Blue
 - **Color**: RGB (0, 100, 255)
-- **Input**: physical controller 1 (D-pad + X button)
+- **Input**: gamepad (no keyboard)
 - **Position**: top left (128, 320)
 
 ### Player 4 - Red
 - **Color**: RGB (255, 50, 50)
-- **Input**: physical controller 2 (D-pad + X button)
+- **Input**: gamepad (no keyboard)
 - **Position**: top right (256, 320)
 
 ## How it works
@@ -70,24 +70,24 @@ To change a color, edit `getPlayerColor()`.
 ## Recent changes (2024)
 
 ### Controls
-- **Player 2**: uses the keyboard arrow keys (↑↓←→ + Space)
-- **Player 3**: fixed the physical controller mapping (now uses controller 1)
-- **No logs**: the input system runs without debug messages
-- **Fixed setup**: players are no longer switched to the keyboard automatically
+- **Player 2**: fires with `Right Ctrl`; it used to be `Space`, the same key as
+  Player 1, so both tanks fired together
+- **Gamepads**: assigned by the `Controllers` class (`src/controllers.cpp`),
+  with hotplug; the assignment table is in the [README](README.en.md#-controls)
 
 ### Positions
 - Start positions were rearranged so players don't overlap
 - Players start in the corners for better visibility
 
-### New constructor
-`Player(keys, player_idx, controller_idx)` separates:
-- `player_idx`: sets the player's color and position
-- `controller_idx`: sets which physical controller to use
+### Constructor
+`Player(keys, idx)`: `idx` sets the player's color, position and which gamepad
+they get
 
 ## Files involved
 
 - `src/appconfig.cpp` - control and position settings
 - `src/app_state/game.cpp` - player creation
-- `src/objects/player.h` and `src/objects/player.cpp` - constructor and input logic
+- `src/objects/player.h` and `src/objects/player.cpp` - constructor and keyboard/gamepad input
+- `src/controllers.h` and `src/controllers.cpp` - gamepad assignment
 - `src/engine/renderer.h` and `src/engine/renderer.cpp` - colored rendering
 - `src/objects/object.h` and `src/objects/object.cpp` - color support

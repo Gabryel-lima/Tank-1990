@@ -4,6 +4,7 @@
 #include "app_state/game.h"
 #include "app_state/menu.h"
 #include "soundmanager.h"
+#include "controllers.h"
 
 #include <ctime>
 #include <iostream>
@@ -38,20 +39,27 @@ void App::run()
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
     {
 
-        // Inicializa e carrega sons
-        if (!SoundManager::getInstance().init()) return;
-        SoundManager::getInstance().loadSounds();
+        // Inicializa e carrega sons. Sem áudio o jogo continua, só que mudo.
+        if (SoundManager::getInstance().init())
+            SoundManager::getInstance().loadSounds();
+
+        // Abre os controles já conectados (os demais chegam por hotplug)
+        Controllers::init();
 
         // Cria a janela principal do jogo
         m_window = SDL_CreateWindow("TANKS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                     AppConfig::windows_rect.w, AppConfig::windows_rect.h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
-        if(m_window == nullptr) return;
-
-        // Inicializa suporte a imagens PNG
-        if(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) return;
-        // Inicializa suporte a fontes TrueType
-        if(TTF_Init() == -1) return;
+        // Confere a janela e inicializa imagens PNG e fontes TrueType;
+        // se algo falhar, libera o que já foi criado e sai.
+        if(m_window == nullptr ||
+           !(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) ||
+           TTF_Init() == -1)
+        {
+            std::cerr << "Falha ao iniciar: " << SDL_GetError() << "\n";
+            cleanup();
+            return;
+        }
 
         // Inicializa o gerador de números aleatórios
         srand(time(NULL));
@@ -108,17 +116,26 @@ void App::run()
                 fps_count = 0;
             }
         }
-
-        // Libera recursos dos módulos do motor gráfico
-        engine.destroyModules();
     }
 
-    // Destroi a janela e encerra subsistemas SDL
-    SDL_DestroyWindow(m_window);
+    cleanup();
+}
+
+// Libera tudo na ordem certa. O estado atual (menu/jogo) é destruído antes
+// do renderizador e do SDL_Quit, pois seus objetos ainda usam o SDL.
+void App::cleanup()
+{
+    delete m_app_state;
+    m_app_state = nullptr;
+
+    Engine::getEngine().destroyModules();
+
+    if(m_window != nullptr)
+        SDL_DestroyWindow(m_window);
     m_window = nullptr;
 
-    // No final da run()
     SoundManager::getInstance().cleanup();
+    Controllers::shutdown();
 
     TTF_Quit();
     IMG_Quit();
@@ -155,6 +172,9 @@ void App::eventProces()
                 );
             }
         }
+
+        // Conexão/desconexão de controles
+        Controllers::handleEvent(&event);
 
         // Encaminha o evento para o estado atual do aplicativo
         m_app_state->eventProcess(&event);

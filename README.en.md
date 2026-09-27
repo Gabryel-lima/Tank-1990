@@ -50,6 +50,11 @@ rebuild; only `uninstall.cmd` removes it.
 play.cmd
 ```
 
+**4. Controllers (optional)**
+
+To play with a USB controller, plug it in and run **`gamepads.cmd`** once
+(see [Controllers on Windows](#controllers-on-windows-wsl)).
+
 **To uninstall:**
 
 ```
@@ -166,15 +171,12 @@ when run — see the Windows section above.
 - ✅ **1-4 simultaneous players**
 - ✅ **Unique color** for each player
 - ✅ **Dedicated, conflict-free controls** for each player
-- ✅ **Controller detection**: finds connected controllers without automatic swapping
-- ✅ **Analog sticks for Player 1**
-- ✅ **Dedicated controllers**: each player has their own physical controller
+- ✅ **Gamepads for every player**: D-pad or analog stick, with hotplug
 - ✅ **Scoring** with bonuses for destroying enemies
 - ✅ **8 power-up types** with unique effects
 - ✅ **Star system** (levels 0-3) that upgrades the tank
 - ✅ **4 enemy tank types** with different behavior
 - ✅ **Sound and visual effects**
-- ✅ **Robust validation** of connected controllers
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
 
@@ -207,67 +209,70 @@ you lose all of them when destroyed.
 
 ## 🎮 Controls
 
-| Player | Input | Color | Start position |
-|---|---|---|---|
-| **1** | Physical controller 0: analog sticks to move, X to fire | Golden yellow (255, 215, 0) | Bottom left (128, 384) |
-| **2** | Keyboard: arrow keys to move, Space to fire | Green (0, 255, 0) | Bottom right (256, 384) |
-| **3** | Physical controller 1: D-pad to move, X to fire | Blue (0, 100, 255) | Top left (128, 320) |
-| **4** | Physical controller 2: D-pad to move, X to fire | Red (255, 50, 50) | Top right (256, 320) |
+| Player | Color | Keyboard | Start position |
+|--------|-------|----------|----------------|
+| **Player 1** | Yellow | `W` `A` `S` `D` + `Space` | Bottom left |
+| **Player 2** | Green | Arrow keys + `Right Ctrl` (`Right Alt` on Mac) | Bottom right |
+| **Player 3** | Blue | — (controller only) | Top left |
+| **Player 4** | Red | — (controller only) | Top right |
 
-Details on how colors are applied are in [PLAYER_COLORS.md](PLAYER_COLORS.md).
+Each player has their own keys: pressing one player's key never moves or
+fires another player's tank.
 
-### Controller detection
+**On a controller (gamepad)**, for any player:
 
-- Counts connected devices with `SDL_NumJoysticks()`
-- Checks that each device is a game controller with `SDL_IsGameController()`
-- Assigns a specific physical controller to each player
-- Keeps working if controllers are not connected
+- **Move**: D-pad or left stick
+- **Fire**: any face button (A, B, X or Y)
+- **Start**: pause · **Back/Select**: back to the menu
+- **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
-### Supported input types
+Players 1 and 2 can use keyboard and controller at the same time.
 
-The `InputType` enum supports three modes:
+### Which controller goes to which player
 
-1. **Keyboard**: keyboard only
-2. **Controller**: physical controller only
-3. **Hybrid**: keyboard and controller together (keyboard takes priority)
+Controllers are handed out in the order they were connected: first to the
+players without a keyboard (3 and 4), then to players 1 and 2.
 
-## 👥 Setting up multiple players
+| Game | 1st controller | 2nd controller | 3rd controller | 4th controller |
+|------|----------------|----------------|----------------|----------------|
+| 1 or 2 players | Player 1 | Player 2 | — | — |
+| 3 players | Player 3 | Player 1 | Player 2 | — |
+| 4 players | Player 3 | Player 4 | Player 1 | Player 2 |
 
-1. **Connect the controllers**:
-   - 2 players: 1 controller (Player 1) + keyboard (Player 2)
-   - 3 players: 2 controllers (Players 1 and 3) + keyboard (Player 2)
-   - 4 players: 3 controllers (Players 1, 3 and 4) + keyboard (Player 2)
-2. **Start the game** and pick the number of players in the menu
-3. Each player keeps their fixed setup (see the table above) regardless of
-   which controllers are available
+So a 3-player game needs just **1 controller** (for Player 3) plus the
+keyboard for the other two; a 4-player game needs **2 controllers**.
 
-**Note**: the game detects connected controllers automatically. If a
-controller is missing, the matching player is not created.
+Controllers can be plugged in or removed while the game is running. Any
+controller SDL2 recognizes as a *game controller* works (Xbox, PlayStation,
+Switch Pro and most generic ones).
 
-## 🕹️ Analog sticks (Player 1)
+### Controllers on Windows (WSL)
 
-- **Y axis**: up/down
-- **X axis**: left/right
-- **Deadzone**: 8192 for controller-only input, 6144 for hybrid input
-- Values are read with `SDL_GameControllerGetAxis()`, filtered by the deadzone
-  and turned into game directions
-- In hybrid mode the keyboard takes priority over the sticks
+WSL can't see USB controllers on its own. The game uses
+[usbipd-win](https://github.com/dorssel/usbipd-win) to lend the controller to
+WSL while it runs:
 
-```cpp
-// Player 1: analog sticks (physical controller 0)
-SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X
+1. Plug the controllers in **with a USB cable** and run **`gamepads.cmd`**
+   once. It installs usbipd-win (if needed) and authorizes each connected
+   controller model. It asks for administrator permission.
+2. Play through `play.cmd` as usual. It forwards the authorized controllers
+   when the game opens (including ones plugged in later) and **hands them
+   back to Windows** when the game closes. While the game is open, the
+   controller doesn't work in other Windows programs.
 
-// Player 2: dedicated keyboard
-SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_SPACE
+You only need to run `gamepads.cmd` again for a new controller **model**.
+Other commands: `gamepads.cmd --list` (show authorized controllers) and
+`gamepads.cmd --remove` (remove the authorizations).
 
-// Player 3: D-pad (physical controller 1)
-SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
+| Controller | Works in WSL? |
+|---|---|
+| PlayStation (DualShock 4, DualSense), Switch Pro, 8BitDo, generic USB | Yes |
+| Xbox 360 / One / Series (cable) | Yes, through the libusb-enabled SDL2 that `install.cmd` builds |
+| Any **Bluetooth** controller | No (usbipd only forwards USB) |
 
-// Player 4: D-pad (physical controller 2)
-SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
-```
+`gamepads.cmd` only authorizes devices Windows identifies as a
+gamepad/joystick (or an Xbox controller); keyboards and mice are never
+forwarded.
 
 ## 👾 Enemies
 
@@ -309,7 +314,8 @@ Tank-1990/
 │   │   ├── engine.h/cpp       # Core engine
 │   │   └── spriteconfig.h/cpp # Sprite configuration
 │   ├── app.h/cpp         # Main application
-│   ├── appconfig.h/cpp   # Global settings
+│   ├── appconfig.h/cpp   # Global settings (including player keys)
+│   ├── controllers.h/cpp # Gamepads: hotplug and player assignment
 │   ├── soundmanager.h/cpp # Audio manager
 │   └── type.h            # Type definitions
 ├── resources/            # Game assets
@@ -384,8 +390,12 @@ Open `doc/html/index.html` in a browser.
 3. Finally, update WSL with `wsl --update`.
 
 ### Controllers don't work
-- Connect the controllers before starting the game
-- On Linux you may need permissions for `/dev/input/js*`
+- Through `play.cmd` (WSL): the controller must be **on a cable** and
+  authorized by `gamepads.cmd` (check with `gamepads.cmd --list`). The
+  forwarding log is at `%LOCALAPPDATA%\Tank1990\gamepads.log`
+- Bluetooth controllers don't work in WSL; use the cable
+- Check the assignment table: in a 3-player game the 1st controller belongs to Player 3
+- On Linux your user needs access to `/dev/input/event*` (the `input` group)
 - Make sure SDL2 is installed correctly
 
 ### Build errors
@@ -416,7 +426,7 @@ Maintained by **Gabryel Lima** ([@Gabryel-lima](https://github.com/Gabryel-lima)
 - Fixes for many bugs in the base project (see [FIXES.md](FIXES.md), in Portuguese)
 - Support for **3 and 4 players** (the original supported 2)
 - **Unique player colors**, with their own start positions and controls
-- **USB controller / gamepad** support, including hybrid keyboard + controller mode
+- **USB controller / gamepad** support, usable by every player alongside the keyboard, with hotplug
 - **Sound** system (`SoundManager`)
 - Comments and documentation translated to Portuguese
 - Cross-platform build: `Makefile` (Linux/macOS/MSYS2) and a WSL installer for Windows

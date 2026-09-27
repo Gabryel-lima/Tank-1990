@@ -126,9 +126,11 @@ void Renderer::drawText(const SDL_Point* start, string text, SDL_Color text_colo
 {
     // Verifica se as fontes estão carregadas
     if(m_font1 == nullptr || m_font2 == nullptr || m_font3 == nullptr) return;
-    // Libera a textura de texto anterior, se existir
+    // Libera a textura de texto anterior, se existir. Zera o ponteiro para
+    // que um retorno antecipado abaixo não deixe o destrutor liberá-la de novo.
     if(m_text_texture != nullptr)
         SDL_DestroyTexture(m_text_texture);
+    m_text_texture = nullptr;
 
     SDL_Surface* text_surface = nullptr;
     // Seleciona a fonte de acordo com o tamanho solicitado

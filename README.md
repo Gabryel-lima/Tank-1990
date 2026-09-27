@@ -48,6 +48,11 @@ recompilar; ele só é apagado pelo `uninstall.cmd`.
 play.cmd
 ```
 
+**4. Controles (opcional)**
+
+Para jogar com controle USB, conecte-o e rode **`gamepads.cmd`** uma vez
+(veja [Controles no Windows](#controles-no-windows-wsl)).
+
 **Para desinstalar:**
 
 ```
@@ -167,15 +172,12 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 - ✅ **Suporte a 1-4 jogadores** simultâneos
 - ✅ **Sistema de cores únicas** para cada jogador
 - ✅ **Controles exclusivos** e sem conflitos para cada jogador
-- ✅ **Sistema de detecção de controles**: Identifica controles conectados sem troca automática
-- ✅ **Analógicos para Player 1**: Suporte completo aos analógicos do controle
-- ✅ **Controles dedicados**: Cada jogador tem seu próprio controle físico
+- ✅ **Gamepads para todos os jogadores**: D-pad ou analógico, com conexão a quente (hotplug)
 - ✅ **Sistema de pontuação** com bônus por eliminação de inimigos
 - ✅ **8 tipos de power-ups** com efeitos únicos
 - ✅ **Sistema de estrelas** (0-3 níveis) que melhora o tanque
 - ✅ **4 tipos de tanques inimigos** com comportamentos diferentes
 - ✅ **Efeitos sonoros** e visuais
-- ✅ **Validação robusta** de controles conectados
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
 
@@ -207,79 +209,69 @@ O sistema de estrelas (0-3 níveis) melhora progressivamente o tanque:
 
 ## 🎮 Controles
 
-### Player 1
-- **Controle Físico 0**: Analógicos para movimento, botão X para atirar
-- **Cor**: Amarelo Dourado (RGB: 255, 215, 0)
-- **Posição Inicial**: Canto inferior esquerdo (128, 384)
+| Jogador | Cor | Teclado | Posição inicial |
+|---------|-----|---------|-----------------|
+| **Player 1** | Amarelo | `W` `A` `S` `D` + `Espaço` | Inferior esquerda |
+| **Player 2** | Verde | Setas + `Ctrl direito` (`Alt direito` no Mac) | Inferior direita |
+| **Player 3** | Azul | — (só controle) | Superior esquerda |
+| **Player 4** | Vermelho | — (só controle) | Superior direita |
 
-### Player 2
-- **Teclado Setas**: Setas direcionais para movimento, Space para atirar
-- **Cor**: Verde (RGB: 0, 255, 0)
-- **Posição Inicial**: Canto inferior direito (256, 384)
+Cada jogador tem teclas próprias: apertar a tecla de um jogador nunca move ou
+faz atirar outro.
 
-### Player 3
-- **Controle Físico 1**: D-pad para movimento, botão X para atirar
-- **Cor**: Azul (RGB: 0, 100, 255)
-- **Posição Inicial**: Canto superior esquerdo (128, 320)
+**No controle (gamepad)**, para qualquer jogador:
 
-### Player 4
-- **Controle Físico 2**: D-pad para movimento, botão X para atirar
-- **Cor**: Vermelho (RGB: 255, 50, 50)
-- **Posição Inicial**: Canto superior direito (256, 320)
+- **Mover**: D-pad ou analógico esquerdo
+- **Atirar**: qualquer botão frontal (A, B, X ou Y)
+- **Start**: pausa · **Back/Select**: volta ao menu
+- **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
-## 🎮 Sistema de Controles
+Os jogadores 1 e 2 podem usar teclado e controle ao mesmo tempo.
 
-O jogo possui um sistema avançado de detecção e configuração de controles:
+### Qual controle fica com qual jogador
 
-### Detecção de Controles
-- Verifica quantos controles estão conectados usando `SDL_NumJoysticks()`
-- Valida se cada dispositivo é um game controller com `SDL_IsGameController()`
-- Atribui controles físicos específicos a cada jogador
-- Sistema robusto que não falha se controles não estiverem conectados
+Os controles são distribuídos na ordem em que foram conectados: primeiro para
+quem não tem teclado (jogadores 3 e 4), depois para os jogadores 1 e 2.
 
-### Configuração Fixa
-- **Player 1**: Sempre usa controle físico 0 (analógicos)
-- **Player 2**: Sempre usa teclado (setas direcionais)
-- **Player 3**: Sempre usa controle físico 1 (D-pad)
-- **Player 4**: Sempre usa controle físico 2 (D-pad)
+| Partida | 1º controle | 2º controle | 3º controle | 4º controle |
+|---------|-------------|-------------|-------------|-------------|
+| 1 ou 2 jogadores | Player 1 | Player 2 | — | — |
+| 3 jogadores | Player 3 | Player 1 | Player 2 | — |
+| 4 jogadores | Player 3 | Player 4 | Player 1 | Player 2 |
 
-### Mapeamento de Controles
-- **Controle 0** → Player 1 (analógicos + X)
-- **Controle 1** → Player 3 (D-pad + X)
-- **Controle 2** → Player 4 (D-pad + X)
-- **Teclado Setas** → Player 2 (dedicado)
+Assim, com 3 jogadores basta **1 controle** (para o Player 3) e o teclado para
+os outros dois; com 4 jogadores, **2 controles**.
 
-### Tipos de Input Suportados
-O sistema suporta três tipos de input através do enum `InputType`:
+Controles podem ser conectados ou desconectados com o jogo aberto. O jogo
+aceita qualquer controle que o SDL2 reconheça como *game controller* (Xbox,
+PlayStation, Switch Pro e a maioria dos genéricos).
 
-1. **Keyboard**: Apenas teclado
-2. **Controller**: Apenas controle físico
-3. **Hybrid**: Teclado + controle simultaneamente (teclado tem prioridade)
+### Controles no Windows (WSL)
 
-Exemplo de mapeamento fixo:
+O WSL não enxerga controles USB sozinho. O jogo usa o
+[usbipd-win](https://github.com/dorssel/usbipd-win) para emprestar o controle
+ao WSL enquanto roda:
 
-```cpp
-// Player 1: Controle 0 (Analógicos + X) - Amarelo
-// Player 2: Teclado Setas + Space - Verde
-// Player 3: Controle 1 (D-pad + X) - Azul
-// Player 4: Controle 2 (D-pad + X) - Vermelho
-```
+1. Conecte os controles **por cabo USB** e rode **`gamepads.cmd`** uma vez.
+   Ele instala o usbipd-win (se precisar) e autoriza cada modelo de controle
+   conectado. Pede permissão de administrador.
+2. Jogue pelo `play.cmd` normalmente. Ele repassa os controles autorizados ao
+   abrir o jogo (inclusive os conectados depois) e os **devolve ao Windows**
+   quando o jogo fecha. Enquanto o jogo está aberto, o controle não funciona
+   em outros programas do Windows.
 
-## 👥 Como Configurar Múltiplos Jogadores
+Só é preciso rodar o `gamepads.cmd` de novo para um **modelo** de controle
+novo. Outros comandos: `gamepads.cmd --list` (mostra os autorizados) e
+`gamepads.cmd --remove` (remove as autorizações).
 
-1. **Conecte os controles** ao computador:
-   - Para 2 jogadores: 1 controle (Player 1) + teclado (Player 2)
-   - Para 3 jogadores: 2 controles (Players 1 e 3) + teclado (Player 2)
-   - Para 4 jogadores: 3 controles (Players 1, 3 e 4) + teclado (Player 2)
-2. **Execute o jogo** e selecione quantos jogadores no menu
-3. **Configuração fixa**:
-   - Player 1: Controle físico 0 (analógicos) - Amarelo
-   - Player 2: Teclado (setas direcionais) - Verde
-   - Player 3: Controle físico 1 (D-pad) - Azul
-   - Player 4: Controle físico 2 (D-pad) - Vermelho
-4. **Cada jogador mantém sua configuração** independentemente dos controles disponíveis
+| Controle | Funciona no WSL? |
+|---|---|
+| PlayStation (DualShock 4, DualSense), Switch Pro, 8BitDo, genéricos USB | Sim |
+| Xbox 360 / One / Series (cabo) | Sim, via o SDL2 com libusb que o `install.cmd` compila |
+| Qualquer controle por **Bluetooth** | Não (o usbipd só repassa USB) |
 
-**Nota**: O jogo detecta automaticamente os controles conectados. Se um controle não estiver disponível, o jogador correspondente não será criado.
+O `gamepads.cmd` só autoriza dispositivos que o Windows identifica como
+gamepad/joystick (ou controle Xbox); teclado e mouse nunca são repassados.
 
 ## 👾 Tipos de Inimigos
 
@@ -325,7 +317,8 @@ Tank-1990/
 │   │   ├── engine.h/cpp      # Motor principal
 │   │   └── spriteconfig.h/cpp # Configuração de sprites
 │   ├── app.h/cpp         # Aplicação principal
-│   ├── appconfig.h/cpp   # Configurações globais
+│   ├── appconfig.h/cpp   # Configurações globais (inclui teclas dos jogadores)
+│   ├── controllers.h/cpp # Gamepads: hotplug e distribuição entre jogadores
 │   ├── soundmanager.h/cpp # Gerenciador de áudio
 │   └── type.h            # Definições de tipos
 ├── resources/            # Recursos do jogo
@@ -336,48 +329,6 @@ Tank-1990/
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
 └── README.md             # Este arquivo
-```
-
-## 🔍 Como Funciona o Sistema de Controles
-
-1. **Detecção**: Verifica quantos joysticks estão conectados usando `SDL_NumJoysticks()`
-2. **Validação**: Confirma se cada dispositivo é um game controller válido com `SDL_IsGameController()`
-3. **Mapeamento Fixo**: Cada jogador tem um controle físico específico atribuído
-4. **Sem Troca Automática**: Configurações mantidas independentemente da disponibilidade
-5. **Operação Robusta**: O jogo funciona mesmo se controles não estiverem conectados
-
-## 🕹️ Suporte aos Analógicos (Player 1)
-
-O Player 1 possui suporte completo aos analógicos do controle:
-
-### Características:
-- **Eixo Y (Vertical)**: Movimento para cima/baixo
-- **Eixo X (Horizontal)**: Movimento para esquerda/direita
-- **Deadzone**: 8192 para controle puro, 6144 para input híbrido
-- **Detecção Automática**: O sistema detecta automaticamente se são analógicos ou botões
-- **Compatibilidade**: Funciona com qualquer controle compatível com SDL2
-
-### Como Funciona:
-1. **Detecção**: Valores negativos nos eixos indicam analógicos
-2. **Leitura**: `SDL_GameControllerGetAxis()` lê os valores dos analógicos
-3. **Processamento**: Aplica deadzone e converte para direções do jogo
-4. **Prioridade**: Teclado tem prioridade sobre analógicos no modo híbrido
-
-### Configuração Técnica:
-```cpp
-// Player 1: Analógicos configurados (controle físico 0)
-SDL_CONTROLLER_AXIS_LEFTY, -1, SDL_CONTROLLER_AXIS_LEFTX, -1, SDL_CONTROLLER_BUTTON_X
-
-// Player 2: Teclado dedicado
-SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_SPACE
-
-// Player 3: D-pad (controle físico 1)
-SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, 
-SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
-
-// Player 4: D-pad (controle físico 2)
-SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X
 ```
 
 ## 🎯 Objetivo do Jogo
@@ -445,8 +396,12 @@ A documentação será gerada no diretório `doc/` e pode ser visualizada abrind
 3. Por fim, atualize o WSL com `wsl --update`.
 
 ### Controles não funcionam
-- Verifique se os controles estão conectados antes de iniciar o jogo
-- No Linux, pode ser necessário configurar permissões para `/dev/input/js*`
+- Pelo `play.cmd` (WSL): o controle precisa estar **no cabo** e autorizado pelo
+  `gamepads.cmd` (confira com `gamepads.cmd --list`). O registro do repasse fica
+  em `%LOCALAPPDATA%\Tank1990\gamepads.log`
+- Controle por Bluetooth não funciona no WSL; use o cabo
+- Confira a tabela de distribuição: com 3 jogadores, o 1º controle é do Player 3
+- No Linux, o usuário precisa de acesso a `/dev/input/event*` (grupo `input`)
 - Certifique-se de que o SDL2 está instalado corretamente
 
 ### Erro de compilação
@@ -477,7 +432,7 @@ Mantido por **Gabryel Lima** ([@Gabryel-lima](https://github.com/Gabryel-lima)):
 - Correção de diversos bugs do projeto base (ver [FIXES.md](FIXES.md))
 - Suporte a **3 e 4 jogadores** (o original ia até 2)
 - **Cores únicas por jogador**, com posições iniciais e controles próprios
-- Suporte a **controles USB / gamepads**, incluindo modo híbrido teclado + controle
+- Suporte a **controles USB / gamepads**, para todos os jogadores, junto com o teclado, com hotplug
 - Sistema de **sons** (`SoundManager`)
 - Comentários e documentação traduzidos para português
 - Build multiplataforma: `Makefile` (Linux/macOS/MSYS2) e instalador via WSL no Windows

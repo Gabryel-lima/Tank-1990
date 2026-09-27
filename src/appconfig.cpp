@@ -19,8 +19,7 @@ SDL_Rect AppConfig::windows_rect = {0, 0, AppConfig::map_rect.w + AppConfig::sta
 SDL_Rect AppConfig::tile_rect = {0, 0, 16, 16};
 
 // Teclas de disparo adaptadas para Macbooks (não possuem tecla Ctrl direita)
-// Macbook: usa Alt direito/esquerdo; outros: usa Ctrl direito/esquerdo
-// TODO:
+// Macbook: usa Alt direito; outros: usa Ctrl direito
 #if defined(__APPLE__) && defined(__MACH__)
     #define P1_FIRE_KEY SDL_SCANCODE_SPACE
     #define P2_FIRE_KEY SDL_SCANCODE_RALT
@@ -50,25 +49,20 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
     return v;
 }();
 
-// Configuração das teclas de controle dos jogadores
+// Teclas de teclado dos jogadores. Cada jogador precisa de teclas próprias:
+// se dois jogadores compartilham uma tecla, os dois reagem a ela.
+// Os controles (gamepads) são distribuídos pela classe Controllers e
+// funcionam para todos os jogadores, junto com o teclado.
 vector<Player::PlayerKeys> AppConfig::player_keys =
 []{
     vector<Player::PlayerKeys> v;
-    // Jogador 1: Modo híbrido - Teclado WASD + Space e Controle USB (analógicos)
-    // Teclado: W, S, A, D, SPACE
-    // Controle: Analógicos (LEFTY/LEFTX) + Botão X para disparo
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE,
-                                   -1, -1, -1, -1, SDL_CONTROLLER_BUTTON_X));
-
-    // Jogador 2: Apenas teclado (Setas direcionais)
-    // UP, DOWN, LEFT, RIGHT, SPACE
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_SPACE));
-
-    // Jogador 3: Controle 2 (D-pad)
-    v.push_back(Player::PlayerKeys(SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X));
-
-    // Jogador 4: Controle 3 (D-pad)
-    v.push_back(Player::PlayerKeys(SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_X));
+    // Jogador 1: W, S, A, D + Espaço
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY));
+    // Jogador 2: setas + Ctrl direito (Alt direito no Mac)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY));
+    // Jogadores 3 e 4: sem teclado, só controle
+    v.push_back(Player::PlayerKeys());
+    v.push_back(Player::PlayerKeys());
     return v;
 }();
 

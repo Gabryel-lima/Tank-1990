@@ -19,7 +19,9 @@ LAUNCHER="/usr/local/bin/tank1990"
 PKGS="g++ make sdl2-dev sdl2_image-dev sdl2_mixer-dev sdl2_ttf-dev
       sdl2 sdl2_image sdl2_mixer sdl2_ttf mesa-dri-gallium libpulse
       libx11 libxext libxcursor libxi libxrandr libxfixes libxscrnsaver
-      mesa-gl mesa-egl"
+      mesa-gl mesa-egl libusb libudev-zero
+      cmake samurai linux-headers libusb-dev libudev-zero-dev pulseaudio-dev
+      libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxfixes-dev libxscrnsaver-dev"
 
 say() { printf '\033[36m==>\033[0m %s\n' "$1"; }
 ok()  { printf '\033[32m[ OK ]\033[0m %s\n' "$1"; }
@@ -27,7 +29,7 @@ ok()  { printf '\033[32m[ OK ]\033[0m %s\n' "$1"; }
 [ "$(id -u)" = "0" ] || { echo "Precisa rodar como root." >&2; exit 1; }
 
 say "Removendo os arquivos do jogo"
-rm -rf "$PREFIX" "$LAUNCHER"
+rm -rf "$PREFIX" "$LAUNCHER" /opt/tank1990-sdl2
 ok "$PREFIX removido"
 
 say "Removendo o compilador e as bibliotecas"

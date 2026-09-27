@@ -31,6 +31,13 @@ public:
 
 private:
     /**
+     * Libera o estado atual, o motor gráfico, a janela, o áudio e os
+     * controles, e encerra o SDL. Chamada no fim de run(), inclusive quando
+     * a inicialização falha no meio.
+     */
+    void cleanup();
+
+    /**
      * Variável que mantém o loop principal do programa em execução.
      * Quando false, o loop principal é encerrado e a aplicação termina.
      */

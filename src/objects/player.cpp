@@ -1,6 +1,7 @@
 #include "player.h"
 #include "../appconfig.h"
 #include "../soundmanager.h"
+#include "../controllers.h"
 
 #include <iostream>
 #include <SDL2/SDL.h>
@@ -19,104 +20,21 @@ Player::Player(const PlayerKeys& keys, int idx)
     m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
     m_shield_time = 0; // Tempo de escudo inicial
     m_fire_time = 0; // Tempo desde o ultimo disparo
-    m_controller = nullptr;
-    if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
-    {
-        // Verifica se há controles suficientes conectados
-        int num_joysticks = SDL_NumJoysticks();
-        if (idx < num_joysticks && SDL_IsGameController(idx)) {
-            m_controller = SDL_GameControllerOpen(idx);
-        }
-    }
-    
-    // Ajusta o tipo de input baseado na disponibilidade de controles
-    adjustInputType(idx);
-    
+
     // Define a cor do jogador baseada no índice
     setPlayerColor(getPlayerColor(idx));
-    
-    respawn(); // Posiciona o jogador e reseta estados
-}
 
-// Construtor com índices separados.
-// Permite separar o índice do jogador (cor/posição) do índice do controle físico.
-Player::Player(const PlayerKeys& keys, int player_idx, int controller_idx)
-    : Tank(AppConfig::player_starting_point.at(player_idx).x, AppConfig::player_starting_point.at(player_idx).y, static_cast<SpriteType>(ST_PLAYER_1 + player_idx)), player_keys(keys)
-{
-    speed = 0; // Velocidade inicial
-    lives_count = 4; // Número inicial de vidas
-    m_bullet_max_size = AppConfig::player_bullet_max_size; // Máximo de balas simultâneas
-    score = 0; // Pontuação inicial
-    star_count = 0; // Nível de power-up (estrelas)
-    m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
-    m_shield_time = 0; // Tempo de escudo inicial
-    m_fire_time = 0; // Tempo desde o ultimo disparo
-    m_controller = nullptr;
-    if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
-    {
-        // Verifica se há controles suficientes conectados
-        int num_joysticks = SDL_NumJoysticks();
-        if (controller_idx < num_joysticks && SDL_IsGameController(controller_idx)) {
-            m_controller = SDL_GameControllerOpen(controller_idx);
-        }
-    }
-    
-    // Ajusta o tipo de input baseado na disponibilidade de controles
-    adjustInputType(player_idx);
-    
-    // Define a cor do jogador baseada no índice do jogador (não do controle)
-    setPlayerColor(getPlayerColor(player_idx));
-    
     respawn(); // Posiciona o jogador e reseta estados
-}
-
-// Construtor parametrizado do jogador.
-// Permite definir posição e tipo do sprite.
-Player::Player(double x, double y, SpriteType type, int idx)
-    : Tank(x, y, type)
-{
-   speed = 0;
-   lives_count = 4;
-   m_bullet_max_size = AppConfig::player_bullet_max_size;
-   score = 0;
-   star_count = 0;
-   m_shield = new Object(x, y, ST_SHIELD);
-   m_shield_time = 0;
-   m_fire_time = 0;
-   m_controller = nullptr;
-   if(player_keys.type == Player::InputType::Controller || player_keys.type == Player::InputType::Hybrid)
-   {
-       // Verifica se há controles suficientes conectados
-       int num_joysticks = SDL_NumJoysticks();
-       if (idx < num_joysticks && SDL_IsGameController(idx)) {
-           m_controller = SDL_GameControllerOpen(idx);
-       }
-   }
-   
-   // Define a cor do jogador baseada no índice
-   setPlayerColor(getPlayerColor(idx));
-   
-   respawn();
 }
 
 // Destrutor do jogador.
-// Fecha o controle do jogador se aberto e libera o escudo se alocado.
+// O escudo é liberado por ~Tank; o controle pertence à classe Controllers.
 Player::~Player()
 {
-    if(m_controller)
-    {
-        SDL_GameControllerClose(m_controller);
-        m_controller = nullptr;
-    }
-    if(m_shield)
-    {
-        delete m_shield;
-        m_shield = nullptr;
-    }
 }
 
 // Atualiza o estado do jogador a cada frame.
-// Processa entrada do teclado, movimentação, tiro e animação.
+// Processa entrada do teclado e do controle, movimentação, tiro e animação.
 void Player::update(Uint32 dt)
 {
     Tank::update(dt); // Atualiza lógica base do tanque
@@ -124,266 +42,51 @@ void Player::update(Uint32 dt)
     // Só processa input se não estiver no menu
     if(!testFlag(TSF_MENU))
     {
-        // Ajusta dinamicamente o input baseado na disponibilidade de controles
-        // Se for o player 2, verifica se o player 1 está usando controle
-        int player_index = static_cast<int>(type) - static_cast<int>(ST_PLAYER_1);
-        if (player_index == 1) {
-            adjustInputType(player_index);
-        }
-        
-        if(player_keys.type == Player::InputType::Keyboard)
-        {
-            const Uint8 *key_state = SDL_GetKeyboardState(NULL); // Estado atual do teclado
-            if(key_state != nullptr)
-            {
-                // Movimentação: verifica teclas direcionais
-                if(key_state[player_keys.up])
-                {
-                    setDirection(D_UP);
-                    speed = default_speed;
-                }
-                else if(key_state[player_keys.down])
-                {
-                    setDirection(D_DOWN);
-                    speed = default_speed;
-                }
-                else if(key_state[player_keys.left])
-                {
-                    setDirection(D_LEFT);
-                    speed = default_speed;
-                }
-                else if(key_state[player_keys.right])
-                {
-                    setDirection(D_RIGHT);
-                    speed = default_speed;
-                }
-                else
-                {
-                    // Se não está no gelo ou não está escorregando, para o tanque
-                    if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
-                        speed = 0.0;
-                }
+        bool up = false, down = false, left = false, right = false, shoot = false;
 
-                // Disparo: verifica tecla de tiro e tempo de recarga
-                if(key_state[player_keys.fire] && m_fire_time > AppConfig::player_reload_time)
-                {
-                    fire();
-                    m_fire_time = 0;
-                }
-            }
-        }
-        else if (player_keys.type == Player::InputType::Controller && m_controller)
+        // Teclado: só as teclas deste jogador (jogadores 3 e 4 não têm)
+        const Uint8 *key_state = SDL_GetKeyboardState(NULL);
+        if(key_state != nullptr && player_keys.hasKeyboard())
         {
-            bool moved = false;
-            
-            // --- Movimento usando analógicos ou D-pad ---
-            // Verifica se são analógicos (valores negativos indicam analógicos)
-            if (player_keys.axis_up < 0 || player_keys.axis_down < 0 || 
-                player_keys.axis_left < 0 || player_keys.axis_right < 0)
-            {
-                // Processa analógicos
-                // Zona morta otimizada para controle puro
-                const Sint16 DEADZONE = ANALOG_DEADZONE_CONTROLLER;
-                
-                // Lê os valores dos analógicos
-                Sint16 axis_y = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY);
-                Sint16 axis_x = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTX);
-                
-                // Processa movimento vertical (eixo Y)
-                if (axis_y < -DEADZONE) {
-                    setDirection(D_UP);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (axis_y > DEADZONE) {
-                    setDirection(D_DOWN);
-                    speed = default_speed;
-                    moved = true;
-                }
-                // Processa movimento horizontal (eixo X)
-                else if (axis_x < -DEADZONE) {
-                    setDirection(D_LEFT);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (axis_x > DEADZONE) {
-                    setDirection(D_RIGHT);
-                    speed = default_speed;
-                    moved = true;
-                }
-            }
-            else
-            {
-                // Processa D-pad (botões)
-                if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
-                    setDirection(D_UP);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
-                    setDirection(D_DOWN);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
-                    setDirection(D_LEFT);
-                    speed = default_speed;
-                    moved = true;
-                }
-                else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
-                    setDirection(D_RIGHT);
-                    speed = default_speed;
-                    moved = true;
-                }
-            }
-            
-            // Se não moveu, para o tanque (exceto se está escorregando no gelo)
-            if (!moved) {
-                if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
-                    speed = 0.0;
-            }
-            
-            // --- Disparo ---
-            if (player_keys.button_fire >= 0 &&
-                SDL_GameControllerGetButton(
-                    m_controller,
-                    SDL_GameControllerButton(player_keys.button_fire)
-                ) &&
-                m_fire_time > AppConfig::player_reload_time)
-            {
-                fire();
-                m_fire_time = 0;
-            }
+            up    = key_state[player_keys.up];
+            down  = key_state[player_keys.down];
+            left  = key_state[player_keys.left];
+            right = key_state[player_keys.right];
+            shoot = key_state[player_keys.fire];
         }
-        else if (player_keys.type == Player::InputType::Hybrid)
-        {
-            // Processa input híbrido: teclado + controle
-            const Uint8 *key_state = SDL_GetKeyboardState(NULL);
-            bool moved = false;
-            bool keyboard_used = false;
-            
-            // --- Processa teclado primeiro (prioridade) ---
-            if(key_state != nullptr)
-            {
-                if(key_state[player_keys.up])
-                {
-                    setDirection(D_UP);
-                    speed = default_speed;
-                    moved = true;
-                    keyboard_used = true;
-                }
-                else if(key_state[player_keys.down])
-                {
-                    setDirection(D_DOWN);
-                    speed = default_speed;
-                    moved = true;
-                    keyboard_used = true;
-                }
-                else if(key_state[player_keys.left])
-                {
-                    setDirection(D_LEFT);
-                    speed = default_speed;
-                    moved = true;
-                    keyboard_used = true;
-                }
-                else if(key_state[player_keys.right])
-                {
-                    setDirection(D_RIGHT);
-                    speed = default_speed;
-                    moved = true;
-                    keyboard_used = true;
-                }
 
-                // Disparo do teclado
-                if(key_state[player_keys.fire] && m_fire_time > AppConfig::player_reload_time)
-                {
-                    fire();
-                    m_fire_time = 0;
-                }
-            }
-            
-            // --- Processa controle apenas se o teclado não foi usado ---
-            if(!keyboard_used && m_controller)
-            {
-                // --- Movimento usando analógicos ou D-pad ---
-                // Verifica se são analógicos (valores negativos indicam analógicos)
-                if (player_keys.axis_up < 0 || player_keys.axis_down < 0 || 
-                    player_keys.axis_left < 0 || player_keys.axis_right < 0)
-                {
-                    // Processa analógicos
-                    // Zona morta para input híbrido
-                    const Sint16 DEADZONE = ANALOG_DEADZONE_HYBRID;
-                    
-                    // Lê os valores dos analógicos
-                    Sint16 axis_y = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTY);
-                    Sint16 axis_x = SDL_GameControllerGetAxis(m_controller, SDL_CONTROLLER_AXIS_LEFTX);
-                    
-                    // Processa movimento vertical (eixo Y)
-                    if (axis_y < -DEADZONE) {
-                        setDirection(D_UP);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                    else if (axis_y > DEADZONE) {
-                        setDirection(D_DOWN);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                    // Processa movimento horizontal (eixo X)
-                    else if (axis_x < -DEADZONE) {
-                        setDirection(D_LEFT);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                    else if (axis_x > DEADZONE) {
-                        setDirection(D_RIGHT);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                }
-                else
-                {
-                    // Processa D-pad (botões)
-                    if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_up))) {
-                        setDirection(D_UP);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                    else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_down))) {
-                        setDirection(D_DOWN);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                    else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_left))) {
-                        setDirection(D_LEFT);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                    else if (SDL_GameControllerGetButton(m_controller, SDL_GameControllerButton(player_keys.axis_right))) {
-                        setDirection(D_RIGHT);
-                        speed = default_speed;
-                        moved = true;
-                    }
-                }
-                
-                // Disparo do controle (sempre processado)
-                if (player_keys.button_fire >= 0 &&
-                    SDL_GameControllerGetButton(
-                        m_controller,
-                        SDL_GameControllerButton(player_keys.button_fire)
-                    ) &&
-                    m_fire_time > AppConfig::player_reload_time)
-                {
-                    fire();
-                    m_fire_time = 0;
-                }
-            }
-            
-            // Se não moveu com nenhum input, para o tanque
-            if (!moved) {
-                if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
-                    speed = 0.0;
-            }
+        // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira
+        SDL_GameController* pad = Controllers::forPlayer(playerIndex());
+        if(pad != nullptr)
+        {
+            Sint16 axis_x = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
+            Sint16 axis_y = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTY);
+            up    = up    || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_UP)    || axis_y < -ANALOG_DEADZONE;
+            down  = down  || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_DOWN)  || axis_y >  ANALOG_DEADZONE;
+            left  = left  || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_LEFT)  || axis_x < -ANALOG_DEADZONE;
+            right = right || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || axis_x >  ANALOG_DEADZONE;
+            shoot = shoot || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_A)
+                          || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B)
+                          || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)
+                          || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y);
+        }
+
+        // Movimentação: uma direção por vez, na ordem cima/baixo/esquerda/direita
+        if(up)         setDirection(D_UP);
+        else if(down)  setDirection(D_DOWN);
+        else if(left)  setDirection(D_LEFT);
+        else if(right) setDirection(D_RIGHT);
+
+        if(up || down || left || right)
+            speed = default_speed;
+        else if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
+            speed = 0.0; // Para o tanque, exceto se estiver escorregando no gelo
+
+        // Disparo: respeita o tempo de recarga
+        if(shoot && m_fire_time > AppConfig::player_reload_time)
+        {
+            fire();
+            m_fire_time = 0;
         }
     }
 
@@ -411,7 +114,7 @@ void Player::respawn()
     }
 
     // Usa o índice do tipo do jogador para buscar a posição correta
-    int idx = static_cast<int>(type) - static_cast<int>(ST_PLAYER_1);
+    int idx = playerIndex();
     if (idx >= 0 && idx < static_cast<int>(AppConfig::player_starting_point.size())) {
         pos_x = AppConfig::player_starting_point.at(idx).x;
         pos_y = AppConfig::player_starting_point.at(idx).y;
@@ -505,23 +208,9 @@ void Player::shieldHit() {
     SoundManager::getInstance().playSound("shieldhit");
 }
 
-bool Player::isControllerActive(int controller_index) {
-    int num_joysticks = SDL_NumJoysticks();
-    if (controller_index < num_joysticks && SDL_IsGameController(controller_index)) {
-        SDL_GameController* controller = SDL_GameControllerOpen(controller_index);
-        if (controller) {
-            bool is_attached = SDL_GameControllerGetAttached(controller);
-            SDL_GameControllerClose(controller);
-            return is_attached;
-        }
-    }
-    return false;
-}
-
-void Player::adjustInputType(int player_index) {
-    // Mantida por compatibilidade: hoje nao altera nada.
-    // Ver FIXES.md (#12) - a troca automatica de input foi desativada.
-    (void)player_index;
+int Player::playerIndex() const
+{
+    return static_cast<int>(type) - static_cast<int>(ST_PLAYER_1);
 }
 
 void Player::setPlayerColor(SDL_Color player_color)

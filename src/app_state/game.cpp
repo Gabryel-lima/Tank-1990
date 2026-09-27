@@ -2,6 +2,7 @@
 #include "../engine/engine.h"
 #include "../appconfig.h"
 #include "../soundmanager.h"
+#include "../controllers.h"
 #include "menu.h"
 #include "scores.h"
 
@@ -388,6 +389,14 @@ void Game::eventProcess(SDL_Event *ev)
             m_finished = true;
             break;
         }
+    }
+    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
+    {
+        // Start pausa (como Enter) e Back sai para o menu (como Esc)
+        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_START)
+            m_pause = !m_pause;
+        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
+            m_finished = true;
     }
 }
 
@@ -924,39 +933,12 @@ void Game::nextLevel()
     // Cria jogadores se necessário
     if(m_players.empty())
     {
-        if(m_player_count == 2)
-        {
-            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
-            Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
-            m_players.push_back(p1);
-            m_players.push_back(p2);
-        }
-        else if (m_player_count == 3) 
-        {
-            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
-            Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
-            Player* p3 = new Player(AppConfig::player_keys.at(2), 2, 1); // Player 3: índice jogador 2, controle físico 1
-            m_players.push_back(p1);
-            m_players.push_back(p2);
-            m_players.push_back(p3);
-        }
-        else if (m_player_count == 4) 
-        {
-            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
-            Player* p2 = new Player(AppConfig::player_keys.at(1), 1);
-            Player* p3 = new Player(AppConfig::player_keys.at(2), 2, 1); // Player 3: índice jogador 2, controle físico 1
-            Player* p4 = new Player(AppConfig::player_keys.at(3), 3, 2); // Player 4: índice jogador 3, controle físico 2
-            m_players.push_back(p1);
-            m_players.push_back(p2);
-            m_players.push_back(p3);
-            m_players.push_back(p4);
-        }
-        else
-        {
-            Player* p1 = new Player(AppConfig::player_keys.at(0), 0);
-            m_players.push_back(p1);
-        }
+        for(int i = 0; i < m_player_count; i++)
+            m_players.push_back(new Player(AppConfig::player_keys.at(i), i));
     }
+
+    // Redistribui os controles conforme a quantidade de jogadores da partida
+    Controllers::setPlayerCount(m_player_count);
 }
 
 // Gera um novo inimigo no mapa

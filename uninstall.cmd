@@ -159,6 +159,12 @@ pause
 exit /b 1
 
 :fim_ok
+if exist "%ProgramFiles%\usbipd-win\usbipd.exe" (
+    echo.
+    echo  Obs.: o usbipd-win e as autorizacoes de controles continuam no Windows.
+    echo        Para remover as autorizacoes: gamepads.cmd --remove
+    echo        Para remover o usbipd-win:    winget uninstall usbipd
+)
 echo.
 pause
 exit /b 0

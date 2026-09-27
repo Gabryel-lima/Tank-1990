@@ -116,16 +116,18 @@ void Scores::update(Uint32 dt)
 // Processa eventos de teclado na tela de pontuação
 void Scores::eventProcess(SDL_Event *ev)
 {
-    // Se pressionar ENTER, pula animação do contador ou avança para o próximo estado
-    if(ev->type == SDL_KEYDOWN)
+    // Se pressionar ENTER (ou A/Start no controle), pula animação do contador
+    // ou avança para o próximo estado
+    bool skip = (ev->type == SDL_KEYDOWN && ev->key.keysym.sym == SDLK_RETURN) ||
+                (ev->type == SDL_CONTROLLERBUTTONDOWN &&
+                 (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
+                  ev->cbutton.button == SDL_CONTROLLER_BUTTON_START));
+    if(skip)
     {
-        if(ev->key.keysym.sym == SDLK_RETURN)
-        {
-            // Se já terminou a contagem, força o fim da tela de pontuação
-            if(m_score_counter > (1 << 30)) m_show_time = AppConfig::score_show_time + 1;
-            // Caso contrário, termina imediatamente a animação do contador
-            else m_score_counter = (1 << 30) + 1;
-        }
+        // Se já terminou a contagem, força o fim da tela de pontuação
+        if(m_score_counter > (1 << 30)) m_show_time = AppConfig::score_show_time + 1;
+        // Caso contrário, termina imediatamente a animação do contador
+        else m_score_counter = (1 << 30) + 1;
     }
 }
 

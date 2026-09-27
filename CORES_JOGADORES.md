@@ -10,22 +10,22 @@ Foi implementado um sistema completo de cores e controles para diferenciar os jo
 
 ### Jogador 1 - Amarelo Dourado
 - **Cor**: RGB (255, 215, 0)
-- **Controle**: Físico 0 (analógicos + botão X)
+- **Controle**: Teclado `W` `A` `S` `D` + `Espaço`, e/ou um gamepad
 - **Posição**: Canto inferior esquerdo (128, 384)
 
 ### Jogador 2 - Verde  
 - **Cor**: RGB (0, 255, 0)
-- **Controle**: Teclado Setas Direcionais + Space
+- **Controle**: Teclado setas + `Ctrl direito` (`Alt direito` no Mac), e/ou um gamepad
 - **Posição**: Canto inferior direito (256, 384)
 
 ### Jogador 3 - Azul
 - **Cor**: RGB (0, 100, 255)
-- **Controle**: Físico 1 (D-pad + botão X)
+- **Controle**: Gamepad (sem teclado)
 - **Posição**: Canto superior esquerdo (128, 320)
 
 ### Jogador 4 - Vermelho
 - **Cor**: RGB (255, 50, 50)
-- **Controle**: Físico 2 (D-pad + botão X)
+- **Controle**: Gamepad (sem teclado)
 - **Posição**: Canto superior direito (256, 320)
 
 ## Funcionalidades Implementadas
@@ -63,26 +63,25 @@ As cores são aplicadas automaticamente quando os jogadores são criados. Não �
 
 ## Mudanças Recentes (2024)
 
-### Controles Otimizados
-- **Jogador 2**: Utiliza setas direcionais do teclado (↑↓←→ + Space)
-- **Jogador 3**: Corrigido mapeamento do controle físico (agora usa controle 1)
-- **Remoção de logs**: Sistema opera silenciosamente sem mensagens de debug
-- **Configuração fixa**: Não há mais troca automática de controle para teclado
+### Controles
+- **Jogador 2**: atira com `Ctrl direito`; antes usava `Espaço`, a mesma tecla
+  do Jogador 1, e os dois tanques atiravam juntos
+- **Gamepads**: distribuídos pela classe `Controllers` (`src/controllers.cpp`),
+  com hotplug; a tabela de distribuição está no [README](README.md#-controles)
 
 ### Posições Reorganizadas
 - Posições dos jogadores reorganizadas para evitar sobreposição
 - Distribuição em cantos para melhor visibilidade
 
-### Novo Construtor
-- Adicionado `Player(keys, player_idx, controller_idx)` para separar:
-  - `player_idx`: Define cor e posição do jogador
-  - `controller_idx`: Define qual controle físico usar
+### Construtor
+- `Player(keys, idx)`: `idx` define cor, posição e qual gamepad o jogador recebe
 
 ## Arquivos Modificados
 
 - `src/appconfig.cpp` - Configurações de controles e posições
 - `src/app_state/game.cpp` - Criação de jogadores com novos parâmetros
-- `src/objects/player.h` e `src/objects/player.cpp` - Novo construtor e lógica simplificada
+- `src/objects/player.h` e `src/objects/player.cpp` - Construtor e leitura de teclado/gamepad
+- `src/controllers.h` e `src/controllers.cpp` - Distribuição dos gamepads
 - `src/engine/renderer.h` e `src/engine/renderer.cpp` - Sistema de cores
 - `src/objects/object.h` e `src/objects/object.cpp` - Suporte a cores
 

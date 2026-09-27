@@ -10,8 +10,9 @@
 #   1. configura os repositorios do Alpine
 #   2. instala o SDL2 e o compilador C++
 #   3. compila o jogo
-#   4. instala em /opt/tank1990 com o atalho /usr/local/bin/tank1990
-#   5. mantem o compilador para recompilar (ou o remove, com --slim)
+#   4. compila um SDL2 com suporte a controles Xbox (libusb), uma vez so
+#   5. instala em /opt/tank1990 com o atalho /usr/local/bin/tank1990
+#   6. mantem o compilador para recompilar (ou o remove, com --slim)
 #
 # Uso:
 #   sh tools/wsl-setup.sh          # instala e mantem o compilador (padrao)
@@ -35,6 +36,9 @@ done
 
 # Pacotes necessarios apenas para compilar
 BUILD_PKGS="g++ make sdl2-dev sdl2_image-dev sdl2_mixer-dev sdl2_ttf-dev"
+# ... e para compilar o SDL2 com suporte a controles (ver "SDL2 com controles")
+BUILD_PKGS="$BUILD_PKGS cmake samurai linux-headers libusb-dev libudev-zero-dev pulseaudio-dev
+            libx11-dev libxext-dev libxcursor-dev libxi-dev libxrandr-dev libxfixes-dev libxscrnsaver-dev"
 # Pacotes necessarios para rodar o jogo
 RUNTIME_PKGS="libstdc++ sdl2 sdl2_image sdl2_mixer sdl2_ttf mesa-dri-gallium libpulse"
 # O SDL2 carrega o suporte a X11 com dlopen: sem estas bibliotecas ele nao
@@ -43,6 +47,14 @@ RUNTIME_PKGS="$RUNTIME_PKGS libx11 libxext libxcursor libxi libxrandr libxfixes 
 # Sem o libGL/libEGL o SDL cai no modo de software do X11, que no WSLg
 # deixa a janela cinza e parada. Com eles, renderiza via OpenGL (Mesa).
 RUNTIME_PKGS="$RUNTIME_PKGS mesa-gl mesa-egl"
+# Controles: o SDL usa o libudev para achar os controles (o libudev-zero
+# funciona sem o daemon udev, que o WSL nao tem) e o libusb para falar com
+# controles Xbox, que nao tem driver no kernel do WSL.
+RUNTIME_PKGS="$RUNTIME_PKGS libusb libudev-zero"
+
+# SDL2 compilado com libusb, guardado fora de $PREFIX para sobreviver
+# as reinstalacoes (so e recompilado quando a versao do SDL2 muda)
+SDL_CACHE="/opt/tank1990-sdl2"
 
 say()  { printf '\033[36m==>\033[0m %s\n' "$1"; }
 ok()   { printf '\033[32m[ OK ]\033[0m %s\n' "$1"; }
@@ -182,11 +194,52 @@ fi
 ok "compilado em $LAST_TIME"
 
 # ---------------------------------------------------------------------------
+say "SDL2 com suporte a controles"
+# ---------------------------------------------------------------------------
+# O SDL2 do Alpine nao vem com libusb, e sem ele os controles Xbox nao
+# funcionam no WSL (o kernel do WSL nao tem o driver xpad). Compilamos a
+# MESMA versao do SDL2 do sistema, com libusb, e o jogo a usa no lugar da
+# original (LD_LIBRARY_PATH no atalho). Mesma versao = mesma ABI, entao o
+# SDL2_image/mixer/ttf do sistema continuam funcionando com ela.
+SDL_VER="$(pkg-config --modversion sdl2)"
+SDL_DIR="$SDL_CACHE/$SDL_VER"
+if [ -f "$SDL_DIR/lib/libSDL2-2.0.so.0" ]; then
+    ok "SDL2 $SDL_VER com controles ja compilado (reaproveitado)"
+else
+    sdl_build() {
+        set -e
+        cd "$WORK"
+        wget -q "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VER/SDL2-$SDL_VER.tar.gz"
+        tar xzf "SDL2-$SDL_VER.tar.gz"
+        cmake -S "SDL2-$SDL_VER" -B sdl-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$SDL_DIR" -DSDL_STATIC=OFF -DSDL_TEST=OFF \
+            -DSDL_HIDAPI=ON -DSDL_HIDAPI_LIBUSB=ON \
+            -DSDL_WAYLAND=OFF -DSDL_KMSDRM=OFF -DSDL_JACK=OFF -DSDL_PIPEWIRE=OFF \
+            -DSDL_ALSA=OFF -DSDL_SNDIO=OFF
+        cmake --build sdl-build -j"$(nproc)"
+        rm -rf "$SDL_CACHE"
+        cmake --install sdl-build
+    }
+    no_probe() { :; }
+    ( sdl_build ) >"$TMP_PROG/sdl.log" 2>&1 &
+    if track $! "baixando e compilando o SDL2 $SDL_VER" no_probe; then
+        ok "SDL2 $SDL_VER com controles compilado em $LAST_TIME"
+    else
+        tail -n 20 "$TMP_PROG/sdl.log" >&2
+        printf '\033[33m[AVISO]\033[0m %s\n' "Falha ao compilar o SDL2 com controles; o jogo usa o do sistema (sem controles Xbox)."
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 say "Instalando em $PREFIX"
 # ---------------------------------------------------------------------------
 rm -rf "$PREFIX"
 mkdir -p "$PREFIX"
 cp -r build/bin/. "$PREFIX/"
+if [ -f "$SDL_DIR/lib/libSDL2-2.0.so.0" ]; then
+    mkdir -p "$PREFIX/lib"
+    cp -P "$SDL_DIR"/lib/libSDL2-2.0.so* "$PREFIX/lib/"
+fi
 
 cat > "$LAUNCHER" <<'EOF'
 #!/bin/sh
@@ -205,9 +258,28 @@ export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-x11}"
 
 # O jogo encerra silenciosamente se o SDL_mixer nao abrir o audio
 # (ver FIXES.md, item 23). Sem servidor de som, usa o driver mudo.
+# Com o WSL recem-iniciado o WSLg leva ~1-2 s para criar o socket do
+# PulseAudio: espera ate 5 s antes de desistir, senao o jogo abre mudo.
+_i=0
+while [ ! -S /mnt/wslg/PulseServer ] && [ "$_i" -lt 50 ]; do
+    sleep 0.1
+    _i=$((_i + 1))
+done
 [ -S /mnt/wslg/PulseServer ] || export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-dummy}"
 
-exec ./Tanks "$@"
+# Controles repassados pelo usbipd (gamepads.cmd / play.cmd no Windows).
+# Sem udev no WSL, ninguem carrega os drivers quando o controle chega:
+# carrega antes, para que o kernel ja os use no momento da conexao.
+for _m in vhci-hcd usbhid hid-generic hid-microsoft evdev joydev; do
+    modprobe -q "$_m" 2>/dev/null || true
+done
+# SDL2 compilado com libusb (controles Xbox). O SDL so usa o libusb para
+# uma lista minima de aparelhos; desligar a lista libera os Xbox.
+[ -d /opt/tank1990/lib ] && export LD_LIBRARY_PATH="/opt/tank1990/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export SDL_HIDAPI_LIBUSB_WHITELIST="${SDL_HIDAPI_LIBUSB_WHITELIST:-0}"
+
+# Caminho absoluto: o play.cmd acha o processo por ele (pkill -f)
+exec /opt/tank1990/Tanks "$@"
 EOF
 chmod +x "$LAUNCHER"
 ok "instalado em $PREFIX"

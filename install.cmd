@@ -111,6 +111,7 @@ echo   Instalacao concluida em %DUR%
 echo  ============================================
 echo.
 echo   Para jogar:       play.cmd
+echo   Controles USB:    gamepads.cmd ^(uma vez, com o controle conectado^)
 echo   Para desinstalar: uninstall.cmd
 echo.
 goto fim_ok

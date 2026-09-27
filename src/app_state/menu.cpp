@@ -153,8 +153,19 @@ void Menu::eventProcess(SDL_Event *ev)
     }
     else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
     {
+        // D-pad: move a seleção
+        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP ||
+           ev->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+        {
+            m_menu_index += (ev->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) ? -1 : 1;
+            if(m_menu_index < 0)
+                m_menu_index = m_menu_texts.size() - 1;
+            else if(m_menu_index >= static_cast<int>(m_menu_texts.size()))
+                m_menu_index = 0;
+            m_tank_pointer->pos_y = (m_menu_index + 1) * 32 + 110;
+        }
         // Botão A ou Start para selecionar
-        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_A || 
+        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
            ev->cbutton.button == SDL_CONTROLLER_BUTTON_START)
         {
             m_finished = true;
