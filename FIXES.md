@@ -16,7 +16,7 @@ Serve como lista de trabalho para revisar com calma.
   (policy `{0283ac0f-...}`, estado de imposição) bloqueia qualquer executável
   compilado localmente, por falta de assinatura digital reconhecida — e não
   tem lista de exceções. Por isso o caminho oficial no Windows passou a ser o
-  WSL (`instalar.cmd`). Os itens de comportamento em tempo de execução abaixo
+  WSL (`install.cmd`). Os itens de comportamento em tempo de execução abaixo
   vêm de leitura de código, não de teste.
 
 Cada item tem: **onde**, **o que acontece**, **como reproduzir** (quando aplicável)

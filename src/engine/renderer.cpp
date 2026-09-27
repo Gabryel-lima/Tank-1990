@@ -19,12 +19,15 @@ Renderer::Renderer()
 // Destrutor: libera todos os recursos gráficos alocados
 Renderer::~Renderer()
 {
-    if(m_renderer != nullptr)
-        SDL_DestroyRenderer(m_renderer); // Libera o renderizador SDL
+    // As texturas precisam ser liberadas ANTES do renderizador:
+    // SDL_DestroyRenderer já libera as texturas dele, e destruí-las depois
+    // acessa memória liberada (segfault ao fechar o jogo).
     if(m_texture != nullptr)
         SDL_DestroyTexture(m_texture); // Libera a textura principal
     if(m_text_texture != nullptr)
         SDL_DestroyTexture(m_text_texture); // Libera a textura de texto
+    if(m_renderer != nullptr)
+        SDL_DestroyRenderer(m_renderer); // Libera o renderizador SDL
     if(m_font1 != nullptr)
         TTF_CloseFont(m_font1); // Fecha fonte 1
     if(m_font2 != nullptr)

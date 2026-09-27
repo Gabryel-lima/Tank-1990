@@ -26,7 +26,7 @@ echo  ============================================
 echo.
 
 wsl.exe -d %DISTRO% -e /bin/true >nul 2>&1
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo  A distribuicao "%DISTRO%" nao existe - parece que ja foi removida.
     echo.
     set "TEM_DISTRO=0"
@@ -37,11 +37,11 @@ if errorlevel 1 (
 echo   O que voce quer remover?
 echo.
 echo     [1] Somente o jogo
-echo         Apaga o jogo e as bibliotecas SDL2, mas mantem o Alpine
-echo         instalado no WSL ^(libera ~200 MB^).
+echo         Apaga o jogo, o compilador e as bibliotecas, mas mantem o
+echo         Alpine instalado no WSL ^(libera ~350 MB^).
 echo.
 echo     [2] O jogo e a distribuicao Alpine        ^(recomendado^)
-echo         Apaga tudo que este instalador criou ^(~250 MB^). O WSL
+echo         Apaga tudo que este instalador criou ^(~400 MB^). O WSL
 echo         continua disponivel para outras distribuicoes.
 echo.
 echo     [3] O jogo, a distribuicao E a plataforma WSL
@@ -69,7 +69,7 @@ if "%TEM_DISTRO%"=="0" goto nada_a_fazer
 echo.
 echo  Removendo o jogo de dentro do WSL...
 wsl.exe -d %DISTRO% --cd "%PROJECT_DIR%" -- /bin/sh tools/wsl-uninstall.sh
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo  [ERRO] Falha ao remover o jogo.
     goto fim_erro
 )
@@ -89,7 +89,7 @@ if "%TEM_DISTRO%"=="1" (
     echo.
     echo  Removendo a distribuicao "%DISTRO%"...
     wsl.exe --unregister %DISTRO%
-    if errorlevel 1 (
+    if !errorlevel! neq 0 (
         echo  [ERRO] Falha ao remover a distribuicao.
         goto fim_erro
     )
@@ -125,7 +125,7 @@ echo.
 echo  Removendo a plataforma WSL...
 echo  ^(vai aparecer um pedido de permissao do Windows^)
 wsl.exe --uninstall
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo.
     echo  [AVISO] Nao foi possivel remover o WSL automaticamente.
     echo          Rode como administrador:

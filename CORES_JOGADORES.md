@@ -1,5 +1,7 @@
 # Sistema de Cores e Controles - Tank 1990
 
+> 🇬🇧 [English version](PLAYER_COLORS.md)
+
 ## Implementação Concluída
 
 Foi implementado um sistema completo de cores e controles para diferenciar os jogadores no jogo Tank 1990. Cada jogador tem uma cor única, posição inicial distinta e configuração de controle específica.

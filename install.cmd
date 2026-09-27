@@ -7,13 +7,14 @@ rem  Tank-1990 - instalador para Windows via WSL2
 rem ===========================================================================
 rem
 rem  Cria uma distribuicao Alpine Linux minima dentro do WSL2, compila o jogo
-rem  nela e remove o compilador no fim. Resultado: ~250 MB de disco.
+rem  nela e mantem o compilador para recompilar. Resultado: ~400 MB de disco
+rem  (com --slim o compilador e removido no fim: ~250 MB).
 rem
 rem  Nao precisa de permissao de administrador, DESDE QUE o WSL ja esteja
 rem  instalado. Se nao estiver, o script mostra o comando a executar.
 rem
-rem  Para desinstalar:  desinstalar.cmd
-rem  Para jogar:        jogar.cmd
+rem  Para desinstalar:  uninstall.cmd
+rem  Para jogar:        play.cmd
 rem
 rem ===========================================================================
 
@@ -27,6 +28,8 @@ set "PROJECT_DIR=%~dp0"
 rem  %~dp0 termina com barra invertida, que escaparia a aspa em --cd
 if "%PROJECT_DIR:~-1%"=="\" set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
 
+call :agora T_TOTAL
+
 echo.
 echo  ============================================
 echo   Tank-1990 - Instalacao no WSL
@@ -37,10 +40,10 @@ rem ---------------------------------------------------------------------------
 rem  1. O WSL esta instalado?
 rem ---------------------------------------------------------------------------
 where wsl.exe >nul 2>&1
-if errorlevel 1 goto sem_wsl
+if !errorlevel! neq 0 goto sem_wsl
 
 wsl.exe --status >nul 2>&1
-if errorlevel 1 goto sem_wsl
+if !errorlevel! neq 0 goto sem_wsl
 
 echo  [1/5] WSL detectado.
 
@@ -48,7 +51,7 @@ rem ---------------------------------------------------------------------------
 rem  2. A distribuicao ja existe?
 rem ---------------------------------------------------------------------------
 wsl.exe -d %DISTRO% -e /bin/true >nul 2>&1
-if not errorlevel 1 (
+if !errorlevel! equ 0 (
     echo  [2/5] Distribuicao "%DISTRO%" ja existe - reaproveitando.
     goto compilar
 )
@@ -60,8 +63,8 @@ if exist "%ROOTFS_TMP%" (
     echo  [2/5] Alpine %ALPINE_VERSION% ja baixado.
 ) else (
     echo  [2/5] Baixando o Alpine Linux %ALPINE_VERSION% ^(~3,5 MB^)...
-    curl.exe -fL --progress-bar -o "%ROOTFS_TMP%" "%ROOTFS_URL%"
-    if errorlevel 1 (
+    curl.exe -fL --progress-bar -w "        baixado em %%{time_total}s\n" -o "%ROOTFS_TMP%" "%ROOTFS_URL%"
+    if !errorlevel! neq 0 (
         echo.
         echo  [ERRO] Falha ao baixar o Alpine. Verifique a conexao.
         echo         URL: %ROOTFS_URL%
@@ -75,12 +78,15 @@ rem ---------------------------------------------------------------------------
 echo  [3/5] Criando a distribuicao "%DISTRO%" em:
 echo        %INSTALL_DIR%
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
+call :agora T_PASSO
 wsl.exe --import %DISTRO% "%INSTALL_DIR%" "%ROOTFS_TMP%" --version 2
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo.
     echo  [ERRO] Falha ao importar a distribuicao no WSL.
     goto fim_erro
 )
+call :duracao %T_PASSO% DUR
+echo        distribuicao criada em %DUR%
 
 :compilar
 rem ---------------------------------------------------------------------------
@@ -90,21 +96,22 @@ echo  [4/5] Instalando dependencias e compilando o jogo...
 echo        ^(a primeira vez baixa ~150 MB de pacotes e leva alguns minutos^)
 echo.
 wsl.exe -d %DISTRO% --cd "%PROJECT_DIR%" -- /bin/sh tools/wsl-setup.sh %*
-if errorlevel 1 (
+if !errorlevel! neq 0 (
     echo.
     echo  [ERRO] Falha ao compilar o jogo dentro do WSL.
     goto fim_erro
 )
 
 rem ---------------------------------------------------------------------------
-echo  [5/5] Pronto!
+call :duracao %T_TOTAL% DUR
+echo  [5/5] Pronto^^!
 echo.
 echo  ============================================
-echo   Instalacao concluida
+echo   Instalacao concluida em %DUR%
 echo  ============================================
 echo.
-echo   Para jogar:       jogar.cmd
-echo   Para desinstalar: desinstalar.cmd
+echo   Para jogar:       play.cmd
+echo   Para desinstalar: uninstall.cmd
 echo.
 goto fim_ok
 
@@ -117,7 +124,7 @@ echo   ^(botao direito no menu Iniciar ^> Terminal ^(Admin^)^) e rode:
 echo.
 echo       wsl --install --no-distribution
 echo.
-echo   Reinicie o computador e execute este instalar.cmd de novo.
+echo   Reinicie o computador e execute este install.cmd de novo.
 echo.
 echo   Obs.: "--no-distribution" instala so a base do WSL, sem o Ubuntu.
 echo         O jogo usa o Alpine Linux, que e bem menor.
@@ -132,4 +139,24 @@ exit /b 1
 
 :fim_ok
 pause
+exit /b 0
+
+rem ---------------------------------------------------------------------------
+rem  Cronometro
+rem ---------------------------------------------------------------------------
+rem  call :agora VAR           guarda em VAR os segundos desde a meia-noite
+rem  call :duracao INICIO VAR  guarda em VAR o tempo desde INICIO (mm:ss)
+:agora
+set "_t=%time: =0%"
+set /a "%1=(1%_t:~0,2%-100)*3600 + (1%_t:~3,2%-100)*60 + (1%_t:~6,2%-100)"
+exit /b 0
+
+:duracao
+call :agora _agora
+set /a "_d=_agora-%1"
+if %_d% lss 0 set /a "_d+=86400"
+set /a "_m=_d/60, _s=_d%%60"
+if %_m% lss 10 set "_m=0%_m%"
+if %_s% lss 10 set "_s=0%_s%"
+set "%2=%_m%:%_s%"
 exit /b 0

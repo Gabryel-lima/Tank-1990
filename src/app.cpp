@@ -144,9 +144,10 @@ void App::eventProces()
                event.window.event == SDL_WINDOWEVENT_RESTORED ||
                event.window.event == SDL_WINDOWEVENT_SHOWN)
             {
-                // Atualiza as dimensões da janela no AppConfig
-                AppConfig::windows_rect.w = event.window.data1;
-                AppConfig::windows_rect.h = event.window.data2;
+                // Atualiza as dimensões da janela no AppConfig. Só o RESIZED
+                // traz o tamanho em data1/data2; nos outros eventos eles vêm
+                // zerados, então lê o tamanho direto da janela.
+                SDL_GetWindowSize(m_window, &AppConfig::windows_rect.w, &AppConfig::windows_rect.h);
                 // Ajusta a escala do renderizador conforme o novo tamanho da janela
                 Engine::getEngine().getRenderer()->setScale(
                     (float)AppConfig::windows_rect.w / (AppConfig::map_rect.w + AppConfig::status_rect.w),

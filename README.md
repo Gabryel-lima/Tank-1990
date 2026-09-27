@@ -1,5 +1,7 @@
 # Tank 1990 - Implementação em C++
 
+> 🇬🇧 [English version](README.en.md)
+
 Este é um clone do clássico jogo Tank 1990 (Battle City) implementado em C++ usando SDL2. Um jogo de ação estratégica onde você controla um tanque e deve proteger sua base enquanto elimina todos os inimigos.
 
 ## 🚀 Compilação e Execução
@@ -29,33 +31,35 @@ Ubuntu — o jogo usa o Alpine, que é bem menor.
 
 **2. Instale o jogo**
 
-Dê um duplo clique em **`instalar.cmd`** (ou rode no terminal, sem admin):
+Dê um duplo clique em **`install.cmd`** (ou rode no terminal, sem admin):
 
 ```
-instalar.cmd
+install.cmd
 ```
 
-Ele baixa o Alpine Linux (~3,5 MB), instala o SDL2, compila o jogo e remove o
-compilador no fim para não ocupar espaço.
+Ele baixa o Alpine Linux (~3,5 MB), instala o SDL2 e o compilador e compila o
+jogo. Cada etapa mostra uma barra de progresso com o tempo decorrido e uma
+estimativa do que falta. O compilador fica instalado para você poder
+recompilar; ele só é apagado pelo `uninstall.cmd`.
 
 **3. Jogue**
 
 ```
-jogar.cmd
+play.cmd
 ```
 
 **Para desinstalar:**
 
 ```
-desinstalar.cmd
+uninstall.cmd
 ```
 
 O desinstalador pergunta o que remover:
 
 | Opção | O que apaga | Libera |
 |---|---|---|
-| 1 | Só o jogo (mantém o Alpine no WSL) | ~200 MB |
-| 2 | O jogo e a distribuição Alpine | ~250 MB |
+| 1 | O jogo, o compilador e as bibliotecas (mantém o Alpine no WSL) | ~350 MB |
+| 2 | O jogo e a distribuição Alpine | ~400 MB |
 | 3 | Tudo, incluindo a plataforma WSL | ~1,8 GB |
 
 **Espaço em disco**
@@ -63,7 +67,8 @@ O desinstalador pergunta o que remover:
 | Item | Tamanho |
 |---|---|
 | Plataforma WSL (uma vez, serve para tudo) | ~1,5 GB |
-| Alpine + SDL2 + jogo | ~250 MB |
+| Alpine + SDL2 + compilador + jogo | ~400 MB |
+| Idem, instalado com `install.cmd --slim` (sem compilador) | ~250 MB |
 
 ### Linux / macOS
 
@@ -89,19 +94,23 @@ make help        # Mostra todos os comandos disponíveis
 
 ### Recompilar depois de mexer no código (Windows/WSL)
 
-Por padrão o instalador apaga o compilador no fim. Para manter o ambiente de
-desenvolvimento dentro do WSL:
+O compilador continua instalado depois da instalação. Para aplicar suas
+mudanças ao jogo que o `play.cmd` abre, rode o instalador de novo (ele
+reaproveita o compilador e só recompila):
 
 ```
-instalar.cmd --keep-toolchain
+install.cmd
 ```
 
-Depois disso dá para compilar direto de dentro do WSL, de dentro da pasta do
-projeto:
+Para testar sem instalar, dá para compilar e rodar direto de dentro da pasta
+do projeto:
 
 ```bat
 wsl -d Tank1990 --cd "%CD%" -- make run
 ```
+
+Se não pretende mexer no código e quer economizar ~150 MB, instale com
+`install.cmd --slim`, que remove o compilador no fim.
 
 ### Dependências
 
@@ -126,11 +135,12 @@ brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf
 
 **Windows (WSL / Alpine):**
 
-O `instalar.cmd` cuida disso sozinho. Se quiser fazer à mão, dentro da
+O `install.cmd` cuida disso sozinho. Se quiser fazer à mão, dentro da
 distribuição:
 
 ```sh
-apk add --no-cache g++ make sdl2-dev sdl2_image-dev sdl2_mixer-dev sdl2_ttf-dev mesa-dri-gallium
+apk add --no-cache g++ make sdl2-dev sdl2_image-dev sdl2_mixer-dev sdl2_ttf-dev mesa-dri-gallium \
+    libxext libxcursor libxi libxrandr libxfixes libxscrnsaver mesa-gl mesa-egl
 make run
 ```
 
@@ -420,6 +430,19 @@ make doc
 A documentação será gerada no diretório `doc/` e pode ser visualizada abrindo `doc/html/index.html` em um navegador.
 
 ## 🐛 Solução de Problemas
+
+### O `play.cmd` fica travado ou a janela fica cinza (Windows)
+1. O suporte gráfico do WSL (WSLg) às vezes trava e passa a abrir janelas
+   cinzas ou invisíveis. Reinicie o WSL e abra o jogo:
+   ```
+   play.cmd --reset
+   ```
+2. Se continuar, podem faltar ao SDL as bibliotecas X11 ou OpenGL: sem X11 ele
+   roda sem janela nenhuma, e sem OpenGL a janela fica cinza e parada. Rode o
+   `install.cmd` de novo: ele instala as bibliotecas X11 (`libxext`,
+   `libxcursor`, `libxi`, `libxrandr`, `libxfixes`, `libxscrnsaver`) e o OpenGL
+   (`mesa-gl`, `mesa-egl`).
+3. Por fim, atualize o WSL com `wsl --update`.
 
 ### Controles não funcionam
 - Verifique se os controles estão conectados antes de iniciar o jogo

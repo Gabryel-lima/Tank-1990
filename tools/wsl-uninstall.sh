@@ -3,8 +3,9 @@
 # Tank-1990 - remove o jogo de dentro da distribuicao WSL
 # ============================================================================
 #
-# Apaga apenas o jogo e suas bibliotecas; a distribuicao Alpine continua
-# instalada. Para remover tudo, use o desinstalar.cmd no Windows.
+# Apaga o jogo, o compilador e todas as bibliotecas que o install.cmd
+# instalou; a distribuicao Alpine continua instalada. Para remover tudo,
+# use o uninstall.cmd no Windows.
 #
 # Uso:  sh tools/wsl-uninstall.sh
 #
@@ -14,7 +15,11 @@ set -e
 
 PREFIX="/opt/tank1990"
 LAUNCHER="/usr/local/bin/tank1990"
-PKGS="sdl2 sdl2_image sdl2_mixer sdl2_ttf mesa-dri-gallium"
+# Mesma lista do wsl-setup.sh (compilador + bibliotecas do jogo)
+PKGS="g++ make sdl2-dev sdl2_image-dev sdl2_mixer-dev sdl2_ttf-dev
+      sdl2 sdl2_image sdl2_mixer sdl2_ttf mesa-dri-gallium libpulse
+      libx11 libxext libxcursor libxi libxrandr libxfixes libxscrnsaver
+      mesa-gl mesa-egl"
 
 say() { printf '\033[36m==>\033[0m %s\n' "$1"; }
 ok()  { printf '\033[32m[ OK ]\033[0m %s\n' "$1"; }
@@ -25,11 +30,11 @@ say "Removendo os arquivos do jogo"
 rm -rf "$PREFIX" "$LAUNCHER"
 ok "$PREFIX removido"
 
-say "Removendo as bibliotecas do SDL2"
+say "Removendo o compilador e as bibliotecas"
 # shellcheck disable=SC2086
 apk del --purge $PKGS >/dev/null 2>&1 || true
 rm -rf /var/cache/apk/* 2>/dev/null || true
-ok "bibliotecas removidas"
+ok "compilador e bibliotecas removidos"
 
 printf '\n'
 ok "Jogo desinstalado. A distribuicao Alpine continua no WSL."

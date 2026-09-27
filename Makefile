@@ -26,13 +26,13 @@
 # ----------------------------------------------------------------------------
 # WINDOWS
 # ----------------------------------------------------------------------------
-# No Windows, o caminho recomendado é o WSL: execute o instalar.cmd na raiz do
+# No Windows, o caminho recomendado é o WSL: execute o install.cmd na raiz do
 # projeto. Ele cria uma distribuição Alpine Linux mínima no WSL2, compila o
-# jogo com este mesmo Makefile e cria os atalhos jogar.cmd / desinstalar.cmd.
+# jogo com este mesmo Makefile e cria os atalhos play.cmd / uninstall.cmd.
 #
-#   instalar.cmd      instala (Alpine + SDL2 + compila o jogo)
-#   jogar.cmd         joga
-#   desinstalar.cmd   remove o jogo, a distribuição ou o WSL inteiro
+#   install.cmd      instala (Alpine + SDL2 + compila o jogo)
+#   play.cmd         joga
+#   uninstall.cmd   remove o jogo, a distribuição ou o WSL inteiro
 #
 # O motivo é o Smart App Control do Windows 11, que bloqueia executáveis
 # compilados localmente por não terem assinatura digital reconhecida.
@@ -195,7 +195,7 @@ ifeq ($(SDL_FOUND),no)
 	@echo "❌ SDL2 não encontrado para MinGW ($(MINGW_TRIPLET))."
 	@echo ""
 	@echo "Escolha uma das opções:"
-	@echo "  1) Use o WSL:      rode o instalar.cmd na raiz do projeto (recomendado)"
+	@echo "  1) Use o WSL:      rode o install.cmd na raiz do projeto (recomendado)"
 	@echo "  2) No MSYS2:       pacman -S mingw-w64-$(ARCH)-SDL2 mingw-w64-$(ARCH)-SDL2_image mingw-w64-$(ARCH)-SDL2_mixer mingw-w64-$(ARCH)-SDL2_ttf"
 	@echo "  3) Manualmente:    make build SDL2_DIR=C:/caminho/para/SDL2/$(MINGW_TRIPLET)"
 	@echo ""
@@ -236,7 +236,7 @@ ifeq ($(OS),Windows_NT)
 	else \
 		echo "" ; \
 		echo "Este shell não é o MSYS2 (pacman não encontrado)." ; \
-		echo "No Windows, use o WSL: rode o instalar.cmd na raiz do projeto." ; \
+		echo "No Windows, use o WSL: rode o install.cmd na raiz do projeto." ; \
 		echo "" ; \
 		exit 1 ; \
 	fi
@@ -333,8 +333,8 @@ help:
 	@echo "  2. make run           # Compila e executa o jogo"
 	@echo ""
 	@echo "WINDOWS:"
-	@echo "  Use o WSL - rode o instalar.cmd na raiz do projeto."
-	@echo "  Depois: jogar.cmd para jogar, desinstalar.cmd para remover."
+	@echo "  Use o WSL - rode o install.cmd na raiz do projeto."
+	@echo "  Depois: play.cmd para jogar, uninstall.cmd para remover."
 	@echo ""
 	@echo "  Para compilar um .exe nativo (MSYS2 / Git Bash + MinGW-w64),"
 	@echo "  este Makefile funciona normalmente. Opções:"
