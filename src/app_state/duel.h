@@ -43,9 +43,9 @@ struct DuelConfig
  * @li projéteis não ferem aliados nem a própria base (nem os tijolos em volta dela);
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
- * @li cada jogador tem a sua cor (a da campanha); o bônus de tanque é pessoal: surge na
- *     cor de um jogador, só ele coleta, mais na metade adversária, e traz um bot aliado
- *     (reforço) da cor dele;
+ * @li a cor é da equipe (companheiros têm a mesma cor); o bônus de tanque é da equipe:
+ *     surge na cor de uma equipe, só jogadores dela coletam, mais na metade adversária,
+ *     e traz um bot aliado (reforço) da mesma cor;
  * @li com equipes de tamanhos diferentes, a menor tem mais vidas (e base de pedra, se a outra tiver o dobro).
  */
 class Duel : public Game
@@ -68,6 +68,12 @@ public:
      * Volta para a tela de configuração do duelo, para facilitar a revanche.
      */
     AppState* nextState() override;
+
+    /**
+     * Cor da equipe: paleta de 4 cores (amarelo, verde, azul, vermelho), uma por equipe.
+     * Companheiros de equipe têm a mesma cor; cores diferentes só entre equipes diferentes.
+     */
+    static SDL_Color teamColor(int team);
 
 protected:
     std::vector<Eagle*> bases() override;
@@ -131,8 +137,8 @@ private:
     /** Destrói o tanque e conta a eliminação para o jogador, se de fato morreu. */
     void hitTank(Tank* target, Tank* shooter);
 
-    /** Bônus que surge para um jogador específico (só ele coleta). */
-    static bool isPersonal(SpriteType type);
+    /** Bônus que surge para uma equipe específica (só jogadores daquela cor coletam). */
+    static bool isTeamBonus(SpriteType type);
 
     /** Equipe bem atrás em vidas (proporcionalmente), ou -1 se estão parelhas. */
     int trailingTeam();
@@ -140,8 +146,8 @@ private:
     /** Pontos simétricos de surgimento de bônus dentro da metade do mapa da equipe. */
     std::vector<SDL_Point> halfSpots(int team) const;
 
-    /** Sorteia o dono de um bônus pessoal: a equipe primeiro (ou a que está atrás), depois o jogador. */
-    Player* choosePersonalOwner();
+    /** Sorteia a equipe dona de um bônus exclusivo: 50/50, ou a que está atrás em vidas. */
+    int chooseBonusTeam();
 
     /** Sorteia um bônus em um dos pontos simétricos do mapa. */
     void spawnBonus();

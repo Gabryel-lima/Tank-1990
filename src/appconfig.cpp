@@ -110,17 +110,15 @@ vector<vector<SDL_Point>> AppConfig::duel_spawn_points =
     {{128, 384}, {256, 384}, {64, 384}, {320, 384}}, // Equipe A
     {{128, 0},   {256, 0},   {64, 0},   {320, 0}},   // Equipe B
 };
-// Cor de cada equipe: tinge os bots e os textos (A amarela, B verde, como P1 e P2 no original)
-vector<SDL_Color> AppConfig::duel_team_colors = {{255, 210, 60, 255}, {90, 230, 90, 255}};
 // Vidas de cada jogador em uma equipe do tamanho da maior equipe
 int AppConfig::duel_tank_lives = 3;
 // Rodadas vencidas necessárias para ganhar a partida (melhor de 3)
 int AppConfig::duel_rounds_to_win = 2;
 // Tempo (ms) com o mapa sem bônus até aparecer o próximo
 unsigned AppConfig::duel_bonus_interval = 10000;
-// Chance de um bônus pessoal surgir na metade do mapa do adversário do dono
-// (no resto das vezes, surge na metade do próprio dono)
-double AppConfig::duel_personal_enemy_side_chance = 0.7;
+// Chance de um bônus de equipe surgir na metade do mapa do adversário
+// (no resto das vezes, surge na metade da própria equipe)
+double AppConfig::duel_team_bonus_enemy_side_chance = 0.7;
 // Reforços (bots aliados do bônus de tanque) em campo ao mesmo tempo, por equipe
 int AppConfig::duel_max_allies = 2;
 // Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha

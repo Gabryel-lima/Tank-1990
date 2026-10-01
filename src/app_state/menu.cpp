@@ -335,11 +335,11 @@ void Menu::draw()
             color = RED;
         text_start = {TEXT_X, itemY(i)};
         renderer->drawText(&text_start, itemText(item), color, 2);
-        // "P1" na cor do jogador (a mesma do tanque, dos bônus pessoais e dos reforços dele)
+        // "P1" na cor da equipe escolhida (muda junto ao trocar de equipe)
         if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM && color.r == WHITE.r && color.g == WHITE.g)
         {
             int idx = item - ITEM_HUMAN_1_TEAM;
-            renderer->drawText(&text_start, "P" + Engine::intToString(idx + 1), Player::getPlayerColor(idx), 2);
+            renderer->drawText(&text_start, "P" + Engine::intToString(idx + 1), Duel::teamColor(s_duel_config.human_team[idx]), 2);
         }
     }
 

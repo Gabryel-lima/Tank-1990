@@ -181,11 +181,6 @@ public:
     static vector<vector<SDL_Point>> duel_spawn_points;
 
     /**
-     * Cor de cada equipe do duelo.
-     */
-    static vector<SDL_Color> duel_team_colors;
-
-    /**
      * Vidas de cada tanque no duelo (equipes menores recebem mais, ver Duel).
      */
     static int duel_tank_lives;
@@ -211,9 +206,9 @@ public:
     static int duel_max_allies;
 
     /**
-     * Chance (0 a 1) de um bônus pessoal surgir na metade do mapa da equipe adversária do dono.
+     * Chance (0 a 1) de um bônus de equipe surgir na metade do mapa da equipe adversária.
      */
-    static double duel_personal_enemy_side_chance;
+    static double duel_team_bonus_enemy_side_chance;
 
     /**
      * Velocidade padrão dos projéteis disparados.

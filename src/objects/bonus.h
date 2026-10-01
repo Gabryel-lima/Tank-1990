@@ -44,10 +44,10 @@ public:
     bool visible() const { return m_show; }
 
     /**
-     * Jogador que pode coletar o bônus (índice, 0 = Jogador 1), ou -1 se qualquer um pode.
-     * Bônus com dono são desenhados com a cor do jogador (Object::color).
+     * Equipe que pode coletar o bônus (modo duelo), ou -1 se qualquer jogador pode.
+     * Bônus de uma equipe são desenhados com a cor dela (Object::color).
      */
-    int owner;
+    int owner_team;
 
 private:
     /**
