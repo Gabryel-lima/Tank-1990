@@ -38,6 +38,17 @@ public:
      */
     void update(Uint32 dt);
 
+    /**
+     * Indica se o bônus está visível neste instante (ele pisca).
+     */
+    bool visible() const { return m_show; }
+
+    /**
+     * Equipe que pode coletar o bônus (modo duelo), ou -1 se qualquer jogador pode.
+     * Bônus de uma equipe são desenhados com a cor dela (Object::color).
+     */
+    int owner_team;
+
 private:
     /**
      * Tempo (em ms) desde a criação do bônus.

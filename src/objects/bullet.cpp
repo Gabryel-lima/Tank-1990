@@ -8,6 +8,7 @@ Bullet::Bullet()
     speed = 0.0;
     direction = D_UP;
     increased_damage = false;
+    team = -1;
     collide = false;
 }
 
@@ -18,6 +19,7 @@ Bullet::Bullet(double x, double y)
     speed = 0.0;
     direction = D_UP;
     increased_damage = false;
+    team = -1;
     collide = false;
 }
 

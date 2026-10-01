@@ -12,10 +12,14 @@ Tank::Tank()
     m_slip_time = 0;
     default_speed = AppConfig::tank_default_speed;
     speed = 0.0;
+    stop = false;
     m_shield = nullptr;
     m_boat = nullptr;
     m_shield_time = 0;
     m_frozen_time = 0;
+    m_frozen_duration = AppConfig::tank_frozen_time;
+    team = -1;
+    spawn_point = {-1, -1};
 }
 
 // Construtor parametrizado do Tank. Inicializa o tanque em (x, y) com o tipo de sprite fornecido.
@@ -26,10 +30,14 @@ Tank::Tank(double x, double y, SpriteType type)
     m_slip_time = 0;
     default_speed = AppConfig::tank_default_speed;
     speed = 0.0;
+    stop = false;
     m_shield = nullptr;
     m_boat = nullptr;
     m_shield_time = 0;
     m_frozen_time = 0;
+    m_frozen_duration = AppConfig::tank_frozen_time;
+    team = -1;
+    spawn_point = {-1, -1};
 }
 
 // Destrutor do Tank. Libera memória dos projéteis, escudo e barco.
@@ -133,7 +141,7 @@ void Tank::update(Uint32 dt)
     if(testFlag(TSF_FROZEN))
     {
         m_frozen_time += dt;
-        if(m_frozen_time > AppConfig::tank_frozen_time) clearFlag(TSF_FROZEN);
+        if(m_frozen_time > m_frozen_duration) clearFlag(TSF_FROZEN);
     }
 
     // Animação do sprite do tanque (não anima se o tanque não está se movendo)
@@ -209,6 +217,7 @@ Bullet* Tank::fire()
         }
 
         bullet->direction = tmp_d;
+        bullet->team = team;
         // Ajusta a velocidade do projétil dependendo do tipo do tanque
         if(type == ST_TANK_C)
             bullet->speed = AppConfig::bullet_default_speed * 1.3;
@@ -375,8 +384,16 @@ void Tank::setFlag(TankStateFlag flag)
     if(flag == TSF_FROZEN)
     {
         m_frozen_time = 0;
+        m_frozen_duration = AppConfig::tank_frozen_time;
     }
     m_flags |= flag;
+}
+
+// Congela o tanque por um tempo específico (em ms)
+void Tank::freeze(Uint32 duration)
+{
+    setFlag(TSF_FROZEN);
+    m_frozen_duration = duration;
 }
 
 // Limpa uma flag de estado do tanque e remove efeitos especiais.

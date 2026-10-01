@@ -9,9 +9,10 @@
 
 // Construtor padrão do jogador.
 // Inicializa o jogador na posição inicial definida em AppConfig.
-Player::Player(const PlayerKeys& keys, int idx)
-    : Tank(AppConfig::player_starting_point.at(idx).x, AppConfig::player_starting_point.at(idx).y, static_cast<SpriteType>(ST_PLAYER_1 + idx)), player_keys(keys)
+Player::Player(int idx)
+    : Tank(AppConfig::player_starting_point.at(idx).x, AppConfig::player_starting_point.at(idx).y, static_cast<SpriteType>(ST_PLAYER_1 + idx))
 {
+    m_index = idx;
     speed = 0; // Velocidade inicial
     lives_count = 4; // Número inicial de vidas
     m_bullet_max_size = AppConfig::player_bullet_max_size; // Máximo de balas simultâneas
@@ -44,15 +45,16 @@ void Player::update(Uint32 dt)
     {
         bool up = false, down = false, left = false, right = false, shoot = false;
 
-        // Teclado: só as teclas deste jogador (jogadores 3 e 4 não têm)
+        // Teclado: o layout que a classe Controllers deu a este jogador (reserva de quem não tem controle)
         const Uint8 *key_state = SDL_GetKeyboardState(NULL);
-        if(key_state != nullptr && player_keys.hasKeyboard())
+        const PlayerKeys* keys = Controllers::keyboardFor(playerIndex());
+        if(key_state != nullptr && keys != nullptr)
         {
-            up    = key_state[player_keys.up];
-            down  = key_state[player_keys.down];
-            left  = key_state[player_keys.left];
-            right = key_state[player_keys.right];
-            shoot = key_state[player_keys.fire];
+            up    = key_state[keys->up];
+            down  = key_state[keys->down];
+            left  = key_state[keys->left];
+            right = key_state[keys->right];
+            shoot = key_state[keys->fire];
         }
 
         // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira
@@ -113,9 +115,13 @@ void Player::respawn()
         return;
     }
 
-    // Usa o índice do tipo do jogador para buscar a posição correta
+    // Usa o ponto de respawn próprio (duelo) ou o ponto padrão do jogador
     int idx = playerIndex();
-    if (idx >= 0 && idx < static_cast<int>(AppConfig::player_starting_point.size())) {
+    if(spawn_point.x >= 0) {
+        pos_x = spawn_point.x;
+        pos_y = spawn_point.y;
+    }
+    else if (idx >= 0 && idx < static_cast<int>(AppConfig::player_starting_point.size())) {
         pos_x = AppConfig::player_starting_point.at(idx).x;
         pos_y = AppConfig::player_starting_point.at(idx).y;
     }
@@ -126,7 +132,8 @@ void Player::respawn()
     dest_rect.h = m_sprite->rect.h;
     dest_rect.w = m_sprite->rect.w;
 
-    setDirection(D_UP); // Sempre renasce apontando para cima
+    // Renasce apontando para cima; no duelo, a equipe de cima (B) renasce apontando para baixo
+    setDirection(team == 1 ? D_DOWN : D_UP);
     Tank::respawn(); // Chama respawn da classe base
     setFlag(TSF_SHIELD); // Ativa escudo temporário
     m_shield_time = AppConfig::tank_shield_time / 2; // Tempo reduzido de escudo
@@ -210,7 +217,7 @@ void Player::shieldHit() {
 
 int Player::playerIndex() const
 {
-    return static_cast<int>(type) - static_cast<int>(ST_PLAYER_1);
+    return m_index;
 }
 
 void Player::setPlayerColor(SDL_Color player_color)

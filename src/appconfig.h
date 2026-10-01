@@ -75,10 +75,10 @@ public:
     static vector<SDL_Point> enemy_starting_point;
 
     /**
-     * Vetor com as configurações de teclas de controle para cada jogador.
-     * Cada elemento é uma struct Player::PlayerKeys.
+     * Layouts de teclado (WASD, setas). São a reserva de quem não tem controle;
+     * a classe Controllers decide qual jogador usa cada um.
      */
-    static vector<Player::PlayerKeys> player_keys;
+    static vector<Player::PlayerKeys> keyboard_layouts;
 
     /**
      * Tempo (em milissegundos) que o número da fase é exibido ao iniciar uma nova rodada.
@@ -90,6 +90,13 @@ public:
      * Usado para simular inércia ao mover tanques sobre gelo.
      */
     static unsigned slip_time;
+
+    /**
+     * Distância máxima (em pixels) que o tanque do jogador pode deslizar de lado
+     * para contornar a quina de um obstáculo e entrar num corredor.
+     * Com 0 o deslize fica desativado.
+     */
+    static int tank_corner_slide_max;
 
     /**
      * Quantidade total de inimigos que devem ser derrotados em uma rodada.
@@ -162,6 +169,57 @@ public:
      * Velocidade padrão de movimento dos tanques.
      */
     static double tank_default_speed;
+
+    /**
+     * Caminho da pasta dos mapas do modo duelo.
+     */
+    static string duel_levels_path;
+
+    /**
+     * Mapas do duelo: {arquivo em duel_levels_path, nome mostrado no menu}.
+     */
+    static vector<pair<string, string>> duel_maps;
+
+    /**
+     * Colunas (x) de nascimento do duelo para a equipe A, em ordem de preferência
+     * (lados alternados). A equipe B usa o espelho em ponto.
+     */
+    static vector<int> duel_spawn_columns;
+
+    /**
+     * Linha (y) de nascimento de cada equipe do duelo: 0 (A) embaixo, 1 (B) em cima.
+     */
+    static vector<int> duel_spawn_rows;
+
+    /**
+     * Vidas de cada tanque no duelo (equipes menores recebem mais, ver Duel).
+     */
+    static int duel_tank_lives;
+
+    /**
+     * Rodadas vencidas necessárias para ganhar o duelo.
+     */
+    static int duel_rounds_to_win;
+
+    /**
+     * Tempo (ms) com o mapa vazio de bônus até surgir o próximo.
+     */
+    static unsigned duel_bonus_interval;
+
+    /**
+     * Duração (ms) do congelamento causado pelo relógio no duelo.
+     */
+    static unsigned duel_freeze_time;
+
+    /**
+     * Máximo de bots aliados (bônus de reforço) em campo ao mesmo tempo, por equipe.
+     */
+    static int duel_max_allies;
+
+    /**
+     * Chance (0 a 1) de um bônus de equipe surgir na metade do mapa da equipe adversária.
+     */
+    static double duel_team_bonus_enemy_side_chance;
 
     /**
      * Velocidade padrão dos projéteis disparados.

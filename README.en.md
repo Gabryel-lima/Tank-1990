@@ -180,6 +180,45 @@ when run — see the Windows section above.
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
 
+## ⚔️ Duel Mode (Extra Modes)
+
+From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mode, human players only: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on dedicated maps, separate from the campaign (`resources/duel_levels/`), all mirrored both horizontally and vertically so both sides get the same terrain.
+
+**Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (see [Controls](#-controls)), there is no 3 vs 3 or 4 vs 4.
+
+**Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map:
+
+| Map | Style |
+|-----|-------|
+| **Arena** | Balanced: bricks, side rivers (the boat helps) and ice in the middle |
+| **Fortress** | Defensive: stone wall in front of the bases; you have to enter the yard to attack |
+| **River** | A river cuts through the middle, with three bridges |
+| **Maze** | Brick maze: you can shoot your way through |
+| **Open Field** | Open and fast: bushes for ambushes, and ice |
+| **Random** | A random map each round |
+
+To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as the levels: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty) and add the file and its name to `AppConfig::duel_maps`. Keep base B on rows 0-1 and base A on rows 24-25 (columns 12-13), the brick wall around them, the spawn points (columns 4-5, 8-9, 16-17 and 20-21 on rows 0-1 and 24-25) and the power-up spots clear, and corridors at least 2 tiles wide, the width of a tank.
+
+| In the setup screen | Key / controller |
+|---------------------|------------------|
+| Change option | ↑ ↓ / D-pad / stick |
+| Change value | ← → / D-pad / stick |
+| Confirm | Enter, Space / A, Start |
+| Back | Esc / B, Back |
+
+**Rules:**
+- A round is won by destroying the enemy base or eliminating every enemy player; the match goes to the first team to win **2 rounds**.
+- Each player has **3 lives** and respawns with a short shield.
+- **No spawn camping by design:** each player spawns in a column of their own, alternating sides of the base (in a 1 vs 1, one spawns on the left and the other on the right). Since bullets only travel in straight lines, nobody spawns in an opponent's line of fire, on any map or format; the spawn shield is an extra safety net.
+- **Colors:** color belongs to the **team**: teammates share a color (team A yellow, B green) and different colors only show up between opponents. The palette has 4 colors (yellow, green, blue, red), ready for a future free-for-all mode where each player would be their own team. The side panel lists each team's players and their lives.
+- **Team power-up (tank):** appears in **one team's color** and only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1.
+- **Reinforcement:** the team power-up brings an **allied bot** in the team's color, with one life.
+- **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
+- **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only players can pick them up (reinforcements can't).
+- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest.
+- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
+- Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
+
 ## 🎯 Power-ups
 
 Eight power-ups appear at random when you destroy enemy tanks:
@@ -191,7 +230,7 @@ Eight power-ups appear at random when you destroy enemy tanks:
 | **🛡️ Helmet** | Grants a temporary shield against damage |
 | **⏰ Clock** | Freezes every enemy for a while |
 | **⛏️ Shovel** | Surrounds the base (eagle) with indestructible stone walls |
-| **🚗 Tank** | Gives the player an extra life |
+| **🚗 Tank** | Gives the player an extra life (in duel mode, brings an allied reinforcement bot) |
 | **🔫 Gun** | Raises the star level by 3 (maximum) |
 | **🚤 Boat** | Lets the tank cross water |
 
@@ -209,42 +248,50 @@ you lose all of them when destroyed.
 
 ## 🎮 Controls
 
-| Player | Color | Keyboard | Start position |
-|--------|-------|----------|----------------|
-| **Player 1** | Yellow | `W` `A` `S` `D` + `Space` | Bottom left |
-| **Player 2** | Green | Arrow keys + `Right Ctrl` (`Right Alt` on Mac) | Bottom right |
-| **Player 3** | Blue | — (controller only) | Top left |
-| **Player 4** | Red | — (controller only) | Top right |
+The game is meant to be played with **controllers (gamepads)**; the keyboard
+automatically backs up anyone without one. There is nothing to configure.
 
-Each player has their own keys: pressing one player's key never moves or
-fires another player's tank.
+| Player | Color | Start position (campaign) |
+|--------|-------|---------------------------|
+| **Player 1** | Yellow | Bottom left |
+| **Player 2** | Green | Bottom right |
+| **Player 3** | Blue | Top left |
+| **Player 4** | Red | Top right |
 
-**On a controller (gamepad)**, for any player:
+**On a controller**, for any player:
 
 - **Move**: D-pad or left stick
 - **Fire**: any face button (A, B, X or Y)
 - **Start**: pause · **Back/Select**: back to the menu
 - **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
-Players 1 and 2 can use keyboard and controller at the same time.
+**On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`)
+and `ARROWS` (arrow keys + `Right Ctrl`; `Right Alt` on Mac). Each layout
+drives a single player: one player's keys never move or fire another tank.
 
-### Which controller goes to which player
+### Which device goes to which player
 
-Controllers are handed out in the order they were connected: first to the
-players without a keyboard (3 and 4), then to players 1 and 2.
+1. **Controllers first**: the 1st connected controller goes to Player 1, the 2nd to Player 2, and so on.
+2. **Keyboard as backup**: players left without a controller get `WASD`, then `ARROWS`, in order.
+3. Layouts nobody needed stay with Player 1 (`WASD`) and Player 2 (`ARROWS`), so a solo player can still use the keyboard with a controller plugged in.
 
-| Game | 1st controller | 2nd controller | 3rd controller | 4th controller |
-|------|----------------|----------------|----------------|----------------|
-| 1 or 2 players | Player 1 | Player 2 | — | — |
-| 3 players | Player 3 | Player 1 | Player 2 | — |
-| 4 players | Player 3 | Player 4 | Player 1 | Player 2 |
+| Game | 0 controllers | 1 controller | 2 controllers |
+|------|---------------|--------------|---------------|
+| 2 players | P1 WASD, P2 ARROWS | P1 controller, P2 WASD | P1 and P2 controllers |
+| 3 players | P3 has no device | P1 controller, P2 WASD, P3 ARROWS | P1, P2 controllers, P3 WASD |
+| 4 players | P3 and P4 have no device | P4 has no device | P1, P2 controllers, P3 WASD, P4 ARROWS |
 
-So a 3-player game needs just **1 controller** (for Player 3) plus the
-keyboard for the other two; a 4-player game needs **2 controllers**.
+In the **duel mode** setup, each player shows the device they will use
+(`PAD 1`, `WASD`, `ARROWS`). Anyone without a device shows up in red as
+`NO PAD`, the title says how many controllers are missing, and **Start only
+works once everyone has a device**. The screen updates by itself when a
+controller is plugged in.
 
-Controllers can be plugged in or removed while the game is running. Any
-controller SDL2 recognizes as a *game controller* works (Xbox, PlayStation,
-Switch Pro and most generic ones).
+Controllers can be plugged in or removed while the game is running. If one
+disconnects mid-match, the others **don't switch players**: whoever lost it falls
+back to the keyboard (if a layout is free) and gets the controller back on
+reconnect. Any controller SDL2 recognizes as a *game controller* works (Xbox,
+PlayStation, Switch Pro and most generic ones).
 
 ### Controllers on Windows (WSL)
 
@@ -300,6 +347,7 @@ Tank-1990/
 │   ├── objects/          # Game objects
 │   │   ├── player.h/cpp  # Player-controlled tank
 │   │   ├── enemy.h/cpp   # Enemy tanks
+│   │   ├── bot.h/cpp     # Allied bot (reinforcement power-up) in duel mode
 │   │   ├── tank.h/cpp    # Tank base class
 │   │   ├── bullet.h/cpp  # Bullets
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -308,13 +356,14 @@ Tank-1990/
 │   ├── app_state/        # Application states
 │   │   ├── menu.h/cpp    # Main menu
 │   │   ├── game.h/cpp    # Main game logic
+│   │   ├── duel.h/cpp    # Duel (team) mode
 │   │   └── scores.h/cpp  # Score screen
 │   ├── engine/           # Game engine
 │   │   ├── renderer.h/cpp     # Rendering
 │   │   ├── engine.h/cpp       # Core engine
 │   │   └── spriteconfig.h/cpp # Sprite configuration
 │   ├── app.h/cpp         # Main application
-│   ├── appconfig.h/cpp   # Global settings (including player keys)
+│   ├── appconfig.h/cpp   # Global settings (including keyboard layouts)
 │   ├── controllers.h/cpp # Gamepads: hotplug and player assignment
 │   ├── soundmanager.h/cpp # Audio manager
 │   └── type.h            # Type definitions
@@ -322,7 +371,8 @@ Tank-1990/
 │   ├── img/              # Images and sprites
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
-│   └── levels/           # The 36 level files
+│   ├── levels/           # The 36 level files
+│   └── duel_levels/      # Duel mode maps (Arena, Fortress, River, Maze, Open Field)
 ├── tools/                # WSL install/uninstall scripts
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows
@@ -394,7 +444,7 @@ Open `doc/html/index.html` in a browser.
   authorized by `gamepads.cmd` (check with `gamepads.cmd --list`). The
   forwarding log is at `%LOCALAPPDATA%\Tank1990\gamepads.log`
 - Bluetooth controllers don't work in WSL; use the cable
-- Check the assignment table: in a 3-player game the 1st controller belongs to Player 3
+- Check the assignment table: the 1st connected controller always belongs to Player 1; in duel mode, the setup screen shows each player's device
 - On Linux your user needs access to `/dev/input/event*` (the `input` group)
 - Make sure SDL2 is installed correctly
 

@@ -118,7 +118,7 @@ ifeq ($(OS),Windows_NT)
     LIBS   = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf
 
     # Recursos individuais copiados para o lado do executável
-    APP_RESOURCES = font/prstartk.ttf png/texture.png levels
+    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
     RESOURCES     = $(APP_RESOURCES) copy_dlls
 else
     # -------------------------- LINUX / MACOS --------------------------
@@ -145,7 +145,7 @@ else
     LFLAGS = -O
     CFLAGS = -c -Wall -std=c++17
     LIBS   = -lSDL2main -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf
-    APP_RESOURCES = font/prstartk.ttf png/texture.png levels
+    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
     RESOURCES     = $(APP_RESOURCES)
     SDL_FOUND     = yes
 endif

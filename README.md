@@ -181,6 +181,45 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
 
+## ⚔️ Modo Duelo (Extra Modes)
+
+No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, em mapas próprios, separados da campanha (`resources/duel_levels/`), todos espelhados na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
+
+**Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
+
+**Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado:
+
+| Mapa | Estilo |
+|------|--------|
+| **Arena** | Equilibrado: tijolos, rio nas laterais (o barco ajuda) e gelo no centro |
+| **Fortress** | Defensivo: muralha de pedra na frente das bases; é preciso entrar no pátio para atacar |
+| **River** | Um rio corta o meio do mapa, com três pontes |
+| **Maze** | Labirinto de tijolos: dá para abrir caminho atirando |
+| **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
+| **Random** | Um mapa sorteado a cada rodada |
+
+Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmos símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio) e acrescente o arquivo e o nome em `AppConfig::duel_maps`. Mantenha a base B nas linhas 0-1 e a A nas linhas 24-25 (colunas 12-13), a muralha de tijolos em volta delas, os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e os pontos de bônus livres, e corredores com pelo menos 2 tiles de largura, a largura de um tanque.
+
+| Na configuração | Tecla / controle |
+|-----------------|------------------|
+| Mudar de opção | ↑ ↓ / D-pad / analógico |
+| Mudar o valor | ← → / D-pad / analógico |
+| Confirmar | Enter, Espaço / A, Start |
+| Voltar | Esc / B, Back |
+
+**Regras:**
+- Vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos; vence a partida quem ganhar **2 rodadas**.
+- Cada jogador tem **3 vidas** e renasce com escudo por alguns segundos.
+- **Nascimento sem mira:** cada jogador nasce numa coluna só dele, alternando os lados da base (no 1 contra 1, um nasce à esquerda e o outro à direita). Como o tiro só anda em linha reta, ninguém nasce na linha de tiro de um adversário, em nenhum mapa ou formato; o escudo de nascimento fica como proteção extra.
+- **Cores:** a cor é da **equipe**: companheiros têm a mesma cor (equipe A amarela, B verde) e cores diferentes só aparecem entre adversários. A paleta tem 4 cores (amarelo, verde, azul, vermelho), pronta para um futuro modo cada um por si, em que cada jogador seria a própria equipe. O painel lateral lista os jogadores de cada equipe e as vidas de cada um.
+- **Bônus da equipe (tanque):** surge na **cor de uma equipe** e só jogadores dela conseguem pegar; os adversários passam por cima. Aparece **70% das vezes na metade do adversário** (é preciso invadir para buscar) e 30% na própria. A equipe é sorteada 50/50 (ou é a que estiver atrás em vidas), inclusive num 3 contra 1.
+- **Reforço:** o bônus da equipe traz um **bot aliado** na cor da equipe, com uma vida.
+- **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
+- **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores coletam (reforços não).
+- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros.
+- **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, base com muralha de pedra.
+- Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
+
 ## 🎯 Power-ups e Bônus
 
 O jogo possui 8 tipos diferentes de power-ups que aparecem aleatoriamente quando você destrói tanques inimigos:
@@ -192,7 +231,7 @@ O jogo possui 8 tipos diferentes de power-ups que aparecem aleatoriamente quando
 | **🛡️ Capacete** | Concede escudo temporário que protege contra danos |
 | **⏰ Relógio** | Congela todos os inimigos por um período |
 | **⛏️ Pá** | Protege a base (águia) com paredes de pedra indestrutíveis |
-| **🚗 Tanque** | Adiciona uma vida extra ao jogador |
+| **🚗 Tanque** | Adiciona uma vida extra ao jogador (no modo duelo, traz um bot aliado de reforço) |
 | **🔫 Canhão** | Aumenta o nível de estrela em 3 (máximo) |
 | **🚤 Barco** | Permite atravessar água sem afundar |
 
@@ -209,42 +248,49 @@ O sistema de estrelas (0-3 níveis) melhora progressivamente o tanque:
 
 ## 🎮 Controles
 
-| Jogador | Cor | Teclado | Posição inicial |
-|---------|-----|---------|-----------------|
-| **Player 1** | Amarelo | `W` `A` `S` `D` + `Espaço` | Inferior esquerda |
-| **Player 2** | Verde | Setas + `Ctrl direito` (`Alt direito` no Mac) | Inferior direita |
-| **Player 3** | Azul | — (só controle) | Superior esquerda |
-| **Player 4** | Vermelho | — (só controle) | Superior direita |
+O jogo é pensado para **controle (gamepad)**; o teclado entra automaticamente
+como reserva de quem não tiver controle. Não há nada para configurar.
 
-Cada jogador tem teclas próprias: apertar a tecla de um jogador nunca move ou
-faz atirar outro.
+| Jogador | Cor | Posição inicial (campanha) |
+|---------|-----|----------------------------|
+| **Player 1** | Amarelo | Inferior esquerda |
+| **Player 2** | Verde | Inferior direita |
+| **Player 3** | Azul | Superior esquerda |
+| **Player 4** | Vermelho | Superior direita |
 
-**No controle (gamepad)**, para qualquer jogador:
+**No controle**, para qualquer jogador:
 
 - **Mover**: D-pad ou analógico esquerdo
 - **Atirar**: qualquer botão frontal (A, B, X ou Y)
 - **Start**: pausa · **Back/Select**: volta ao menu
 - **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
-Os jogadores 1 e 2 podem usar teclado e controle ao mesmo tempo.
+**No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`) e
+`ARROWS` (setas + `Ctrl direito`; `Alt direito` no Mac). Cada layout controla
+um único jogador: apertar a tecla de um nunca move ou faz atirar outro.
 
-### Qual controle fica com qual jogador
+### Qual dispositivo fica com qual jogador
 
-Os controles são distribuídos na ordem em que foram conectados: primeiro para
-quem não tem teclado (jogadores 3 e 4), depois para os jogadores 1 e 2.
+1. **Controle primeiro**: o 1º controle conectado vai para o Player 1, o 2º para o Player 2, e assim por diante.
+2. **Teclado como reserva**: quem ficou sem controle recebe, na ordem, `WASD` e depois `ARROWS`.
+3. Os layouts que ninguém precisou continuam com o Player 1 (`WASD`) e o Player 2 (`ARROWS`): quem joga sozinho pode usar o teclado mesmo com um controle conectado.
 
-| Partida | 1º controle | 2º controle | 3º controle | 4º controle |
-|---------|-------------|-------------|-------------|-------------|
-| 1 ou 2 jogadores | Player 1 | Player 2 | — | — |
-| 3 jogadores | Player 3 | Player 1 | Player 2 | — |
-| 4 jogadores | Player 3 | Player 4 | Player 1 | Player 2 |
+| Partida | 0 controles | 1 controle | 2 controles |
+|---------|-------------|------------|-------------|
+| 2 jogadores | P1 WASD, P2 ARROWS | P1 controle, P2 WASD | P1 e P2 controle |
+| 3 jogadores | P3 sem dispositivo | P1 controle, P2 WASD, P3 ARROWS | P1, P2 controle, P3 WASD |
+| 4 jogadores | P3 e P4 sem dispositivo | P4 sem dispositivo | P1, P2 controle, P3 WASD, P4 ARROWS |
 
-Assim, com 3 jogadores basta **1 controle** (para o Player 3) e o teclado para
-os outros dois; com 4 jogadores, **2 controles**.
+Na configuração do **modo duelo**, cada jogador mostra o dispositivo que vai usar
+(`PAD 1`, `WASD`, `ARROWS`). Quem ficar sem nenhum aparece em vermelho como
+`NO PAD`, o título avisa quantos controles faltam e o **Start só libera quando
+todos tiverem um dispositivo**. A tela se atualiza sozinha ao conectar um controle.
 
-Controles podem ser conectados ou desconectados com o jogo aberto. O jogo
-aceita qualquer controle que o SDL2 reconheça como *game controller* (Xbox,
-PlayStation, Switch Pro e a maioria dos genéricos).
+Controles podem ser conectados ou desconectados com o jogo aberto. Se um controle
+desconectar no meio da partida, os outros **não trocam de jogador**: quem perdeu o
+controle passa para o teclado (se houver layout livre) e recebe o controle de volta
+ao reconectar. O jogo aceita qualquer controle que o SDL2 reconheça como
+*game controller* (Xbox, PlayStation, Switch Pro e a maioria dos genéricos).
 
 ### Controles no Windows (WSL)
 
@@ -303,6 +349,7 @@ Tank-1990/
 │   ├── objects/          # Classes dos objetos do jogo
 │   │   ├── player.h/cpp  # Jogador controlável
 │   │   ├── enemy.h/cpp   # Tanques inimigos
+│   │   ├── bot.h/cpp     # Bot aliado (bônus de reforço) no modo duelo
 │   │   ├── tank.h/cpp    # Classe base dos tanques
 │   │   ├── bullet.h/cpp  # Projéteis
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -311,13 +358,14 @@ Tank-1990/
 │   ├── app_state/        # Estados da aplicação
 │   │   ├── menu.h/cpp    # Menu principal
 │   │   ├── game.h/cpp    # Lógica principal do jogo
+│   │   ├── duel.h/cpp    # Modo duelo (equipes)
 │   │   └── scores.h/cpp  # Tela de pontuação
 │   ├── engine/           # Motor do jogo
 │   │   ├── renderer.h/cpp    # Sistema de renderização
 │   │   ├── engine.h/cpp      # Motor principal
 │   │   └── spriteconfig.h/cpp # Configuração de sprites
 │   ├── app.h/cpp         # Aplicação principal
-│   ├── appconfig.h/cpp   # Configurações globais (inclui teclas dos jogadores)
+│   ├── appconfig.h/cpp   # Configurações globais (inclui os layouts de teclado)
 │   ├── controllers.h/cpp # Gamepads: hotplug e distribuição entre jogadores
 │   ├── soundmanager.h/cpp # Gerenciador de áudio
 │   └── type.h            # Definições de tipos
@@ -325,7 +373,8 @@ Tank-1990/
 │   ├── img/              # Imagens e sprites
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
-│   └── levels/           # Arquivos dos 36 níveis
+│   ├── levels/           # Arquivos dos 36 níveis
+│   └── duel_levels/      # Mapas do modo duelo (Arena, Fortress, River, Maze, Open Field)
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
 └── README.md             # Este arquivo
@@ -400,7 +449,7 @@ A documentação será gerada no diretório `doc/` e pode ser visualizada abrind
   `gamepads.cmd` (confira com `gamepads.cmd --list`). O registro do repasse fica
   em `%LOCALAPPDATA%\Tank1990\gamepads.log`
 - Controle por Bluetooth não funciona no WSL; use o cabo
-- Confira a tabela de distribuição: com 3 jogadores, o 1º controle é do Player 3
+- Confira a tabela de distribuição: o 1º controle conectado é sempre do Player 1; no modo duelo, a tela de configuração mostra o dispositivo de cada jogador
 - No Linux, o usuário precisa de acesso a `/dev/input/event*` (grupo `input`)
 - Certifique-se de que o SDL2 está instalado corretamente
 

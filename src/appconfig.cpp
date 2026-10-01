@@ -4,6 +4,19 @@
 string AppConfig::texture_path = "texture.png";
 // Caminho da pasta onde estão os arquivos de fases/níveis
 string AppConfig::levels_path = "levels/";
+// Caminho da pasta dos mapas do modo duelo (separados da campanha)
+string AppConfig::duel_levels_path = "duel_levels/";
+// Mapas do duelo: arquivo dentro de duel_levels_path e nome mostrado no menu.
+// Todos espelhados na horizontal e na vertical, com as bases, muralhas, pontos
+// de renascimento e pontos de bônus nas mesmas posições.
+vector<pair<string, string>> AppConfig::duel_maps =
+{
+    {"1", "Arena"},
+    {"2", "Fortress"},
+    {"3", "River"},
+    {"4", "Maze"},
+    {"5", "Open Field"},
+};
 // Nome do arquivo de fonte utilizada no jogo
 string AppConfig::font_name = "prstartk.ttf";
 // Texto exibido na tela de Game Over
@@ -49,20 +62,17 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
     return v;
 }();
 
-// Teclas de teclado dos jogadores. Cada jogador precisa de teclas próprias:
-// se dois jogadores compartilham uma tecla, os dois reagem a ela.
-// Os controles (gamepads) são distribuídos pela classe Controllers e
-// funcionam para todos os jogadores, junto com o teclado.
-vector<Player::PlayerKeys> AppConfig::player_keys =
+// Layouts de teclado, a reserva de quem não tem controle. A classe Controllers
+// distribui: controles primeiro, depois estes layouts na ordem, para os
+// jogadores que ficaram sem controle. Sem jogador precisando, o layout 0
+// fica com o Jogador 1 e o layout 1 com o Jogador 2.
+vector<Player::PlayerKeys> AppConfig::keyboard_layouts =
 []{
     vector<Player::PlayerKeys> v;
-    // Jogador 1: W, S, A, D + Espaço
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY));
-    // Jogador 2: setas + Ctrl direito (Alt direito no Mac)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY));
-    // Jogadores 3 e 4: sem teclado, só controle
-    v.push_back(Player::PlayerKeys());
-    v.push_back(Player::PlayerKeys());
+    // W, S, A, D + Espaço
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, "WASD"));
+    // Setas + Ctrl direito (Alt direito no Mac)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, "ARROWS"));
     return v;
 }();
 
@@ -70,6 +80,8 @@ vector<Player::PlayerKeys> AppConfig::player_keys =
 unsigned AppConfig::level_start_time = 2000;
 // Tempo de "escorregão" no gelo (ms)
 unsigned AppConfig::slip_time = 380;
+// Deslize máximo (px) para contornar quinas de paredes
+int AppConfig::tank_corner_slide_max = 10;
 // Quantidade total de inimigos por fase
 unsigned AppConfig::enemy_start_count = 20;
 // Tempo de espera (ms) para o próximo inimigo aparecer
@@ -100,5 +112,29 @@ double AppConfig::game_over_entry_speed = 0.13;
 double AppConfig::tank_default_speed = 0.08;
 // Velocidade padrão dos projéteis
 double AppConfig::bullet_default_speed = 0.23;
+
+// ======================== Modo duelo ========================
+// Colunas (x) de nascimento da equipe A, em ordem de preferência, alternando os
+// lados da base: interna esquerda, externa direita, externa esquerda, interna direita.
+// A equipe B usa o espelho em ponto (x -> largura do mapa - 32 - x): interna direita,
+// externa esquerda... Com até 4 jogadores e 4 colunas, cada jogador recebe uma coluna
+// só dele (ver Duel::assignSpawns), então ninguém nasce na linha de tiro de outro.
+vector<int> AppConfig::duel_spawn_columns = {128, 320, 64, 256};
+// Linha (y) de nascimento de cada equipe: A embaixo, B em cima
+vector<int> AppConfig::duel_spawn_rows = {384, 0};
+// Vidas de cada jogador em uma equipe do tamanho da maior equipe
+int AppConfig::duel_tank_lives = 3;
+// Rodadas vencidas necessárias para ganhar a partida (melhor de 3)
+int AppConfig::duel_rounds_to_win = 2;
+// Tempo (ms) com o mapa sem bônus até aparecer o próximo
+unsigned AppConfig::duel_bonus_interval = 10000;
+// Chance de um bônus de equipe surgir na metade do mapa do adversário
+// (no resto das vezes, surge na metade da própria equipe)
+double AppConfig::duel_team_bonus_enemy_side_chance = 0.7;
+// Reforços (bots aliados do bônus de tanque) em campo ao mesmo tempo, por equipe
+int AppConfig::duel_max_allies = 2;
+// Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
+unsigned AppConfig::duel_freeze_time = 4000;
+
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;
