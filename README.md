@@ -183,9 +183,22 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 
 ## ⚔️ Modo Duelo (Extra Modes)
 
-No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, num mapa próprio (`resources/duel_levels/1`), espelhado na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
+No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, em mapas próprios, separados da campanha (`resources/duel_levels/`), todos espelhados na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
 
-**Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (P1 e P2 no teclado, P3 e P4 no controle), não existem 3 vs 3 nem 4 vs 4.
+**Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
+
+**Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado:
+
+| Mapa | Estilo |
+|------|--------|
+| **Arena** | Equilibrado: tijolos, rio nas laterais (o barco ajuda) e gelo no centro |
+| **Fortress** | Defensivo: muralha de pedra na frente das bases; é preciso entrar no pátio para atacar |
+| **River** | Um rio corta o meio do mapa, com três pontes |
+| **Maze** | Labirinto de tijolos: dá para abrir caminho atirando |
+| **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
+| **Random** | Um mapa sorteado a cada rodada |
+
+Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmos símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio) e acrescente o arquivo e o nome em `AppConfig::duel_maps`. Mantenha a base B nas linhas 0-1 e a A nas linhas 24-25 (colunas 12-13), a muralha de tijolos em volta delas, os pontos de renascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e os pontos de bônus livres, e corredores com pelo menos 2 tiles de largura, a largura de um tanque.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -204,7 +217,7 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores coletam (reforços não).
 - Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros.
 - **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, base com muralha de pedra.
-- Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a configuração do duelo, pronto para a revanche.
+- Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
 
 ## 🎯 Power-ups e Bônus
 
@@ -360,7 +373,7 @@ Tank-1990/
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
 │   ├── levels/           # Arquivos dos 36 níveis
-│   └── duel_levels/      # Mapas do modo duelo
+│   └── duel_levels/      # Mapas do modo duelo (Arena, Fortress, River, Maze, Open Field)
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
 └── README.md             # Este arquivo

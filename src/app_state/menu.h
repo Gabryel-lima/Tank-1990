@@ -20,6 +20,7 @@
  * @li Extra Modes: Duel Mode
  * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
  * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
+ * @li escolha do mapa do duelo, com miniatura (ou aleatório a cada rodada)
  */
 class Menu : public AppState
 {
@@ -32,7 +33,8 @@ public:
         SCREEN_MAIN,
         SCREEN_EXTRA,
         SCREEN_DUEL_FORMAT,
-        SCREEN_DUEL_SETUP
+        SCREEN_DUEL_SETUP,
+        SCREEN_DUEL_MAP
     };
 
     /**
@@ -88,7 +90,8 @@ private:
         ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_CUSTOM,
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
-        ITEM_START, ITEM_BACK
+        ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
+        ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i de AppConfig::duel_maps
     };
 
     /**
@@ -131,6 +134,12 @@ private:
 
     /** Atualiza o tamanho de cada equipe a partir da equipe de cada jogador. */
     void syncTeamSizes();
+
+    /** Desenha a miniatura do mapa (tiles de 5 px) à esquerda da lista. */
+    void drawMapPreview(int map_index);
+
+    /** Grades dos mapas do duelo, lidas uma vez para as miniaturas. */
+    std::vector<std::vector<std::string>> m_map_grids;
 
     Screen m_screen;
     std::vector<Item> m_items;

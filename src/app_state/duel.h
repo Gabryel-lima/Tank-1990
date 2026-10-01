@@ -27,6 +27,11 @@ struct DuelConfig
     int human_team[4] = {0, 1, 0, 1};
 
     /**
+     * Mapa escolhido (índice em AppConfig::duel_maps), ou -1 para um mapa aleatório a cada rodada.
+     */
+    int map = 0;
+
+    /**
      * Quantos humanos estão na equipe.
      */
     int humansInTeam(int team) const;
@@ -176,6 +181,7 @@ private:
     Uint32 m_fortify_time[2];
     SpriteType m_base_wall[2]; ///< material atual da muralha de cada base
     int m_kills[4];            ///< eliminações de cada jogador humano na partida
+    int m_map;                 ///< mapa da rodada atual (índice em AppConfig::duel_maps)
 };
 
 #endif // DUEL_H

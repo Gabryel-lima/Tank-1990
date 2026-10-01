@@ -9,6 +9,7 @@
 #include "../controllers.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 
 DuelConfig Menu::s_duel_config;
@@ -51,6 +52,20 @@ Menu::Menu(Screen screen)
     m_controller_left_pressed = false;
     m_controller_right_pressed = false;
 
+    // Grades dos mapas do duelo para as miniaturas (um mapa ausente fica com a grade vazia)
+    for(auto& map : AppConfig::duel_maps)
+    {
+        std::vector<std::string> grid;
+        std::ifstream file(AppConfig::duel_levels_path + map.first);
+        std::string line;
+        while(std::getline(file, line))
+        {
+            while(!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
+            if(!line.empty()) grid.push_back(line);
+        }
+        m_map_grids.push_back(grid);
+    }
+
     openScreen(screen);
 }
 
@@ -82,7 +97,13 @@ void Menu::buildItems()
         if(s_duel_custom) m_items.push_back(ITEM_HUMANS);
         for(int i = 0; i < s_duel_config.humans; i++)
             m_items.push_back(static_cast<Item>(ITEM_HUMAN_1_TEAM + i));
-        m_items.push_back(ITEM_START);
+        m_items.push_back(ITEM_NEXT);
+        m_items.push_back(ITEM_BACK);
+        break;
+    case SCREEN_DUEL_MAP:
+        for(size_t i = 0; i < AppConfig::duel_maps.size(); i++)
+            m_items.push_back(static_cast<Item>(ITEM_MAP_FIRST + i));
+        m_items.push_back(ITEM_MAP_RANDOM);
         m_items.push_back(ITEM_BACK);
         break;
     }
@@ -94,9 +115,16 @@ void Menu::openScreen(Screen screen)
     m_screen = screen;
     m_menu_index = 0;
     buildItems();
-    // Na configuração do duelo, começa no "Start" para a revanche ser rápida
+    // Na configuração do duelo, começa no "Next"; na escolha de mapa, no último escolhido
+    // (assim a revanche é um botão só)
     if(screen == SCREEN_DUEL_SETUP)
-        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_START) - m_items.begin();
+        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_NEXT) - m_items.begin();
+    if(screen == SCREEN_DUEL_MAP)
+    {
+        Item last = s_duel_config.map < 0 ? ITEM_MAP_RANDOM : static_cast<Item>(ITEM_MAP_FIRST + s_duel_config.map);
+        auto it = std::find(m_items.begin(), m_items.end(), last);
+        m_menu_index = (it != m_items.end()) ? it - m_items.begin() : 0;
+    }
 }
 
 int Menu::itemY(int i) const
@@ -140,9 +168,14 @@ std::string Menu::itemText(Item item) const
         input.resize(6, ' ');
         return "P" + Engine::intToString(i + 1) + " " + input + " < " + (c.human_team[i] == 0 ? "A" : "B") + " >";
     }
-    case ITEM_START: return "Start";
+    case ITEM_NEXT: return "Next";
+    case ITEM_MAP_RANDOM: return "Random";
     case ITEM_BACK: return "Back";
+    default: break;
     }
+    int map = item - ITEM_MAP_FIRST;
+    if(map >= 0 && map < static_cast<int>(AppConfig::duel_maps.size()))
+        return AppConfig::duel_maps[map].second;
     return "";
 }
 
@@ -245,9 +278,13 @@ void Menu::confirm()
         openScreen(SCREEN_DUEL_SETUP);
         m_menu_index = 0; // no personalizado, começa pela quantidade de jogadores
         break;
-    case ITEM_START:
-        // Só começa se todo jogador tiver controle ou teclado (o título explica o que falta)
+    case ITEM_NEXT:
+        // Só avança se todo jogador tiver controle ou teclado (o título explica o que falta)
         if(Controllers::playersWithoutInput(s_duel_config.humans) > 0) break;
+        openScreen(SCREEN_DUEL_MAP);
+        break;
+    case ITEM_MAP_RANDOM:
+        s_duel_config.map = -1;
         m_result = RESULT_DUEL;
         m_finished = true;
         break;
@@ -255,7 +292,17 @@ void Menu::confirm()
         back();
         break;
     default:
+    {
+        // Um dos mapas: começa o duelo nele
+        int map = item - ITEM_MAP_FIRST;
+        if(map >= 0 && map < static_cast<int>(AppConfig::duel_maps.size()))
+        {
+            s_duel_config.map = map;
+            m_result = RESULT_DUEL;
+            m_finished = true;
+        }
         break;
+    }
     }
 }
 
@@ -276,6 +323,9 @@ void Menu::back()
         break;
     case SCREEN_DUEL_SETUP:
         openScreen(SCREEN_DUEL_FORMAT);
+        break;
+    case SCREEN_DUEL_MAP:
+        openScreen(SCREEN_DUEL_SETUP);
         break;
     }
 }
@@ -303,6 +353,7 @@ void Menu::draw()
     std::string title;
     if(m_screen == SCREEN_EXTRA) title = "Extra Modes";
     else if(m_screen == SCREEN_DUEL_FORMAT) title = "Duel Mode";
+    else if(m_screen == SCREEN_DUEL_MAP) title = "Select Map";
     else if(m_screen == SCREEN_DUEL_SETUP)
     {
         // Mostra a divisão atual das equipes, que muda ao trocar jogadores de lado
@@ -329,7 +380,7 @@ void Menu::draw()
     {
         Item item = m_items[i];
         SDL_Color color = WHITE;
-        if(item == ITEM_START && missing > 0) color = GRAY;
+        if(item == ITEM_NEXT && missing > 0) color = GRAY;
         if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM &&
            Controllers::inputName(s_duel_config.humans, item - ITEM_HUMAN_1_TEAM) == "NO PAD")
             color = RED;
@@ -343,12 +394,64 @@ void Menu::draw()
         }
     }
 
+    // Miniatura do mapa selecionado, à esquerda da lista
+    if(m_screen == SCREEN_DUEL_MAP && !m_items.empty())
+    {
+        int map = m_items[m_menu_index] - ITEM_MAP_FIRST;
+        drawMapPreview(map >= 0 && map < static_cast<int>(m_map_grids.size()) ? map : -1);
+    }
+
     // Desenha o tanque que indica a opção selecionada
     m_tank_pointer->pos_y = itemY(m_menu_index) - 10;
     m_tank_pointer->dest_rect.y = m_tank_pointer->pos_y;
     m_tank_pointer->draw();
 
     renderer->flush();
+}
+
+void Menu::drawMapPreview(int map_index)
+{
+    // 26 x 26 tiles de 5 px = 130 px, na área livre à esquerda do ponteiro (x < 144),
+    // com o topo alinhado ao primeiro item da lista
+    const int TILE = 5;
+    SDL_Rect frame = {6, itemY(0) - 2, 26 * TILE + 4, 26 * TILE + 4};
+    Renderer* renderer = Engine::getEngine().getRenderer();
+    renderer->drawRect(&frame, GRAY, false);
+    SDL_Rect inside = {frame.x + 2, frame.y + 2, 26 * TILE, 26 * TILE};
+    renderer->drawRect(&inside, {16, 16, 16, 255}, true);
+
+    if(map_index < 0 || m_map_grids[map_index].empty())
+    {
+        // Aleatório (ou mapa não encontrado)
+        SDL_Point p = {inside.x + inside.w / 2 - 7, inside.y + inside.h / 2 - 7};
+        renderer->drawText(&p, "?", GRAY, 2);
+        return;
+    }
+
+    const std::vector<std::string>& grid = m_map_grids[map_index];
+    for(size_t r = 0; r < grid.size() && r < 26; r++)
+        for(size_t c = 0; c < grid[r].size() && c < 26; c++)
+        {
+            SDL_Color color;
+            switch(grid[r][c])
+            {
+            case '#': color = {170, 70, 20, 255}; break;   // tijolo
+            case '@': color = {170, 170, 170, 255}; break; // pedra
+            case '~': color = {40, 80, 220, 255}; break;   // água
+            case '%': color = {40, 150, 40, 255}; break;   // arbusto
+            case '-': color = {190, 210, 230, 255}; break; // gelo
+            default: continue;
+            }
+            SDL_Rect tile = {inside.x + static_cast<int>(c) * TILE, inside.y + static_cast<int>(r) * TILE, TILE, TILE};
+            renderer->drawRect(&tile, color, true);
+        }
+
+    // Bases nas cores das equipes: A embaixo, B em cima
+    for(int team = 0; team < 2; team++)
+    {
+        SDL_Rect base = {inside.x + 12 * TILE, inside.y + (team == 0 ? 24 : 0) * TILE, 2 * TILE, 2 * TILE};
+        renderer->drawRect(&base, Duel::teamColor(team), true);
+    }
 }
 
 // Atualiza o estado do menu (apenas atualiza o tanque ponteiro)

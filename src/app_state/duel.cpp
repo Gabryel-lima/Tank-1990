@@ -102,8 +102,12 @@ void Duel::startRound()
         m_base_wall[t] = defaultWall(t);
     }
 
+    // Mapa escolhido, ou um sorteado a cada rodada ("Random")
+    int map_count = static_cast<int>(AppConfig::duel_maps.size());
+    m_map = (m_config.map >= 0 && m_config.map < map_count) ? m_config.map : rand() % map_count;
+
     // A águia da equipe A (embaixo) é criada pelo loadLevel, como na campanha
-    loadLevel(AppConfig::duel_levels_path + "1");
+    loadLevel(AppConfig::duel_levels_path + AppConfig::duel_maps.at(m_map).first);
     if(m_level_rows_count < 4 || m_level_columns_count < 15)
     {
         // Mapa não encontrado: volta ao menu em vez de rodar sem cenário
@@ -730,6 +734,8 @@ void Duel::draw()
     if(m_phase == PHASE_INTRO)
     {
         renderer->drawText(nullptr, "ROUND " + Engine::intToString(m_round), WHITE, 1);
+        p = {-1, 160};
+        renderer->drawText(&p, AppConfig::duel_maps.at(m_map).second, WHITE, 2);
         p = {-1, 240};
         renderer->drawText(&p, "FIRST TO " + Engine::intToString(AppConfig::duel_rounds_to_win) + " WINS", WHITE, 2);
     }
@@ -811,5 +817,6 @@ void Duel::eventProcess(SDL_Event* ev)
 
 AppState* Duel::nextState()
 {
-    return new Menu(Menu::SCREEN_DUEL_SETUP);
+    // Volta para a escolha de mapa, com o último selecionado: revanche com um botão
+    return new Menu(Menu::SCREEN_DUEL_MAP);
 }

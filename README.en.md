@@ -182,9 +182,22 @@ when run — see the Windows section above.
 
 ## ⚔️ Duel Mode (Extra Modes)
 
-From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mode, human players only: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on a dedicated map (`resources/duel_levels/1`) mirrored both horizontally and vertically so both sides get the same terrain.
+From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mode, human players only: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on dedicated maps, separate from the campaign (`resources/duel_levels/`), all mirrored both horizontally and vertically so both sides get the same terrain.
 
-**Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (P1 and P2 on the keyboard, P3 and P4 on controllers), there is no 3 vs 3 or 4 vs 4.
+**Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (see [Controls](#-controls)), there is no 3 vs 3 or 4 vs 4.
+
+**Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map:
+
+| Map | Style |
+|-----|-------|
+| **Arena** | Balanced: bricks, side rivers (the boat helps) and ice in the middle |
+| **Fortress** | Defensive: stone wall in front of the bases; you have to enter the yard to attack |
+| **River** | A river cuts through the middle, with three bridges |
+| **Maze** | Brick maze: you can shoot your way through |
+| **Open Field** | Open and fast: bushes for ambushes, and ice |
+| **Random** | A random map each round |
+
+To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as the levels: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty) and add the file and its name to `AppConfig::duel_maps`. Keep base B on rows 0-1 and base A on rows 24-25 (columns 12-13), the brick wall around them, the spawn points (columns 4-5, 8-9, 16-17 and 20-21 on rows 0-1 and 24-25) and the power-up spots clear, and corridors at least 2 tiles wide, the width of a tank.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -203,7 +216,7 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 - **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only players can pick them up (reinforcements can't).
 - Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest.
 - **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
-- Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the duel setup, ready for a rematch.
+- Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
 
 ## 🎯 Power-ups
 
@@ -358,7 +371,7 @@ Tank-1990/
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
 │   ├── levels/           # The 36 level files
-│   └── duel_levels/      # Duel mode maps
+│   └── duel_levels/      # Duel mode maps (Arena, Fortress, River, Maze, Open Field)
 ├── tools/                # WSL install/uninstall scripts
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows

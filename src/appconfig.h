@@ -176,6 +176,11 @@ public:
     static string duel_levels_path;
 
     /**
+     * Mapas do duelo: {arquivo em duel_levels_path, nome mostrado no menu}.
+     */
+    static vector<pair<string, string>> duel_maps;
+
+    /**
      * Pontos de renascimento do duelo: [equipe][vaga]. Equipe 0 (A) embaixo, 1 (B) em cima.
      */
     static vector<vector<SDL_Point>> duel_spawn_points;

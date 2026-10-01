@@ -6,6 +6,17 @@ string AppConfig::texture_path = "texture.png";
 string AppConfig::levels_path = "levels/";
 // Caminho da pasta dos mapas do modo duelo (separados da campanha)
 string AppConfig::duel_levels_path = "duel_levels/";
+// Mapas do duelo: arquivo dentro de duel_levels_path e nome mostrado no menu.
+// Todos espelhados na horizontal e na vertical, com as bases, muralhas, pontos
+// de renascimento e pontos de bônus nas mesmas posições.
+vector<pair<string, string>> AppConfig::duel_maps =
+{
+    {"1", "Arena"},
+    {"2", "Fortress"},
+    {"3", "River"},
+    {"4", "Maze"},
+    {"5", "Open Field"},
+};
 // Nome do arquivo de fonte utilizada no jogo
 string AppConfig::font_name = "prstartk.ttf";
 // Texto exibido na tela de Game Over
