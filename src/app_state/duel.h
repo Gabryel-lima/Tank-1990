@@ -43,7 +43,9 @@ struct DuelConfig
  * @li projéteis não ferem aliados nem a própria base (nem os tijolos em volta dela);
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
- * @li o bônus de tanque traz um bot aliado (reforço) da cor da equipe;
+ * @li cada jogador tem a sua cor (a da campanha); o bônus de tanque é pessoal: surge na
+ *     cor de um jogador, só ele coleta, mais na metade adversária, e traz um bot aliado
+ *     (reforço) da cor dele;
  * @li com equipes de tamanhos diferentes, a menor tem mais vidas (e base de pedra, se a outra tiver o dobro).
  */
 class Duel : public Game
@@ -128,6 +130,18 @@ private:
 
     /** Destrói o tanque e conta a eliminação para o jogador, se de fato morreu. */
     void hitTank(Tank* target, Tank* shooter);
+
+    /** Bônus que surge para um jogador específico (só ele coleta). */
+    static bool isPersonal(SpriteType type);
+
+    /** Equipe bem atrás em vidas (proporcionalmente), ou -1 se estão parelhas. */
+    int trailingTeam();
+
+    /** Pontos simétricos de surgimento de bônus dentro da metade do mapa da equipe. */
+    std::vector<SDL_Point> halfSpots(int team) const;
+
+    /** Sorteia o dono de um bônus pessoal: a equipe primeiro (ou a que está atrás), depois o jogador. */
+    Player* choosePersonalOwner();
 
     /** Sorteia um bônus em um dos pontos simétricos do mapa. */
     void spawnBonus();

@@ -7,6 +7,7 @@ Bonus::Bonus()
 {
     m_bonus_show_time = 0; // Tempo de exibição do bônus começa em 0
     m_show = true;         // O bônus começa visível
+    owner = -1;            // Qualquer jogador pode coletar
 }
 
 // Construtor parametrizado: inicializa o bônus na posição (x, y) e com o tipo especificado
@@ -15,6 +16,7 @@ Bonus::Bonus(double x, double y, SpriteType type)
 {
     m_bonus_show_time = 0; // Tempo de exibição do bônus começa em 0
     m_show = true;         // O bônus começa visível
+    owner = -1;            // Qualquer jogador pode coletar
 }
 
 // Desenha o bônus na tela se ele estiver visível

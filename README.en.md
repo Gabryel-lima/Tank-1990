@@ -196,7 +196,9 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 **Rules:**
 - A round is won by destroying the enemy base or eliminating every enemy player; the match goes to the first team to win **2 rounds**.
 - Each player has **3 lives** and respawns with a short shield.
-- **Reinforcement (tank power-up):** brings an **allied bot** in your team's color, with one life. The first one guards the base, the second attacks; with 2 of your team's reinforcements on the field, the power-up becomes an extra life. Reinforcements don't keep a round alive: if every player on a team is out, that team loses.
+- **Colors:** each player has their own color, the same as in the campaign (P1 yellow, P2 green, P3 blue, P4 red). The side panel shows who is on each team.
+- **Personal power-up (tank):** appears in **one player's color** and only that player can pick it up; everyone else drives over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The draw picks the team first (the one behind on lives, or 50/50) and then the player, so the solo player in a 3 vs 1 doesn't get only 1/4 of these power-ups.
+- **Reinforcement:** the personal power-up brings an **allied bot** in the picker's color, with one life. The first one guards the base, the second attacks; with 2 of your team's reinforcements on the field, the power-up becomes an extra life. Reinforcements don't keep a round alive: if every player on a team is out, that team loses.
 - **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
 - **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only players can pick them up (reinforcements can't).
 - Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest.

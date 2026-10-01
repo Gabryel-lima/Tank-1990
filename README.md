@@ -197,7 +197,9 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 **Regras:**
 - Vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos; vence a partida quem ganhar **2 rodadas**.
 - Cada jogador tem **3 vidas** e renasce com escudo por alguns segundos.
-- **Reforço (bônus de tanque):** traz um **bot aliado** da cor da sua equipe, com uma vida. O primeiro reforço guarda a base, o segundo ataca; com 2 reforços da equipe em campo, o bônus vira vida extra. O reforço não segura a rodada: se todos os jogadores da equipe caírem, ela perde.
+- **Cores:** cada jogador tem a sua cor, a mesma da campanha (P1 amarelo, P2 verde, P3 azul, P4 vermelho). O painel lateral mostra quem está em cada equipe.
+- **Bônus pessoal (tanque):** surge na **cor de um jogador** e só ele consegue pegar; os outros passam por cima. Aparece **70% das vezes na metade do adversário** (é preciso invadir para buscar) e 30% na própria. O sorteio escolhe primeiro a equipe (a que estiver atrás em vidas, ou 50/50) e depois o jogador, para que num 3 contra 1 o jogador sozinho não fique com só 1/4 desses bônus.
+- **Reforço:** o bônus pessoal traz um **bot aliado** na cor de quem pegou, com uma vida. O primeiro reforço guarda a base, o segundo ataca; com 2 reforços da equipe em campo, o bônus vira vida extra. O reforço não segura a rodada: se todos os jogadores da equipe caírem, ela perde.
 - **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores coletam (reforços não).
 - Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros.

@@ -211,6 +211,11 @@ public:
     static int duel_max_allies;
 
     /**
+     * Chance (0 a 1) de um bônus pessoal surgir na metade do mapa da equipe adversária do dono.
+     */
+    static double duel_personal_enemy_side_chance;
+
+    /**
      * Velocidade padrão dos projéteis disparados.
      */
     static double bullet_default_speed;

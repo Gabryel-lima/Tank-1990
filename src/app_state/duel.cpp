@@ -129,9 +129,9 @@ void Duel::startRound()
     {
         int team = m_config.human_team[i];
         Player* p = new Player(i);
+        // Cada jogador mantém a cor da campanha (P1 amarelo, P2 verde, P3 azul, P4 vermelho):
+        // é ela que identifica os bônus pessoais e os reforços de cada um
         p->team = team;
-        p->type = (team == 0 ? ST_PLAYER_1 : ST_PLAYER_2);
-        p->setPlayerColor(WHITE);
         p->spawn_point = AppConfig::duel_spawn_points.at(team).at(slot[team]++);
         p->lives_count = livesPerTank(team) + 1; // respawn() gasta uma ao entrar no mapa
         p->respawn();
@@ -275,7 +275,7 @@ bool Duel::spawnAlly(Player* player)
         // Atacante usa o tiro do tanque D (mira no alvo); defensor, o do tanque A
         Bot::Role role = has_defender ? Bot::ROLE_ATTACK : Bot::ROLE_DEFEND;
         SpriteType type = (role == Bot::ROLE_ATTACK ? ST_TANK_D : ST_TANK_A);
-        m_enemies.push_back(new Bot(spawn, type, team, 1, AppConfig::duel_team_colors.at(team), role));
+        m_enemies.push_back(new Bot(spawn, type, team, 1, player->color, role)); // cor de quem pegou
         return true;
     }
     return false;
@@ -349,6 +349,48 @@ void Duel::updateBotTargets()
 
 // ======================== Bônus ========================
 
+bool Duel::isPersonal(SpriteType type)
+{
+    // Bônus que surgem para um jogador específico. Para tornar outro poder pessoal,
+    // basta incluí-lo aqui: sorteio do dono, lado do mapa, cor e coleta já são genéricos.
+    return type == ST_BONUS_TANK;
+}
+
+int Duel::trailingTeam()
+{
+    // Equipe bem atrás em vidas (proporcionalmente ao total dela), ou -1
+    double ratio[2];
+    for(int team = 0; team < 2; team++)
+        ratio[team] = static_cast<double>(teamLives(team)) / (m_config.team_size[team] * livesPerTank(team));
+    if(ratio[0] + 0.25 <= ratio[1]) return 0;
+    if(ratio[1] + 0.25 <= ratio[0]) return 1;
+    return -1;
+}
+
+std::vector<SDL_Point> Duel::halfSpots(int team) const
+{
+    // Pontos simétricos dentro da metade do mapa da equipe (A embaixo, B em cima)
+    int t = AppConfig::tile_rect.w;
+    if(team == 0) return {{4 * t, 16 * t}, {20 * t, 16 * t}, {12 * t, 18 * t}};
+    return {{4 * t, 8 * t}, {20 * t, 8 * t}, {12 * t, 6 * t}};
+}
+
+Player* Duel::choosePersonalOwner()
+{
+    // Sorteia a equipe primeiro (50/50, ou a que está atrás) e depois o jogador dentro dela:
+    // assim a equipe menor de um 3 contra 1 não recebe só 1/4 dos bônus pessoais
+    int trailing = trailingTeam();
+    int first = trailing >= 0 ? trailing : rand() % 2;
+    for(int team : {first, 1 - first})
+    {
+        std::vector<Player*> candidates;
+        for(auto player : m_players)
+            if(player->team == team && !player->to_erase) candidates.push_back(player);
+        if(!candidates.empty()) return candidates.at(rand() % candidates.size());
+    }
+    return nullptr;
+}
+
 void Duel::spawnBonus()
 {
     // Pesos de cada bônus: os que decidem a rodada sozinhos (granada e arma) são raros
@@ -366,18 +408,33 @@ void Duel::spawnBonus()
         roll -= entry.weight;
     }
 
-    // Pontos simétricos: no meio do mapa (mesma distância das duas bases) ou,
-    // se uma equipe estiver bem atrás em vidas, no lado do campo dela
-    int t = AppConfig::tile_rect.w;
-    double ratio[2];
-    for(int team = 0; team < 2; team++)
-        ratio[team] = static_cast<double>(teamLives(team)) / (m_config.team_size[team] * livesPerTank(team));
+    // Bônus pessoal: só o dono coleta, e ele surge com mais frequência na metade
+    // do adversário (o dono precisa invadir para buscar) do que na própria
+    Player* owner = isPersonal(type) ? choosePersonalOwner() : nullptr;
+    if(owner != nullptr)
+    {
+        double roll = static_cast<double>(rand()) / RAND_MAX;
+        int side = (roll < AppConfig::duel_personal_enemy_side_chance) ? 1 - owner->team : owner->team;
+        std::vector<SDL_Point> spots = halfSpots(side);
+        SDL_Point p = spots.at(rand() % spots.size());
+        Bonus* bonus = new Bonus(p.x, p.y, type);
+        bonus->owner = owner->playerIndex();
+        bonus->color = owner->color; // o mesmo ícone, tingido com a cor do jogador
+        m_bonuses.push_back(bonus);
+        return;
+    }
+    if(isPersonal(type)) type = ST_BONUS_STAR; // sem jogador para ser dono (não deve ocorrer em jogo)
 
+    // Bônus comuns, em pontos simétricos: no meio do mapa (mesma distância das duas
+    // bases) ou, se uma equipe estiver bem atrás em vidas, na metade dela
+    int t = AppConfig::tile_rect.w;
+    int trailing = trailingTeam();
     std::vector<SDL_Point> spots;
-    if(ratio[0] + 0.25 <= ratio[1])
-        spots = {{4 * t, 16 * t}, {20 * t, 16 * t}};   // equipe A atrás: metade de baixo
-    else if(ratio[1] + 0.25 <= ratio[0])
-        spots = {{4 * t, 8 * t}, {20 * t, 8 * t}};     // equipe B atrás: metade de cima
+    if(trailing >= 0)
+    {
+        spots = halfSpots(trailing);
+        spots.pop_back(); // só os pontos das laterais
+    }
     else
         spots = {{12 * t, 12 * t}, {4 * t, 12 * t}, {20 * t, 12 * t}};
 
@@ -542,12 +599,23 @@ void Duel::update(Uint32 dt)
                     for(auto b2 : tanks[j]->bullets)
                         checkCollisionTwoBullets(b1, b2);
 
-    // Bônus: só jogadores humanos coletam
+    // Bônus: só jogadores humanos coletam; o pessoal, só o dono (os outros passam por cima)
     for(auto player : m_players)
         for(auto bonus : m_bonuses)
             if(!player->to_erase && !bonus->to_erase && player->testFlag(TSF_LIFE) &&
+               (bonus->owner < 0 || bonus->owner == player->playerIndex()) &&
                intersects(player->collision_rect, bonus->collision_rect))
                 applyBonus(player, bonus);
+
+    // Bônus pessoal de quem já saiu da partida não serve para ninguém
+    for(auto bonus : m_bonuses)
+    {
+        if(bonus->owner < 0) continue;
+        bool owner_in_game = false;
+        for(auto player : m_players)
+            if(player->playerIndex() == bonus->owner && !player->to_erase) owner_in_game = true;
+        if(!owner_in_game) bonus->to_erase = true;
+    }
 
     // Tanques contra o cenário
     for(Tank* t : tanks) checkCollisionTankWithLevel(t, dt);
@@ -607,6 +675,14 @@ void Duel::draw()
     for(auto bonus : m_bonuses) bonus->draw();
     for(Eagle* base : bases()) base->draw();
 
+    // Bônus pessoal: número do dono acima do ícone, na cor dele (piscando junto com o bônus)
+    for(auto bonus : m_bonuses)
+    {
+        if(bonus->owner < 0 || !bonus->visible() || bonus->to_erase) continue;
+        SDL_Point p = {bonus->dest_rect.x + 6, bonus->dest_rect.y - 11};
+        renderer->drawText(&p, "P" + Engine::intToString(bonus->owner + 1), bonus->color, 3);
+    }
+
     // Número de cada jogador acima do tanque: no começo da rodada e ao renascer
     bool round_start = (m_phase == PHASE_INTRO || (m_phase == PHASE_PLAY && m_phase_time < LABEL_TIME));
     for(auto player : m_players)
@@ -614,7 +690,7 @@ void Duel::draw()
         if(!(round_start || player->testFlag(TSF_CREATE)) || player->testFlag(TSF_DESTROYED)) continue;
         SDL_Point p = {player->dest_rect.x + 6, player->dest_rect.y - 11};
         if(p.y < 0) p.y = player->dest_rect.y + player->dest_rect.h + 1;
-        renderer->drawText(&p, "P" + Engine::intToString(player->playerIndex() + 1), AppConfig::duel_team_colors.at(player->team), 3);
+        renderer->drawText(&p, "P" + Engine::intToString(player->playerIndex() + 1), player->color, 3);
     }
 
     //=========== Painel lateral: equipe B em cima, rodada no meio, equipe A embaixo ===========
@@ -633,12 +709,20 @@ void Duel::draw()
             renderer->drawObject(&flag_src, &dst);
         }
 
-        // Vidas restantes da equipe
-        SDL_Rect icon_src = engine.getSpriteConfig()->getSpriteData(team == 0 ? ST_PLAYER_1 : ST_PLAYER_2)->rect;
-        SDL_Rect dst = {x, y + 24, 16, 16};
-        renderer->drawObject(&icon_src, &dst);
-        p = {x + 18, y + 28};
-        renderer->drawText(&p, Engine::intToString(teamLives(team)), BLACK, 3);
+        // Jogadores da equipe: tanque na cor de cada um e as vidas restantes. Como os
+        // tanques têm a cor do jogador, é aqui que se vê quem joga com quem
+        int row = 0;
+        for(auto player : m_players)
+        {
+            if(player->team != team || player->to_erase) continue;
+            int idx = player->playerIndex();
+            SDL_Rect icon_src = engine.getSpriteConfig()->getSpriteData(static_cast<SpriteType>(ST_PLAYER_1 + idx))->rect;
+            SDL_Rect dst = {x, y + 24 + row * 18, 16, 16};
+            renderer->drawObjectWithColor(&icon_src, &dst, player->color);
+            p = {x + 18, y + 28 + row * 18};
+            renderer->drawText(&p, Engine::intToString(player->lives_count), BLACK, 3);
+            row++;
+        }
 
     }
     SDL_Point p = {AppConfig::status_rect.x + 6, 190};
@@ -685,7 +769,7 @@ void Duel::draw()
             int team = m_config.human_team[i];
             p = {-1, 212 + i * 16};
             renderer->drawText(&p, "P" + Engine::intToString(i + 1) + (team == 0 ? "  A  " : "  B  ") +
-                               Engine::intToString(m_kills[i]) + " KILLS", AppConfig::duel_team_colors.at(team), 3);
+                               Engine::intToString(m_kills[i]) + " KILLS", Player::getPlayerColor(i), 3);
         }
         if(m_phase_time > MATCH_END_INPUT_DELAY)
         {

@@ -118,6 +118,9 @@ int AppConfig::duel_tank_lives = 3;
 int AppConfig::duel_rounds_to_win = 2;
 // Tempo (ms) com o mapa sem bônus até aparecer o próximo
 unsigned AppConfig::duel_bonus_interval = 10000;
+// Chance de um bônus pessoal surgir na metade do mapa do adversário do dono
+// (no resto das vezes, surge na metade do próprio dono)
+double AppConfig::duel_personal_enemy_side_chance = 0.7;
 // Reforços (bots aliados do bônus de tanque) em campo ao mesmo tempo, por equipe
 int AppConfig::duel_max_allies = 2;
 // Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
