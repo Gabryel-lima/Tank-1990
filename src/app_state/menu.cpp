@@ -17,6 +17,12 @@ namespace
 {
     const SDL_Color WHITE = {255, 255, 255, 255};
     const SDL_Color GRAY = {120, 120, 120, 255};
+
+    // Grade do menu original: textos na coluna x = 180, uma linha a cada 32 px,
+    // com o primeiro item em y = 152. Todas as telas usam essa mesma grade.
+    const int TEXT_X = 180;
+    const int ROW_HEIGHT = 32;
+    int rowY(int row) { return 120 + row * ROW_HEIGHT; }
 }
 
 // Construtor do Menu: inicializa a tela, o índice e o tanque indicador
@@ -97,11 +103,19 @@ void Menu::openScreen(Screen screen)
 
 int Menu::itemY(int i) const
 {
-    // A configuração do duelo tem mais itens: lista mais compacta, sem o logo
-    if(m_screen == SCREEN_DUEL_SETUP) return 84 + i * 26;
-    // Subtelas com logo: uma linha abaixo, para caber o subtítulo
-    if(m_screen != SCREEN_MAIN) return (i + 2) * 32 + 112;
-    return (i + 1) * 32 + 120;
+    switch(m_screen)
+    {
+    case SCREEN_MAIN:
+        return rowY(i + 1);   // como no original: 152, 184, 216...
+    case SCREEN_EXTRA:
+    case SCREEN_DUEL_FORMAT:
+        return rowY(i + 2);   // a linha 1 (152) é o título da tela
+    case SCREEN_DUEL_SETUP:
+        // Até 9 itens + título + linha de bots: sem o logo, a lista começa
+        // 3 linhas acima, na mesma grade (título em 56, itens a partir de 88)
+        return rowY(i - 1);
+    }
+    return rowY(i + 1);
 }
 
 bool Menu::isValueItem(Item item) const
@@ -310,49 +324,50 @@ void Menu::draw()
     renderer->drawRect(&AppConfig::status_rect, {0, 0, 0, 255}, true);
 
     SDL_Point text_start;
-    if(m_screen == SCREEN_DUEL_SETUP)
-    {
-        // Título com o formato escolhido
-        const DuelConfig& c = s_duel_config;
-        std::string title = s_duel_custom ? std::string("CUSTOM TEAMS")
-                          : Engine::intToString(c.team_size[0]) + " VS " + Engine::intToString(c.team_size[1]);
-        text_start = {-1, 30};
-        renderer->drawText(&text_start, title, WHITE, 1);
-    }
-    else
+    if(m_screen != SCREEN_DUEL_SETUP)
     {
         // Desenha o LOGO do jogo centralizado
         const SpriteData* logo = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_TANKS_LOGO);
         SDL_Rect dst = {(AppConfig::map_rect.w + AppConfig::status_rect.w - logo->rect.w)/2, 50, logo->rect.w, logo->rect.h};
         renderer->drawObject(&logo->rect, &dst);
+    }
 
-        if(m_screen != SCREEN_MAIN)
-        {
-            text_start = {-1, 140};
-            renderer->drawText(&text_start, m_screen == SCREEN_EXTRA ? "EXTRA MODES" : "DUEL MODE", GRAY, 2);
-        }
+    // Título da tela: uma linha da grade acima do primeiro item, na mesma coluna
+    std::string title;
+    if(m_screen == SCREEN_EXTRA) title = "Extra Modes";
+    else if(m_screen == SCREEN_DUEL_FORMAT) title = "Duel Mode";
+    else if(m_screen == SCREEN_DUEL_SETUP)
+    {
+        const DuelConfig& c = s_duel_config;
+        title = s_duel_custom ? std::string("Duel  Custom")
+              : "Duel  " + Engine::intToString(c.team_size[0]) + " vs " + Engine::intToString(c.team_size[1]);
+    }
+    if(!title.empty())
+    {
+        text_start = {TEXT_X, itemY(-1)};
+        renderer->drawText(&text_start, title, GRAY, 2);
     }
 
     // Desenha as opções do menu
     for(size_t i = 0; i < m_items.size(); i++)
     {
-        text_start = {180, itemY(i)};
+        text_start = {TEXT_X, itemY(i)};
         renderer->drawText(&text_start, itemText(m_items[i]), WHITE, 2);
     }
 
-    // Resumo das equipes: quem é humano e quantos bots completam cada uma
+    // Bots de cada equipe, na linha seguinte da grade e na coluna dos valores
+    // ("Players   < 2 >": o valor começa no 11º caractere). A fonte é monoespaçada,
+    // então os espaços à esquerda alinham as partes de cores diferentes.
     if(m_screen == SCREEN_DUEL_SETUP)
     {
         const DuelConfig& c = s_duel_config;
+        text_start = {TEXT_X, itemY(m_items.size())};
+        renderer->drawText(&text_start, "CPU", GRAY, 2);
         for(int team = 0; team < 2; team++)
         {
-            std::string line = team == 0 ? "A:" : "B:";
-            for(int i = 0; i < c.humans; i++)
-                if(c.human_team[i] == team) line += " P" + Engine::intToString(i + 1);
             int bots = c.team_size[team] - c.humansInTeam(team);
-            if(bots > 0) line += " + " + Engine::intToString(bots) + " CPU";
-            text_start = {60, 352 + team * 18};
-            renderer->drawText(&text_start, line, AppConfig::duel_team_colors.at(team), 3);
+            std::string value = std::string(team == 0 ? 10 : 13, ' ') + (team == 0 ? "A" : "B") + Engine::intToString(bots);
+            renderer->drawText(&text_start, value, AppConfig::duel_team_colors.at(team), 2);
         }
     }
 
