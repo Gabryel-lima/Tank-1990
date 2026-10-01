@@ -4,6 +4,8 @@
 string AppConfig::texture_path = "texture.png";
 // Caminho da pasta onde estão os arquivos de fases/níveis
 string AppConfig::levels_path = "levels/";
+// Caminho da pasta dos mapas do modo duelo (separados da campanha)
+string AppConfig::duel_levels_path = "duel_levels/";
 // Nome do arquivo de fonte utilizada no jogo
 string AppConfig::font_name = "prstartk.ttf";
 // Texto exibido na tela de Game Over
@@ -102,5 +104,25 @@ double AppConfig::game_over_entry_speed = 0.13;
 double AppConfig::tank_default_speed = 0.08;
 // Velocidade padrão dos projéteis
 double AppConfig::bullet_default_speed = 0.23;
+
+// ======================== Modo duelo ========================
+// Pontos de renascimento de cada equipe (A embaixo, B em cima), na ordem em
+// que as vagas são preenchidas: primeiro ao lado da base, depois nas pontas.
+vector<vector<SDL_Point>> AppConfig::duel_spawn_points =
+{
+    {{128, 384}, {256, 384}, {64, 384}, {320, 384}}, // Equipe A
+    {{128, 0},   {256, 0},   {64, 0},   {320, 0}},   // Equipe B
+};
+// Cor de cada equipe: tinge os bots e os textos (A amarela, B verde, como P1 e P2 no original)
+vector<SDL_Color> AppConfig::duel_team_colors = {{255, 210, 60, 255}, {90, 230, 90, 255}};
+// Vidas de cada tanque em uma equipe do tamanho da maior equipe
+int AppConfig::duel_tank_lives = 3;
+// Rodadas vencidas necessárias para ganhar a partida (melhor de 3)
+int AppConfig::duel_rounds_to_win = 2;
+// Tempo (ms) com o mapa sem bônus até aparecer o próximo
+unsigned AppConfig::duel_bonus_interval = 10000;
+// Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
+unsigned AppConfig::duel_freeze_time = 4000;
+
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;

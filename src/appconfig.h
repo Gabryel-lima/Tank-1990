@@ -171,6 +171,41 @@ public:
     static double tank_default_speed;
 
     /**
+     * Caminho da pasta dos mapas do modo duelo.
+     */
+    static string duel_levels_path;
+
+    /**
+     * Pontos de renascimento do duelo: [equipe][vaga]. Equipe 0 (A) embaixo, 1 (B) em cima.
+     */
+    static vector<vector<SDL_Point>> duel_spawn_points;
+
+    /**
+     * Cor de cada equipe do duelo.
+     */
+    static vector<SDL_Color> duel_team_colors;
+
+    /**
+     * Vidas de cada tanque no duelo (equipes menores recebem mais, ver Duel).
+     */
+    static int duel_tank_lives;
+
+    /**
+     * Rodadas vencidas necessárias para ganhar o duelo.
+     */
+    static int duel_rounds_to_win;
+
+    /**
+     * Tempo (ms) com o mapa vazio de bônus até surgir o próximo.
+     */
+    static unsigned duel_bonus_interval;
+
+    /**
+     * Duração (ms) do congelamento causado pelo relógio no duelo.
+     */
+    static unsigned duel_freeze_time;
+
+    /**
      * Velocidade padrão dos projéteis disparados.
      */
     static double bullet_default_speed;

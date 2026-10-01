@@ -181,6 +181,28 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
 
+## ⚔️ Modo Duelo (Extra Modes)
+
+No menu principal, **Extra Modes → Duel Mode** abre o modo de equipes: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, num mapa próprio (`resources/duel_levels/1`), espelhado na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
+
+**Formatos:** `1 vs 1`, `2 vs 2`, `3 vs 3`, `4 vs 4` ou `Custom Teams` (cada equipe com 1 a 4 tanques, por exemplo 3 contra 1). Na tela seguinte você escolhe quantos jogadores humanos participam (até 4) e a equipe de cada um; as vagas que sobram são preenchidas por **bots (CPU)**, que podem atacar ou defender.
+
+| Na configuração | Tecla / controle |
+|-----------------|------------------|
+| Mudar de opção | ↑ ↓ / D-pad / analógico |
+| Mudar o valor | ← → / D-pad / analógico |
+| Confirmar | Enter, Espaço / A, Start |
+| Voltar | Esc / B, Back |
+
+**Regras:**
+- Vence a rodada quem destruir a base inimiga ou eliminar todos os tanques inimigos; vence a partida quem ganhar **2 rodadas**.
+- Cada tanque tem **3 vidas** e renasce com escudo por alguns segundos.
+- **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
+- **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores humanos coletam.
+- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros.
+- **Equipes de tamanhos diferentes:** a menor recebe mais vidas por tanque (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de tanques ou mais, base com muralha de pedra.
+- Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a configuração do duelo, pronto para a revanche.
+
 ## 🎯 Power-ups e Bônus
 
 O jogo possui 8 tipos diferentes de power-ups que aparecem aleatoriamente quando você destrói tanques inimigos:
@@ -303,6 +325,7 @@ Tank-1990/
 │   ├── objects/          # Classes dos objetos do jogo
 │   │   ├── player.h/cpp  # Jogador controlável
 │   │   ├── enemy.h/cpp   # Tanques inimigos
+│   │   ├── bot.h/cpp     # Tanques da CPU no modo duelo
 │   │   ├── tank.h/cpp    # Classe base dos tanques
 │   │   ├── bullet.h/cpp  # Projéteis
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -311,6 +334,7 @@ Tank-1990/
 │   ├── app_state/        # Estados da aplicação
 │   │   ├── menu.h/cpp    # Menu principal
 │   │   ├── game.h/cpp    # Lógica principal do jogo
+│   │   ├── duel.h/cpp    # Modo duelo (equipes)
 │   │   └── scores.h/cpp  # Tela de pontuação
 │   ├── engine/           # Motor do jogo
 │   │   ├── renderer.h/cpp    # Sistema de renderização
@@ -325,7 +349,8 @@ Tank-1990/
 │   ├── img/              # Imagens e sprites
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
-│   └── levels/           # Arquivos dos 36 níveis
+│   ├── levels/           # Arquivos dos 36 níveis
+│   └── duel_levels/      # Mapas do modo duelo
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
 └── README.md             # Este arquivo

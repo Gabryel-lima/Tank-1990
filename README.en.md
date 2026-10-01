@@ -180,6 +180,28 @@ when run — see the Windows section above.
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
 
+## ⚔️ Duel Mode (Extra Modes)
+
+From the main menu, **Extra Modes → Duel Mode** starts the team mode: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on a dedicated map (`resources/duel_levels/1`) mirrored both horizontally and vertically so both sides get the same terrain.
+
+**Formats:** `1 vs 1`, `2 vs 2`, `3 vs 3`, `4 vs 4` or `Custom Teams` (1 to 4 tanks per team, e.g. 3 vs 1). The next screen sets how many human players join (up to 4) and each one's team; the remaining slots are filled with **CPU bots**, which either attack or defend.
+
+| In the setup screen | Key / controller |
+|---------------------|------------------|
+| Change option | ↑ ↓ / D-pad / stick |
+| Change value | ← → / D-pad / stick |
+| Confirm | Enter, Space / A, Start |
+| Back | Esc / B, Back |
+
+**Rules:**
+- A round is won by destroying the enemy base or eliminating every enemy tank; the match goes to the first team to win **2 rounds**.
+- Each tank has **3 lives** and respawns with a short shield.
+- **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
+- **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only human players can pick them up.
+- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest.
+- **Uneven teams:** the smaller team gets more lives per tank (1 vs 3: 6 lives vs 3) and, if the other team has twice as many tanks or more, a stone wall around its base.
+- Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the duel setup, ready for a rematch.
+
 ## 🎯 Power-ups
 
 Eight power-ups appear at random when you destroy enemy tanks:
@@ -300,6 +322,7 @@ Tank-1990/
 │   ├── objects/          # Game objects
 │   │   ├── player.h/cpp  # Player-controlled tank
 │   │   ├── enemy.h/cpp   # Enemy tanks
+│   │   ├── bot.h/cpp     # CPU tanks in duel mode
 │   │   ├── tank.h/cpp    # Tank base class
 │   │   ├── bullet.h/cpp  # Bullets
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -308,6 +331,7 @@ Tank-1990/
 │   ├── app_state/        # Application states
 │   │   ├── menu.h/cpp    # Main menu
 │   │   ├── game.h/cpp    # Main game logic
+│   │   ├── duel.h/cpp    # Duel (team) mode
 │   │   └── scores.h/cpp  # Score screen
 │   ├── engine/           # Game engine
 │   │   ├── renderer.h/cpp     # Rendering
@@ -322,7 +346,8 @@ Tank-1990/
 │   ├── img/              # Images and sprites
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
-│   └── levels/           # The 36 level files
+│   ├── levels/           # The 36 level files
+│   └── duel_levels/      # Duel mode maps
 ├── tools/                # WSL install/uninstall scripts
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows

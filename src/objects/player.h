@@ -110,7 +110,7 @@ public:
     void shieldHit();
 
     /**
-     * Índice do jogador (0 = Jogador 1), derivado do tipo do sprite.
+     * Índice do jogador (0 = Jogador 1). Define teclas, controle e posição inicial.
      */
     int playerIndex() const;
 
@@ -133,6 +133,12 @@ public:
     void setFlag(TankStateFlag flag);
 
 private:
+    /**
+     * Índice do jogador (0 = Jogador 1). Guardado à parte porque no duelo
+     * o sprite (type) indica a equipe, não o jogador.
+     */
+    int m_index;
+
     /**
      * Quantidade atual de estrelas do jogador; varia de 0 a 3.
      * Estrelas aumentam habilidades do tanque.

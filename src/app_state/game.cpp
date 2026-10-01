@@ -73,6 +73,28 @@ Game::Game(std::vector<Player *> players, int previous_level)
     nextLevel();
 }
 
+// Construtor para modos derivados: não carrega fase nem cria jogadores
+Game::Game(NoCampaign)
+{
+    m_level_columns_count = 0;
+    m_level_rows_count = 0;
+    m_current_level = 0;
+    m_eagle = nullptr;
+    m_player_count = 0;
+    m_enemy_to_kill = 0;
+    m_enemy_redy_time = 0;
+    m_pause = false;
+    m_level_end_time = 0;
+    m_protect_eagle = false;
+    m_protect_eagle_time = 0;
+    m_enemy_respown_position = 0;
+    m_level_start_screen = false;
+    m_level_start_time = 0;
+    m_game_over = false;
+    m_game_over_position = 0;
+    m_finished = false;
+}
+
 // Destrutor do jogo
 Game::~Game()
 {
@@ -629,10 +651,13 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
         tank->collide(intersect_rect);
 
-   //========================colisão com a águia========================
-    intersect_rect = intersectRect(&m_eagle->collision_rect, &pr);
-    if(intersect_rect.w > 0 && intersect_rect.h > 0)
-        tank->collide(intersect_rect);
+   //========================colisão com as bases========================
+    for(Eagle* base : bases())
+    {
+        intersect_rect = intersectRect(&base->collision_rect, &pr);
+        if(intersect_rect.w > 0 && intersect_rect.h > 0)
+            tank->collide(intersect_rect);
+    }
 }
 
 // Verifica colisão entre dois tanques
@@ -673,8 +698,11 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
             if(intersect_rect.w > 0 && intersect_rect.h > 0) return false;
         }
 
-    intersect_rect = intersectRect(&m_eagle->collision_rect, &area);
-    if(intersect_rect.w > 0 && intersect_rect.h > 0) return false;
+    for(Eagle* base : bases())
+    {
+        intersect_rect = intersectRect(&base->collision_rect, &area);
+        if(intersect_rect.w > 0 && intersect_rect.h > 0) return false;
+    }
 
     // Outros tanques: posição atual e prevista para este frame
     auto blocked_by = [&](Tank* other) {
@@ -796,7 +824,11 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
 
             if(intersect_rect.w > 0 && intersect_rect.h > 0)
             {
-                if(bullet->increased_damage)
+                if(!bulletCanDamage(bullet, i, j))
+                {
+                    // bloco protegido: o projétil some sem causar dano
+                }
+                else if(bullet->increased_damage)
                 {
                     delete o;
                     m_level.at(i).at(j) = nullptr;
@@ -820,18 +852,36 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
     {
         bullet->destroy();
     }
-    //========================colisão com a águia========================
-    if(m_eagle->type == ST_EAGLE && !m_game_over)
+    //========================colisão com as bases========================
+    for(Eagle* base : bases())
     {
-        intersect_rect = intersectRect(&m_eagle->collision_rect, br);
+        if(base->type != ST_EAGLE) continue; // base já destruída
+        intersect_rect = intersectRect(&base->collision_rect, br);
         if(intersect_rect.w > 0 && intersect_rect.h > 0)
-        {
-            bullet->destroy();
-            m_eagle->destroy();
-            m_game_over_position = AppConfig::map_rect.h;
-            m_game_over = true;
-        }
+            onBaseHit(base, bullet);
     }
+}
+
+// Bases do mapa: na campanha, só a águia
+std::vector<Eagle*> Game::bases()
+{
+    return {m_eagle};
+}
+
+// Campanha: projétil na águia encerra o jogo
+void Game::onBaseHit(Eagle* base, Bullet* bullet)
+{
+    if(m_game_over) return;
+    bullet->destroy();
+    base->destroy();
+    m_game_over_position = AppConfig::map_rect.h;
+    m_game_over = true;
+}
+
+// Campanha: todo bloco pode ser danificado
+bool Game::bulletCanDamage(Bullet*, int, int)
+{
+    return true;
 }
 
 // Verifica colisão da bala com arbustos (só se for bala forte)

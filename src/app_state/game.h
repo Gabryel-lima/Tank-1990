@@ -77,7 +77,34 @@ public:
      */
     AppState* nextState();
 
-private:
+protected:
+    /**
+     * Construtor para modos derivados (ex.: duelo): inicializa o estado sem carregar
+     * nenhuma fase da campanha nem criar jogadores.
+     */
+    struct NoCampaign {};
+    explicit Game(NoCampaign);
+
+    /**
+     * Bases presentes no mapa. Tanques não atravessam nenhuma delas e projéteis que as atingem
+     * chamam onBaseHit. Na campanha há só a águia do jogador.
+     */
+    virtual std::vector<Eagle*> bases();
+
+    /**
+     * Chamada quando um projétil atinge uma base ainda de pé.
+     * Na campanha, destrói a águia e encerra o jogo.
+     * @param base - base atingida
+     * @param bullet - projétil que atingiu a base
+     */
+    virtual void onBaseHit(Eagle* base, Bullet* bullet);
+
+    /**
+     * Indica se o projétil pode danificar o bloco do mapa na linha/coluna informada.
+     * Se não puder, o projétil some sem causar dano. Na campanha, sempre pode.
+     */
+    virtual bool bulletCanDamage(Bullet* bullet, int row, int column);
+
     /**
      * Carrega o mapa do nível a partir de um arquivo.
      * @param path - caminho para o arquivo do mapa

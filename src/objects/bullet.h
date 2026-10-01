@@ -57,6 +57,11 @@ public:
      * Direção de movimento do projétil.
      */
     Direction direction;
+
+    /**
+     * Equipe do tanque que disparou (modo duelo). -1 fora do duelo.
+     */
+    int team;
 };
 
 #endif // BULLET_H

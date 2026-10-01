@@ -98,6 +98,12 @@ public:
     void setFlag(TankStateFlag flag);
 
     /**
+     * Congela o tanque por um tempo diferente do padrão (AppConfig::tank_frozen_time).
+     * @param duration - duração do congelamento em ms
+     */
+    void freeze(Uint32 duration);
+
+    /**
      * Limpa uma flag de estado do tanque.
      * @param flag - flag a ser desativada
      */
@@ -141,6 +147,17 @@ public:
      */
     int lives_count;
 
+    /**
+     * Equipe do tanque no modo duelo (0 = A, 1 = B). -1 fora do duelo.
+     * Os projéteis disparados herdam a equipe.
+     */
+    int team;
+
+    /**
+     * Posição de renascimento. Se x < 0, usa a posição padrão do tipo de tanque.
+     */
+    SDL_Point spawn_point;
+
 protected:
     /**
      * Flags de estado atuais do tanque (invulnerável, congelado, etc).
@@ -181,6 +198,11 @@ protected:
      * Tempo desde que o tanque foi congelado.
      */
     Uint32 m_frozen_time;
+
+    /**
+     * Duração do congelamento atual (ms).
+     */
+    Uint32 m_frozen_duration;
 };
 
 #endif // TANK_H
