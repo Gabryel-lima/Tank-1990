@@ -128,7 +128,7 @@ void Duel::startRound()
 
     // Jogadores humanos: sprite amarelo na equipe A, verde na B (como P1 e P2 no original)
     Controllers::setPlayerCount(m_config.humans);
-    int slot[2] = {0, 0};
+    std::vector<SDL_Point> spawns = assignSpawns();
     for(int i = 0; i < m_config.humans; i++)
     {
         int team = m_config.human_team[i];
@@ -137,7 +137,7 @@ void Duel::startRound()
         p->team = team;
         p->type = static_cast<SpriteType>(ST_PLAYER_1 + team);
         p->setPlayerColor(teamColor(team));
-        p->spawn_point = AppConfig::duel_spawn_points.at(team).at(slot[team]++);
+        p->spawn_point = spawns.at(i);
         p->lives_count = livesPerTank(team) + 1; // respawn() gasta uma ao entrar no mapa
         p->respawn();
         m_players.push_back(p);
@@ -251,6 +251,44 @@ bool Duel::teamAlive(int team)
     return false;
 }
 
+std::vector<SDL_Point> Duel::spawnOrder(int team) const
+{
+    // Equipe A: colunas na ordem de AppConfig; equipe B: espelho em ponto (troca os lados)
+    std::vector<SDL_Point> order;
+    for(int x : AppConfig::duel_spawn_columns)
+    {
+        int column = (team == 0) ? x : AppConfig::map_rect.w - 2 * AppConfig::tile_rect.w - x;
+        order.push_back({column, AppConfig::duel_spawn_rows.at(team)});
+    }
+    return order;
+}
+
+std::vector<SDL_Point> Duel::assignSpawns()
+{
+    // As equipes escolhem intercaladas (1º de A, 1º de B, 2º de A...), cada uma na sua
+    // ordem de preferência, pulando colunas já tomadas. Com até 4 jogadores e 4 colunas,
+    // ninguém divide coluna (nem com o adversário do outro lado, nem com o companheiro):
+    // como o tiro só anda em linha reta, ninguém nasce na mira de ninguém.
+    std::vector<SDL_Point> result(m_config.humans, SDL_Point{0, 0});
+    std::vector<int> members[2];
+    for(int i = 0; i < m_config.humans; i++) members[m_config.human_team[i]].push_back(i);
+
+    m_player_columns.clear();
+    for(size_t k = 0; k < 4; k++)
+        for(int team = 0; team < 2; team++)
+        {
+            if(k >= members[team].size()) continue;
+            for(SDL_Point spawn : spawnOrder(team))
+            {
+                if(std::find(m_player_columns.begin(), m_player_columns.end(), spawn.x) != m_player_columns.end()) continue;
+                result[members[team][k]] = spawn;
+                m_player_columns.push_back(spawn.x);
+                break;
+            }
+        }
+    return result;
+}
+
 bool Duel::spawnAlly(Player* player)
 {
     int team = player->team;
@@ -267,8 +305,16 @@ bool Duel::spawnAlly(Player* player)
     }
     if(allies >= AppConfig::duel_max_allies) return false;
 
-    // Nasce no primeiro ponto de renascimento livre da equipe
-    for(SDL_Point spawn : AppConfig::duel_spawn_points.at(team))
+    // Nasce no primeiro ponto livre da equipe, preferindo colunas que nenhum jogador usa
+    // (fora da linha de tiro de quem nasce do outro lado); sem alternativa, usa as demais
+    std::vector<SDL_Point> order;
+    for(int pass = 0; pass < 2; pass++)
+        for(SDL_Point spawn : spawnOrder(team))
+        {
+            bool column_used = std::find(m_player_columns.begin(), m_player_columns.end(), spawn.x) != m_player_columns.end();
+            if(column_used == (pass == 1)) order.push_back(spawn);
+        }
+    for(SDL_Point spawn : order)
     {
         SDL_Rect area = {spawn.x, spawn.y, 2 * AppConfig::tile_rect.w, 2 * AppConfig::tile_rect.h};
         bool occupied = false;

@@ -114,13 +114,14 @@ double AppConfig::tank_default_speed = 0.08;
 double AppConfig::bullet_default_speed = 0.23;
 
 // ======================== Modo duelo ========================
-// Pontos de renascimento de cada equipe (A embaixo, B em cima), na ordem em
-// que as vagas são preenchidas: primeiro ao lado da base, depois nas pontas.
-vector<vector<SDL_Point>> AppConfig::duel_spawn_points =
-{
-    {{128, 384}, {256, 384}, {64, 384}, {320, 384}}, // Equipe A
-    {{128, 0},   {256, 0},   {64, 0},   {320, 0}},   // Equipe B
-};
+// Colunas (x) de nascimento da equipe A, em ordem de preferência, alternando os
+// lados da base: interna esquerda, externa direita, externa esquerda, interna direita.
+// A equipe B usa o espelho em ponto (x -> largura do mapa - 32 - x): interna direita,
+// externa esquerda... Com até 4 jogadores e 4 colunas, cada jogador recebe uma coluna
+// só dele (ver Duel::assignSpawns), então ninguém nasce na linha de tiro de outro.
+vector<int> AppConfig::duel_spawn_columns = {128, 320, 64, 256};
+// Linha (y) de nascimento de cada equipe: A embaixo, B em cima
+vector<int> AppConfig::duel_spawn_rows = {384, 0};
 // Vidas de cada jogador em uma equipe do tamanho da maior equipe
 int AppConfig::duel_tank_lives = 3;
 // Rodadas vencidas necessárias para ganhar a partida (melhor de 3)

@@ -94,6 +94,15 @@ private:
         PHASE_MATCH_END   ///< resultado da partida
     };
 
+    /** Pontos de nascimento da equipe, em ordem de preferência (lados alternados). */
+    std::vector<SDL_Point> spawnOrder(int team) const;
+
+    /**
+     * Ponto de nascimento de cada jogador: cada um numa coluna só dele, alternando os
+     * lados da base, para que ninguém nasça na linha de tiro de um adversário.
+     */
+    std::vector<SDL_Point> assignSpawns();
+
     /** Monta o mapa e os tanques de uma nova rodada. */
     void startRound();
 
@@ -182,6 +191,7 @@ private:
     SpriteType m_base_wall[2]; ///< material atual da muralha de cada base
     int m_kills[4];            ///< eliminações de cada jogador humano na partida
     int m_map;                 ///< mapa da rodada atual (índice em AppConfig::duel_maps)
+    std::vector<int> m_player_columns; ///< colunas (x) de nascimento usadas pelos jogadores
 };
 
 #endif // DUEL_H

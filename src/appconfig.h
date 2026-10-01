@@ -181,9 +181,15 @@ public:
     static vector<pair<string, string>> duel_maps;
 
     /**
-     * Pontos de renascimento do duelo: [equipe][vaga]. Equipe 0 (A) embaixo, 1 (B) em cima.
+     * Colunas (x) de nascimento do duelo para a equipe A, em ordem de preferência
+     * (lados alternados). A equipe B usa o espelho em ponto.
      */
-    static vector<vector<SDL_Point>> duel_spawn_points;
+    static vector<int> duel_spawn_columns;
+
+    /**
+     * Linha (y) de nascimento de cada equipe do duelo: 0 (A) embaixo, 1 (B) em cima.
+     */
+    static vector<int> duel_spawn_rows;
 
     /**
      * Vidas de cada tanque no duelo (equipes menores recebem mais, ver Duel).

@@ -209,6 +209,7 @@ To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as th
 **Rules:**
 - A round is won by destroying the enemy base or eliminating every enemy player; the match goes to the first team to win **2 rounds**.
 - Each player has **3 lives** and respawns with a short shield.
+- **No spawn camping by design:** each player spawns in a column of their own, alternating sides of the base (in a 1 vs 1, one spawns on the left and the other on the right). Since bullets only travel in straight lines, nobody spawns in an opponent's line of fire, on any map or format; the spawn shield is an extra safety net.
 - **Colors:** color belongs to the **team**: teammates share a color (team A yellow, B green) and different colors only show up between opponents. The palette has 4 colors (yellow, green, blue, red), ready for a future free-for-all mode where each player would be their own team. The side panel lists each team's players and their lives.
 - **Team power-up (tank):** appears in **one team's color** and only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1.
 - **Reinforcement:** the team power-up brings an **allied bot** in the team's color, with one life.

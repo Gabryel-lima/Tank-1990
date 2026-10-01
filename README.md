@@ -198,7 +198,7 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 | **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
 | **Random** | Um mapa sorteado a cada rodada |
 
-Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmos símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio) e acrescente o arquivo e o nome em `AppConfig::duel_maps`. Mantenha a base B nas linhas 0-1 e a A nas linhas 24-25 (colunas 12-13), a muralha de tijolos em volta delas, os pontos de renascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e os pontos de bônus livres, e corredores com pelo menos 2 tiles de largura, a largura de um tanque.
+Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmos símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio) e acrescente o arquivo e o nome em `AppConfig::duel_maps`. Mantenha a base B nas linhas 0-1 e a A nas linhas 24-25 (colunas 12-13), a muralha de tijolos em volta delas, os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e os pontos de bônus livres, e corredores com pelo menos 2 tiles de largura, a largura de um tanque.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -210,6 +210,7 @@ Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmo
 **Regras:**
 - Vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos; vence a partida quem ganhar **2 rodadas**.
 - Cada jogador tem **3 vidas** e renasce com escudo por alguns segundos.
+- **Nascimento sem mira:** cada jogador nasce numa coluna só dele, alternando os lados da base (no 1 contra 1, um nasce à esquerda e o outro à direita). Como o tiro só anda em linha reta, ninguém nasce na linha de tiro de um adversário, em nenhum mapa ou formato; o escudo de nascimento fica como proteção extra.
 - **Cores:** a cor é da **equipe**: companheiros têm a mesma cor (equipe A amarela, B verde) e cores diferentes só aparecem entre adversários. A paleta tem 4 cores (amarelo, verde, azul, vermelho), pronta para um futuro modo cada um por si, em que cada jogador seria a própria equipe. O painel lateral lista os jogadores de cada equipe e as vidas de cada um.
 - **Bônus da equipe (tanque):** surge na **cor de uma equipe** e só jogadores dela conseguem pegar; os adversários passam por cima. Aparece **70% das vezes na metade do adversário** (é preciso invadir para buscar) e 30% na própria. A equipe é sorteada 50/50 (ou é a que estiver atrás em vidas), inclusive num 3 contra 1.
 - **Reforço:** o bônus da equipe traz um **bot aliado** na cor da equipe, com uma vida.
