@@ -18,10 +18,9 @@ public:
     virtual ~Player();
 
     /**
-     * @brief Teclas do teclado que controlam o tanque do jogador.
-     * Jogadores sem teclado (3 e 4) usam o construtor padrão, com todas as
-     * teclas em SDL_SCANCODE_UNKNOWN. O controle (gamepad) de cada jogador é
-     * definido pela classe Controllers, não aqui.
+     * @brief Um layout de teclado (ver AppConfig::keyboard_layouts).
+     * Qual jogador usa qual layout é decidido pela classe Controllers:
+     * o teclado é a reserva de quem não tem controle.
      */
     struct PlayerKeys
     {
@@ -30,25 +29,19 @@ public:
         SDL_Scancode left;
         SDL_Scancode right;
         SDL_Scancode fire;
+        const char* name; ///< nome mostrado na tela (ex.: "WASD")
 
-        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f)
-            : up(u), down(d), left(l), right(r), fire(f) {}
-
-        // Sem teclado: o jogador só joga com controle
-        PlayerKeys()
-            : up(SDL_SCANCODE_UNKNOWN), down(SDL_SCANCODE_UNKNOWN), left(SDL_SCANCODE_UNKNOWN),
-              right(SDL_SCANCODE_UNKNOWN), fire(SDL_SCANCODE_UNKNOWN) {}
-
-        bool hasKeyboard() const { return fire != SDL_SCANCODE_UNKNOWN; }
+        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f, const char* n)
+            : up(u), down(d), left(l), right(r), fire(f), name(n) {}
     };
 
     /**
      * Construtor padrão.
      * Cria o jogador na posição inicial definida em AppConfig.
-     * @param keys - teclas do teclado do jogador
-     * @param idx - índice do jogador (0 = Jogador 1); define cor, posição e controle
+     * O teclado e o controle do jogador são decididos pela classe Controllers.
+     * @param idx - índice do jogador (0 = Jogador 1); define cor e posição
      */
-    Player(const PlayerKeys& keys, int idx);
+    explicit Player(int idx);
 
     /**
      * Atualiza o estado do jogador.
@@ -85,12 +78,6 @@ public:
      * @param c - variação na quantidade de estrelas (pode ser negativa)
      */
     void changeStarCountBy(int c);
-
-    /**
-     * Teclas de controle do jogador atual.
-     * Permite customizar o input de cada jogador.
-     */
-    PlayerKeys player_keys;
 
     /**
      * Pontuação atual do jogador.

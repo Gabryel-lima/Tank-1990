@@ -128,7 +128,7 @@ void Duel::startRound()
     for(int i = 0; i < m_config.humans; i++)
     {
         int team = m_config.human_team[i];
-        Player* p = new Player(AppConfig::player_keys.at(i), i);
+        Player* p = new Player(i);
         p->team = team;
         p->type = (team == 0 ? ST_PLAYER_1 : ST_PLAYER_2);
         p->setPlayerColor(WHITE);
@@ -710,8 +710,8 @@ void Duel::eventProcess(SDL_Event* ev)
         {
             // Qualquer tecla de tiro ou Enter volta ao menu
             bool fire = (ev->key.keysym.sym == SDLK_RETURN);
-            for(auto& keys : AppConfig::player_keys)
-                if(keys.hasKeyboard() && key == keys.fire) fire = true;
+            for(auto& keys : AppConfig::keyboard_layouts)
+                if(key == keys.fire) fire = true;
             if(fire) m_finished = true;
         }
         else if(ev->key.keysym.sym == SDLK_RETURN && m_phase == PHASE_PLAY)

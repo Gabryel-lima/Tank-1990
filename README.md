@@ -232,42 +232,49 @@ O sistema de estrelas (0-3 níveis) melhora progressivamente o tanque:
 
 ## 🎮 Controles
 
-| Jogador | Cor | Teclado | Posição inicial |
-|---------|-----|---------|-----------------|
-| **Player 1** | Amarelo | `W` `A` `S` `D` + `Espaço` | Inferior esquerda |
-| **Player 2** | Verde | Setas + `Ctrl direito` (`Alt direito` no Mac) | Inferior direita |
-| **Player 3** | Azul | — (só controle) | Superior esquerda |
-| **Player 4** | Vermelho | — (só controle) | Superior direita |
+O jogo é pensado para **controle (gamepad)**; o teclado entra automaticamente
+como reserva de quem não tiver controle. Não há nada para configurar.
 
-Cada jogador tem teclas próprias: apertar a tecla de um jogador nunca move ou
-faz atirar outro.
+| Jogador | Cor | Posição inicial (campanha) |
+|---------|-----|----------------------------|
+| **Player 1** | Amarelo | Inferior esquerda |
+| **Player 2** | Verde | Inferior direita |
+| **Player 3** | Azul | Superior esquerda |
+| **Player 4** | Vermelho | Superior direita |
 
-**No controle (gamepad)**, para qualquer jogador:
+**No controle**, para qualquer jogador:
 
 - **Mover**: D-pad ou analógico esquerdo
 - **Atirar**: qualquer botão frontal (A, B, X ou Y)
 - **Start**: pausa · **Back/Select**: volta ao menu
 - **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
-Os jogadores 1 e 2 podem usar teclado e controle ao mesmo tempo.
+**No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`) e
+`ARROWS` (setas + `Ctrl direito`; `Alt direito` no Mac). Cada layout controla
+um único jogador: apertar a tecla de um nunca move ou faz atirar outro.
 
-### Qual controle fica com qual jogador
+### Qual dispositivo fica com qual jogador
 
-Os controles são distribuídos na ordem em que foram conectados: primeiro para
-quem não tem teclado (jogadores 3 e 4), depois para os jogadores 1 e 2.
+1. **Controle primeiro**: o 1º controle conectado vai para o Player 1, o 2º para o Player 2, e assim por diante.
+2. **Teclado como reserva**: quem ficou sem controle recebe, na ordem, `WASD` e depois `ARROWS`.
+3. Os layouts que ninguém precisou continuam com o Player 1 (`WASD`) e o Player 2 (`ARROWS`): quem joga sozinho pode usar o teclado mesmo com um controle conectado.
 
-| Partida | 1º controle | 2º controle | 3º controle | 4º controle |
-|---------|-------------|-------------|-------------|-------------|
-| 1 ou 2 jogadores | Player 1 | Player 2 | — | — |
-| 3 jogadores | Player 3 | Player 1 | Player 2 | — |
-| 4 jogadores | Player 3 | Player 4 | Player 1 | Player 2 |
+| Partida | 0 controles | 1 controle | 2 controles |
+|---------|-------------|------------|-------------|
+| 2 jogadores | P1 WASD, P2 ARROWS | P1 controle, P2 WASD | P1 e P2 controle |
+| 3 jogadores | P3 sem dispositivo | P1 controle, P2 WASD, P3 ARROWS | P1, P2 controle, P3 WASD |
+| 4 jogadores | P3 e P4 sem dispositivo | P4 sem dispositivo | P1, P2 controle, P3 WASD, P4 ARROWS |
 
-Assim, com 3 jogadores basta **1 controle** (para o Player 3) e o teclado para
-os outros dois; com 4 jogadores, **2 controles**.
+Na configuração do **modo duelo**, cada jogador mostra o dispositivo que vai usar
+(`PAD 1`, `WASD`, `ARROWS`). Quem ficar sem nenhum aparece em vermelho como
+`NO PAD`, o título avisa quantos controles faltam e o **Start só libera quando
+todos tiverem um dispositivo**. A tela se atualiza sozinha ao conectar um controle.
 
-Controles podem ser conectados ou desconectados com o jogo aberto. O jogo
-aceita qualquer controle que o SDL2 reconheça como *game controller* (Xbox,
-PlayStation, Switch Pro e a maioria dos genéricos).
+Controles podem ser conectados ou desconectados com o jogo aberto. Se um controle
+desconectar no meio da partida, os outros **não trocam de jogador**: quem perdeu o
+controle passa para o teclado (se houver layout livre) e recebe o controle de volta
+ao reconectar. O jogo aceita qualquer controle que o SDL2 reconheça como
+*game controller* (Xbox, PlayStation, Switch Pro e a maioria dos genéricos).
 
 ### Controles no Windows (WSL)
 
@@ -342,7 +349,7 @@ Tank-1990/
 │   │   ├── engine.h/cpp      # Motor principal
 │   │   └── spriteconfig.h/cpp # Configuração de sprites
 │   ├── app.h/cpp         # Aplicação principal
-│   ├── appconfig.h/cpp   # Configurações globais (inclui teclas dos jogadores)
+│   ├── appconfig.h/cpp   # Configurações globais (inclui os layouts de teclado)
 │   ├── controllers.h/cpp # Gamepads: hotplug e distribuição entre jogadores
 │   ├── soundmanager.h/cpp # Gerenciador de áudio
 │   └── type.h            # Definições de tipos
@@ -426,7 +433,7 @@ A documentação será gerada no diretório `doc/` e pode ser visualizada abrind
   `gamepads.cmd` (confira com `gamepads.cmd --list`). O registro do repasse fica
   em `%LOCALAPPDATA%\Tank1990\gamepads.log`
 - Controle por Bluetooth não funciona no WSL; use o cabo
-- Confira a tabela de distribuição: com 3 jogadores, o 1º controle é do Player 3
+- Confira a tabela de distribuição: o 1º controle conectado é sempre do Player 1; no modo duelo, a tela de configuração mostra o dispositivo de cada jogador
 - No Linux, o usuário precisa de acesso a `/dev/input/event*` (grupo `input`)
 - Certifique-se de que o SDL2 está instalado corretamente
 

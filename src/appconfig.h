@@ -75,10 +75,10 @@ public:
     static vector<SDL_Point> enemy_starting_point;
 
     /**
-     * Vetor com as configurações de teclas de controle para cada jogador.
-     * Cada elemento é uma struct Player::PlayerKeys.
+     * Layouts de teclado (WASD, setas). São a reserva de quem não tem controle;
+     * a classe Controllers decide qual jogador usa cada um.
      */
-    static vector<Player::PlayerKeys> player_keys;
+    static vector<Player::PlayerKeys> keyboard_layouts;
 
     /**
      * Tempo (em milissegundos) que o número da fase é exibido ao iniciar uma nova rodada.

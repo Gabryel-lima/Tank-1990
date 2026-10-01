@@ -232,42 +232,50 @@ you lose all of them when destroyed.
 
 ## 🎮 Controls
 
-| Player | Color | Keyboard | Start position |
-|--------|-------|----------|----------------|
-| **Player 1** | Yellow | `W` `A` `S` `D` + `Space` | Bottom left |
-| **Player 2** | Green | Arrow keys + `Right Ctrl` (`Right Alt` on Mac) | Bottom right |
-| **Player 3** | Blue | — (controller only) | Top left |
-| **Player 4** | Red | — (controller only) | Top right |
+The game is meant to be played with **controllers (gamepads)**; the keyboard
+automatically backs up anyone without one. There is nothing to configure.
 
-Each player has their own keys: pressing one player's key never moves or
-fires another player's tank.
+| Player | Color | Start position (campaign) |
+|--------|-------|---------------------------|
+| **Player 1** | Yellow | Bottom left |
+| **Player 2** | Green | Bottom right |
+| **Player 3** | Blue | Top left |
+| **Player 4** | Red | Top right |
 
-**On a controller (gamepad)**, for any player:
+**On a controller**, for any player:
 
 - **Move**: D-pad or left stick
 - **Fire**: any face button (A, B, X or Y)
 - **Start**: pause · **Back/Select**: back to the menu
 - **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
-Players 1 and 2 can use keyboard and controller at the same time.
+**On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`)
+and `ARROWS` (arrow keys + `Right Ctrl`; `Right Alt` on Mac). Each layout
+drives a single player: one player's keys never move or fire another tank.
 
-### Which controller goes to which player
+### Which device goes to which player
 
-Controllers are handed out in the order they were connected: first to the
-players without a keyboard (3 and 4), then to players 1 and 2.
+1. **Controllers first**: the 1st connected controller goes to Player 1, the 2nd to Player 2, and so on.
+2. **Keyboard as backup**: players left without a controller get `WASD`, then `ARROWS`, in order.
+3. Layouts nobody needed stay with Player 1 (`WASD`) and Player 2 (`ARROWS`), so a solo player can still use the keyboard with a controller plugged in.
 
-| Game | 1st controller | 2nd controller | 3rd controller | 4th controller |
-|------|----------------|----------------|----------------|----------------|
-| 1 or 2 players | Player 1 | Player 2 | — | — |
-| 3 players | Player 3 | Player 1 | Player 2 | — |
-| 4 players | Player 3 | Player 4 | Player 1 | Player 2 |
+| Game | 0 controllers | 1 controller | 2 controllers |
+|------|---------------|--------------|---------------|
+| 2 players | P1 WASD, P2 ARROWS | P1 controller, P2 WASD | P1 and P2 controllers |
+| 3 players | P3 has no device | P1 controller, P2 WASD, P3 ARROWS | P1, P2 controllers, P3 WASD |
+| 4 players | P3 and P4 have no device | P4 has no device | P1, P2 controllers, P3 WASD, P4 ARROWS |
 
-So a 3-player game needs just **1 controller** (for Player 3) plus the
-keyboard for the other two; a 4-player game needs **2 controllers**.
+In the **duel mode** setup, each player shows the device they will use
+(`PAD 1`, `WASD`, `ARROWS`). Anyone without a device shows up in red as
+`NO PAD`, the title says how many controllers are missing, and **Start only
+works once everyone has a device**. The screen updates by itself when a
+controller is plugged in.
 
-Controllers can be plugged in or removed while the game is running. Any
-controller SDL2 recognizes as a *game controller* works (Xbox, PlayStation,
-Switch Pro and most generic ones).
+Controllers can be plugged in or removed while the game is running. If one
+disconnects mid-match, the others **don't switch players**: whoever lost it falls
+back to the keyboard (if a layout is free) and gets the controller back on
+reconnect. Any controller SDL2 recognizes as a *game controller* works (Xbox,
+PlayStation, Switch Pro and most generic ones).
 
 ### Controllers on Windows (WSL)
 
@@ -339,7 +347,7 @@ Tank-1990/
 │   │   ├── engine.h/cpp       # Core engine
 │   │   └── spriteconfig.h/cpp # Sprite configuration
 │   ├── app.h/cpp         # Main application
-│   ├── appconfig.h/cpp   # Global settings (including player keys)
+│   ├── appconfig.h/cpp   # Global settings (including keyboard layouts)
 │   ├── controllers.h/cpp # Gamepads: hotplug and player assignment
 │   ├── soundmanager.h/cpp # Audio manager
 │   └── type.h            # Type definitions
@@ -420,7 +428,7 @@ Open `doc/html/index.html` in a browser.
   authorized by `gamepads.cmd` (check with `gamepads.cmd --list`). The
   forwarding log is at `%LOCALAPPDATA%\Tank1990\gamepads.log`
 - Bluetooth controllers don't work in WSL; use the cable
-- Check the assignment table: in a 3-player game the 1st controller belongs to Player 3
+- Check the assignment table: the 1st connected controller always belongs to Player 1; in duel mode, the setup screen shows each player's device
 - On Linux your user needs access to `/dev/input/event*` (the `input` group)
 - Make sure SDL2 is installed correctly
 

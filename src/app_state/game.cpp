@@ -1076,7 +1076,7 @@ void Game::nextLevel()
     if(m_players.empty())
     {
         for(int i = 0; i < m_player_count; i++)
-            m_players.push_back(new Player(AppConfig::player_keys.at(i), i));
+            m_players.push_back(new Player(i));
     }
 
     // Redistribui os controles conforme a quantidade de jogadores da partida

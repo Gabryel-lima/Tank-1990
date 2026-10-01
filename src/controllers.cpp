@@ -17,6 +17,14 @@ static SDL_GameController* openDevice(int device_index)
     return c;
 }
 
+// Coloca o controle na primeira vaga vazia (ou numa nova vaga no fim)
+static void addToSlot(std::vector<SDL_GameController*>& slots, SDL_GameController* c)
+{
+    auto hole = std::find(slots.begin(), slots.end(), nullptr);
+    if(hole != slots.end()) *hole = c;
+    else slots.push_back(c);
+}
+
 void Controllers::init()
 {
     for(int i = 0; i < SDL_NumJoysticks(); i++)
@@ -26,13 +34,14 @@ void Controllers::init()
         SDL_JoystickID id = SDL_JoystickGetDeviceInstanceID(i);
         if(SDL_GameControllerFromInstanceID(id) != nullptr) continue;
         SDL_GameController* c = openDevice(i);
-        if(c != nullptr) m_controllers.push_back(c);
+        if(c != nullptr) addToSlot(m_controllers, c);
     }
 }
 
 void Controllers::shutdown()
 {
-    for(auto c : m_controllers) SDL_GameControllerClose(c);
+    for(auto c : m_controllers)
+        if(c != nullptr) SDL_GameControllerClose(c);
     m_controllers.clear();
 }
 
@@ -47,48 +56,90 @@ void Controllers::handleEvent(const SDL_Event* ev)
            std::find(m_controllers.begin(), m_controllers.end(), existing) != m_controllers.end())
             return;
         SDL_GameController* c = openDevice(ev->cdevice.which);
-        if(c != nullptr) m_controllers.push_back(c);
+        if(c != nullptr) addToSlot(m_controllers, c);
     }
     else if(ev->type == SDL_CONTROLLERDEVICEREMOVED)
     {
-        // Em DEVICEREMOVED, "which" é o instance id do joystick
+        // Em DEVICEREMOVED, "which" é o instance id do joystick. A vaga fica vazia
+        // (em vez de ser removida) para os outros controles não trocarem de jogador.
         SDL_GameController* c = SDL_GameControllerFromInstanceID(ev->cdevice.which);
         auto it = std::find(m_controllers.begin(), m_controllers.end(), c);
-        if(it != m_controllers.end())
+        if(c != nullptr && it != m_controllers.end())
         {
             SDL_GameControllerClose(c);
-            m_controllers.erase(it);
+            *it = nullptr;
         }
+        while(!m_controllers.empty() && m_controllers.back() == nullptr) m_controllers.pop_back();
     }
 }
 
 void Controllers::setPlayerCount(int count)
 {
     m_player_count = count;
+    // Início de partida: os controles conectados ocupam as primeiras vagas
+    m_controllers.erase(std::remove(m_controllers.begin(), m_controllers.end(), nullptr), m_controllers.end());
+}
+
+std::vector<Controllers::Assignment> Controllers::assign(int player_count)
+{
+    std::vector<Assignment> result(std::max(0, player_count));
+    int layouts = static_cast<int>(AppConfig::keyboard_layouts.size());
+    std::vector<bool> layout_used(layouts, false);
+
+    // 1. Controle primeiro: a vaga i é do jogador i
+    for(int i = 0; i < player_count; i++)
+        if(i < static_cast<int>(m_controllers.size()) && m_controllers[i] != nullptr)
+            result[i].pad_slot = i;
+
+    // 2. Teclado como reserva, na ordem dos jogadores sem controle
+    int next_layout = 0;
+    for(int i = 0; i < player_count && next_layout < layouts; i++)
+        if(result[i].pad_slot < 0)
+        {
+            result[i].keyboard = next_layout;
+            layout_used[next_layout++] = true;
+        }
+
+    // 3. Layouts que sobraram ficam com o dono original (layout 0 -> J1, layout 1 -> J2)
+    for(int l = 0; l < layouts; l++)
+        if(!layout_used[l] && l < player_count && result[l].keyboard < 0)
+            result[l].keyboard = l;
+
+    return result;
 }
 
 SDL_GameController* Controllers::forPlayer(int player_index)
 {
     if(player_index < 0 || player_index >= m_player_count) return nullptr;
+    int slot = assign(m_player_count)[player_index].pad_slot;
+    return slot >= 0 ? m_controllers[slot] : nullptr;
+}
 
-    // Ordem de distribuição: jogadores sem teclado primeiro, depois os de teclado
-    std::vector<int> order;
-    for(int pass = 0; pass < 2; pass++)
-    {
-        for(int i = 0; i < m_player_count; i++)
-        {
-            bool has_keyboard = i < static_cast<int>(AppConfig::player_keys.size()) &&
-                                AppConfig::player_keys.at(i).hasKeyboard();
-            if(has_keyboard == (pass == 1)) order.push_back(i);
-        }
-    }
+const Player::PlayerKeys* Controllers::keyboardFor(int player_index)
+{
+    if(player_index < 0 || player_index >= m_player_count) return nullptr;
+    int layout = assign(m_player_count)[player_index].keyboard;
+    return layout >= 0 ? &AppConfig::keyboard_layouts[layout] : nullptr;
+}
 
-    for(size_t slot = 0; slot < order.size() && slot < m_controllers.size(); slot++)
-        if(order[slot] == player_index) return m_controllers[slot];
-    return nullptr;
+std::string Controllers::inputName(int player_count, int player_index)
+{
+    std::vector<Assignment> a = assign(player_count);
+    if(player_index < 0 || player_index >= static_cast<int>(a.size())) return "NO PAD";
+    if(a[player_index].pad_slot >= 0) return "PAD " + std::to_string(a[player_index].pad_slot + 1);
+    if(a[player_index].keyboard >= 0) return AppConfig::keyboard_layouts[a[player_index].keyboard].name;
+    return "NO PAD";
+}
+
+int Controllers::playersWithoutInput(int player_count)
+{
+    int n = 0;
+    for(const Assignment& a : assign(player_count))
+        if(a.pad_slot < 0 && a.keyboard < 0) n++;
+    return n;
 }
 
 int Controllers::count()
 {
-    return static_cast<int>(m_controllers.size());
+    return static_cast<int>(m_controllers.size() - std::count(m_controllers.begin(), m_controllers.end(), nullptr));
 }

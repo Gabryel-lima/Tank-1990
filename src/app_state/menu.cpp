@@ -6,6 +6,7 @@
 #include "../app_state/game.h"
 #include "../app_state/duel.h"
 #include "../soundmanager.h"
+#include "../controllers.h"
 
 #include <algorithm>
 #include <iostream>
@@ -17,6 +18,7 @@ namespace
 {
     const SDL_Color WHITE = {255, 255, 255, 255};
     const SDL_Color GRAY = {120, 120, 120, 255};
+    const SDL_Color RED = {230, 40, 40, 255};
 
     // Grade do menu original: textos na coluna x = 180, uma linha a cada 32 px,
     // com o primeiro item em y = 152. Todas as telas usam essa mesma grade.
@@ -33,8 +35,7 @@ Menu::Menu(Screen screen)
     m_campaign_players = 1;
 
     // Cria o tanque que serve como ponteiro visual no menu
-    // Usa controle configurado para o primeiro jogador
-    m_tank_pointer = new Player(AppConfig::player_keys.at(0), 0);
+    m_tank_pointer = new Player(0);
     m_tank_pointer->direction = D_RIGHT;
     m_tank_pointer->pos_x = 144;
     m_tank_pointer->setFlag(TSF_LIFE);
@@ -132,8 +133,12 @@ std::string Menu::itemText(Item item) const
     case ITEM_HUMAN_3_TEAM:
     case ITEM_HUMAN_4_TEAM:
     {
+        // "P1 PAD 1  < A >": dispositivo do jogador (decidido automaticamente) e a equipe,
+        // com o valor na mesma coluna do "Players   < 2 >"
         int i = item - ITEM_HUMAN_1_TEAM;
-        return "P" + Engine::intToString(i + 1) + " team   < " + (c.human_team[i] == 0 ? "A" : "B") + " >";
+        std::string input = Controllers::inputName(c.humans, i);
+        input.resize(6, ' ');
+        return "P" + Engine::intToString(i + 1) + " " + input + " < " + (c.human_team[i] == 0 ? "A" : "B") + " >";
     }
     case ITEM_START: return "Start";
     case ITEM_BACK: return "Back";
@@ -241,6 +246,8 @@ void Menu::confirm()
         m_menu_index = 0; // no personalizado, começa pela quantidade de jogadores
         break;
     case ITEM_START:
+        // Só começa se todo jogador tiver controle ou teclado (o título explica o que falta)
+        if(Controllers::playersWithoutInput(s_duel_config.humans) > 0) break;
         m_result = RESULT_DUEL;
         m_finished = true;
         break;
@@ -302,17 +309,32 @@ void Menu::draw()
         const DuelConfig& c = s_duel_config;
         title = "Duel  " + Engine::intToString(c.humansInTeam(0)) + " vs " + Engine::intToString(c.humansInTeam(1));
     }
+    // Na configuração do duelo, jogadores sem controle nem teclado bloqueiam o início:
+    // o título vira o aviso (atualiza sozinho ao conectar um controle)
+    int missing = (m_screen == SCREEN_DUEL_SETUP ? Controllers::playersWithoutInput(s_duel_config.humans) : 0);
+    SDL_Color title_color = GRAY;
+    if(missing > 0)
+    {
+        title = "Connect " + Engine::intToString(missing) + (missing == 1 ? " pad" : " pads");
+        title_color = RED;
+    }
     if(!title.empty())
     {
         text_start = {TEXT_X, itemY(-1)};
-        renderer->drawText(&text_start, title, GRAY, 2);
+        renderer->drawText(&text_start, title, title_color, 2);
     }
 
     // Desenha as opções do menu
     for(size_t i = 0; i < m_items.size(); i++)
     {
+        Item item = m_items[i];
+        SDL_Color color = WHITE;
+        if(item == ITEM_START && missing > 0) color = GRAY;
+        if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM &&
+           Controllers::inputName(s_duel_config.humans, item - ITEM_HUMAN_1_TEAM) == "NO PAD")
+            color = RED;
         text_start = {TEXT_X, itemY(i)};
-        renderer->drawText(&text_start, itemText(m_items[i]), WHITE, 2);
+        renderer->drawText(&text_start, itemText(item), color, 2);
     }
 
     // Desenha o tanque que indica a opção selecionada

@@ -9,8 +9,8 @@
 
 // Construtor padrão do jogador.
 // Inicializa o jogador na posição inicial definida em AppConfig.
-Player::Player(const PlayerKeys& keys, int idx)
-    : Tank(AppConfig::player_starting_point.at(idx).x, AppConfig::player_starting_point.at(idx).y, static_cast<SpriteType>(ST_PLAYER_1 + idx)), player_keys(keys)
+Player::Player(int idx)
+    : Tank(AppConfig::player_starting_point.at(idx).x, AppConfig::player_starting_point.at(idx).y, static_cast<SpriteType>(ST_PLAYER_1 + idx))
 {
     m_index = idx;
     speed = 0; // Velocidade inicial
@@ -45,15 +45,16 @@ void Player::update(Uint32 dt)
     {
         bool up = false, down = false, left = false, right = false, shoot = false;
 
-        // Teclado: só as teclas deste jogador (jogadores 3 e 4 não têm)
+        // Teclado: o layout que a classe Controllers deu a este jogador (reserva de quem não tem controle)
         const Uint8 *key_state = SDL_GetKeyboardState(NULL);
-        if(key_state != nullptr && player_keys.hasKeyboard())
+        const PlayerKeys* keys = Controllers::keyboardFor(playerIndex());
+        if(key_state != nullptr && keys != nullptr)
         {
-            up    = key_state[player_keys.up];
-            down  = key_state[player_keys.down];
-            left  = key_state[player_keys.left];
-            right = key_state[player_keys.right];
-            shoot = key_state[player_keys.fire];
+            up    = key_state[keys->up];
+            down  = key_state[keys->down];
+            left  = key_state[keys->left];
+            right = key_state[keys->right];
+            shoot = key_state[keys->fire];
         }
 
         // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira

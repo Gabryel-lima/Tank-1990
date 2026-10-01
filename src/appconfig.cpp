@@ -51,20 +51,17 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
     return v;
 }();
 
-// Teclas de teclado dos jogadores. Cada jogador precisa de teclas próprias:
-// se dois jogadores compartilham uma tecla, os dois reagem a ela.
-// Os controles (gamepads) são distribuídos pela classe Controllers e
-// funcionam para todos os jogadores, junto com o teclado.
-vector<Player::PlayerKeys> AppConfig::player_keys =
+// Layouts de teclado, a reserva de quem não tem controle. A classe Controllers
+// distribui: controles primeiro, depois estes layouts na ordem, para os
+// jogadores que ficaram sem controle. Sem jogador precisando, o layout 0
+// fica com o Jogador 1 e o layout 1 com o Jogador 2.
+vector<Player::PlayerKeys> AppConfig::keyboard_layouts =
 []{
     vector<Player::PlayerKeys> v;
-    // Jogador 1: W, S, A, D + Espaço
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY));
-    // Jogador 2: setas + Ctrl direito (Alt direito no Mac)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY));
-    // Jogadores 3 e 4: sem teclado, só controle
-    v.push_back(Player::PlayerKeys());
-    v.push_back(Player::PlayerKeys());
+    // W, S, A, D + Espaço
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, "WASD"));
+    // Setas + Ctrl direito (Alt direito no Mac)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, "ARROWS"));
     return v;
 }();
 
