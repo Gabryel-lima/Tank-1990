@@ -70,6 +70,8 @@ vector<Player::PlayerKeys> AppConfig::player_keys =
 unsigned AppConfig::level_start_time = 2000;
 // Tempo de "escorregão" no gelo (ms)
 unsigned AppConfig::slip_time = 380;
+// Deslize máximo (px) para contornar quinas de paredes
+int AppConfig::tank_corner_slide_max = 10;
 // Quantidade total de inimigos por fase
 unsigned AppConfig::enemy_start_count = 20;
 // Tempo de espera (ms) para o próximo inimigo aparecer

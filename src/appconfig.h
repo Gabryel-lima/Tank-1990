@@ -92,6 +92,13 @@ public:
     static unsigned slip_time;
 
     /**
+     * Distância máxima (em pixels) que o tanque do jogador pode deslizar de lado
+     * para contornar a quina de um obstáculo e entrar num corredor.
+     * Com 0 o deslize fica desativado.
+     */
+    static int tank_corner_slide_max;
+
+    /**
      * Quantidade total de inimigos que devem ser derrotados em uma rodada.
      */
     static unsigned enemy_start_count;

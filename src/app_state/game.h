@@ -125,6 +125,25 @@ private:
     void checkCollisionTwoTanks(Tank* tank1, Tank* tank2, Uint32 dt);
 
     /**
+     * Verifica se uma área está livre para um tanque: dentro do mapa e sem paredes, água (exceto com barco),
+     * águia ou outros tanques. Gelo e arbustos não bloqueiam.
+     * @param area - área a ser verificada
+     * @param tank - tanque que ocuparia a área (ignorado na verificação contra tanques)
+     * @param dt - última alteração de tempo, usada para prever a posição dos outros tanques
+     * @return true se a área estiver livre
+     */
+    bool isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt);
+
+    /**
+     * Assistência de curva: se o jogador foi parado pela quina de um obstáculo, mas estaria livre
+     * se estivesse alinhado à grade (a até AppConfig::tank_corner_slide_max pixels de distância),
+     * desliza o tanque de lado em direção ao alinhamento em vez de deixá-lo travado.
+     * @param player - jogador a ser verificado
+     * @param dt - última alteração de tempo
+     */
+    void tryCornerSlide(Player* player, Uint32 dt);
+
+    /**
      * Verifica se o projétil colide com algum elemento do mapa (água e gelo são ignorados). Se sim, projétil e objeto são destruídos.
      * Se atingir a águia, ocorre derrota.
      * @param bullet - projétil

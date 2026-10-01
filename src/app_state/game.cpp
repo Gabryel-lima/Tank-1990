@@ -215,6 +215,8 @@ void Game::update(Uint32 dt)
         // Colisão entre tanques e o cenário
         for(auto enemy : m_enemies) checkCollisionTankWithLevel(enemy, dt);
         for(auto player : m_players) checkCollisionTankWithLevel(player, dt);
+        // Jogadores travados numa quina deslizam para o corredor livre
+        for(auto player : m_players) tryCornerSlide(player, dt);
 
         // Definir alvo dos inimigos (jogadores ou águia)
         int min_metric; // 2 * 26 * 16
@@ -644,6 +646,96 @@ void Game::checkCollisionTwoTanks(Tank* tank1, Tank* tank2, Uint32 dt)
     {
         tank1->collide(intersect_rect);
         tank2->collide(intersect_rect);
+    }
+}
+
+// Verifica se a área está livre para o tanque (mapa, cenário, águia e outros tanques)
+bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
+{
+    if(area.x < 0 || area.y < 0 ||
+       area.x + area.w > AppConfig::map_rect.w || area.y + area.h > AppConfig::map_rect.h)
+        return false;
+
+    SDL_Rect intersect_rect;
+    int row_start = area.y / AppConfig::tile_rect.h;
+    int row_end = std::min((area.y + area.h - 1) / AppConfig::tile_rect.h, m_level_rows_count - 1);
+    int column_start = area.x / AppConfig::tile_rect.w;
+    int column_end = std::min((area.x + area.w - 1) / AppConfig::tile_rect.w, m_level_columns_count - 1);
+
+    for(int i = row_start; i <= row_end; i++)
+        for(int j = column_start; j <= column_end; j++)
+        {
+            Object* o = m_level.at(i).at(j);
+            if(o == nullptr || o->type == ST_ICE) continue;
+            if(tank->testFlag(TSF_BOAT) && o->type == ST_WATER) continue;
+
+            intersect_rect = intersectRect(&o->collision_rect, &area);
+            if(intersect_rect.w > 0 && intersect_rect.h > 0) return false;
+        }
+
+    intersect_rect = intersectRect(&m_eagle->collision_rect, &area);
+    if(intersect_rect.w > 0 && intersect_rect.h > 0) return false;
+
+    // Outros tanques: posição atual e prevista para este frame
+    auto blocked_by = [&](Tank* other) {
+        if(other == tank || other->to_erase) return false;
+        SDL_Rect next_rect = other->nextCollisionRect(dt);
+        SDL_Rect r1 = intersectRect(&other->collision_rect, &area);
+        SDL_Rect r2 = intersectRect(&next_rect, &area);
+        return (r1.w > 0 && r1.h > 0) || (r2.w > 0 && r2.h > 0);
+    };
+    for(auto player : m_players) if(blocked_by(player)) return false;
+    for(auto enemy : m_enemies) if(blocked_by(enemy)) return false;
+
+    return true;
+}
+
+// Desliza o jogador para o lado quando ele bate na quina de um obstáculo
+void Game::tryCornerSlide(Player* player, Uint32 dt)
+{
+    if(AppConfig::tank_corner_slide_max <= 0) return;
+    if(player->to_erase || !player->stop || player->speed == 0) return;
+    if(!player->testFlag(TSF_LIFE) || player->testFlag(TSF_FROZEN)) return;
+
+    bool vertical = (player->direction == D_UP || player->direction == D_DOWN);
+    double &lateral = vertical ? player->pos_x : player->pos_y;
+    int tile = vertical ? AppConfig::tile_rect.w : AppConfig::tile_rect.h;
+
+    // Posições alinhadas à grade de cada lado; testa primeiro a mais próxima
+    double before = std::floor(lateral / tile) * tile;
+    if(lateral - before < 0.001) return; // já alinhado: o bloqueio é frontal, não uma quina
+    double candidates[2] = {before, before + tile};
+    if(candidates[1] - lateral < lateral - candidates[0]) std::swap(candidates[0], candidates[1]);
+
+    SDL_Rect current = player->collision_rect;
+    SDL_Rect ahead = player->nextCollisionRect(dt);
+    int inset = vertical ? (player->dest_rect.w - current.w) / 2 : (player->dest_rect.h - current.h) / 2;
+    int current_lateral = vertical ? current.x : current.y;
+    int size = vertical ? current.w : current.h;
+
+    for(double target : candidates)
+    {
+        double distance = target - lateral;
+        if(std::fabs(distance) > AppConfig::tank_corner_slide_max) continue;
+
+        int target_lateral = static_cast<int>(target) + inset;
+
+        // A frente precisa estar livre na posição alinhada...
+        SDL_Rect ahead_aligned = ahead;
+        (vertical ? ahead_aligned.x : ahead_aligned.y) = target_lateral;
+        if(!isAreaFreeForTank(ahead_aligned, player, dt)) continue;
+
+        // ...e o caminho lateral até lá também
+        SDL_Rect sweep = current;
+        (vertical ? sweep.x : sweep.y) = std::min(current_lateral, target_lateral);
+        (vertical ? sweep.w : sweep.h) = std::abs(target_lateral - current_lateral) + size;
+        if(!isAreaFreeForTank(sweep, player, dt)) continue;
+
+        // Desliza na mesma velocidade do tanque, sem passar do alinhamento
+        double step = player->speed * dt;
+        if(std::fabs(distance) <= step) lateral = target;
+        else lateral += (distance > 0 ? step : -step);
+        return;
     }
 }
 
