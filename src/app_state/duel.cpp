@@ -55,12 +55,15 @@ int DuelConfig::humansInTeam(int team) const
 Duel::Duel(const DuelConfig& config)
     : Game(NoCampaign{}), m_config(config)
 {
-    // Garante uma configuração válida mesmo que venha incompleta
-    m_config.humans = std::max(1, std::min(4, m_config.humans));
+    // Garante uma configuração válida: 2 a 4 jogadores, ninguém sozinho no mapa
+    m_config.humans = std::max(2, std::min(4, m_config.humans));
     for(int i = 0; i < m_config.humans; i++)
         m_config.human_team[i] = (m_config.human_team[i] == 1 ? 1 : 0);
+    if(m_config.humansInTeam(0) == 0 || m_config.humansInTeam(1) == 0)
+        for(int i = 0; i < m_config.humans; i++) m_config.human_team[i] = i % 2;
+    // Só há humanos nas equipes: o tamanho de cada uma é a quantidade de jogadores nela
     for(int t = 0; t < 2; t++)
-        m_config.team_size[t] = std::max({1, std::min(4, m_config.team_size[t]), m_config.humansInTeam(t)});
+        m_config.team_size[t] = m_config.humansInTeam(t);
 
     m_base_b = nullptr;
     m_round = 1;
@@ -133,23 +136,6 @@ void Duel::startRound()
         p->lives_count = livesPerTank(team) + 1; // respawn() gasta uma ao entrar no mapa
         p->respawn();
         m_players.push_back(p);
-    }
-
-    // Bots completam as vagas. Numa equipe com humanos, o primeiro bot defende
-    // (os humanos costumam atacar); numa equipe só de bots, o primeiro ataca.
-    for(int team = 0; team < 2; team++)
-    {
-        int bots = m_config.team_size[team] - m_config.humansInTeam(team);
-        bool has_humans = m_config.humansInTeam(team) > 0;
-        for(int b = 0; b < bots; b++)
-        {
-            bool first_role = (b % 2 == 0);
-            Bot::Role role = (first_role == has_humans) ? Bot::ROLE_DEFEND : Bot::ROLE_ATTACK;
-            // Atacante usa o tiro do tanque D (mira no alvo); defensor, o do tanque A
-            SpriteType type = (role == Bot::ROLE_ATTACK ? ST_TANK_D : ST_TANK_A);
-            m_enemies.push_back(new Bot(AppConfig::duel_spawn_points.at(team).at(slot[team]++), type, team,
-                                        livesPerTank(team), AppConfig::duel_team_colors.at(team), role));
-        }
     }
 
     SoundManager::getInstance().playSound("level_starting");
@@ -243,18 +229,55 @@ std::vector<Tank*> Duel::allTanks()
     return v;
 }
 
+// Vidas e eliminação contam só os jogadores: o bot de reforço é ajuda temporária,
+// não segura a rodada sozinho depois que os jogadores da equipe caíram
 int Duel::teamLives(int team)
 {
     int lives = 0;
-    for(Tank* t : allTanks())
-        if(t->team == team && !t->to_erase) lives += t->lives_count;
+    for(auto player : m_players)
+        if(player->team == team && !player->to_erase) lives += player->lives_count;
     return lives;
 }
 
 bool Duel::teamAlive(int team)
 {
-    for(Tank* t : allTanks())
-        if(t->team == team && !t->to_erase) return true;
+    for(auto player : m_players)
+        if(player->team == team && !player->to_erase) return true;
+    return false;
+}
+
+bool Duel::spawnAlly(Player* player)
+{
+    int team = player->team;
+
+    // Limite de reforços em campo por equipe
+    int allies = 0;
+    bool has_defender = false;
+    for(auto e : m_enemies)
+    {
+        Bot* bot = dynamic_cast<Bot*>(e);
+        if(bot == nullptr || bot->team != team || bot->to_erase) continue;
+        allies++;
+        if(bot->role == Bot::ROLE_DEFEND) has_defender = true;
+    }
+    if(allies >= AppConfig::duel_max_allies) return false;
+
+    // Nasce no primeiro ponto de renascimento livre da equipe
+    for(SDL_Point spawn : AppConfig::duel_spawn_points.at(team))
+    {
+        SDL_Rect area = {spawn.x, spawn.y, 2 * AppConfig::tile_rect.w, 2 * AppConfig::tile_rect.h};
+        bool occupied = false;
+        for(Tank* t : allTanks())
+            if(!t->to_erase && (intersects(t->dest_rect, area) || intersects(t->collision_rect, area))) occupied = true;
+        if(occupied) continue;
+
+        // O primeiro reforço guarda a base (o jogador costuma atacar); o segundo ataca.
+        // Atacante usa o tiro do tanque D (mira no alvo); defensor, o do tanque A
+        Bot::Role role = has_defender ? Bot::ROLE_ATTACK : Bot::ROLE_DEFEND;
+        SpriteType type = (role == Bot::ROLE_ATTACK ? ST_TANK_D : ST_TANK_A);
+        m_enemies.push_back(new Bot(spawn, type, team, 1, AppConfig::duel_team_colors.at(team), role));
+        return true;
+    }
     return false;
 }
 
@@ -391,7 +414,9 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
         setBaseWalls(team, ST_STONE_WALL);
         break;
     case ST_BONUS_TANK:
-        player->addLife();
+        // Reforço: um bot aliado da cor da equipe. Sem vaga (limite atingido ou
+        // pontos de renascimento ocupados), vira uma vida extra
+        if(!spawnAlly(player)) player->addLife();
         break;
     case ST_BONUS_STAR:
         player->changeStarCountBy(1);

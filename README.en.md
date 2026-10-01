@@ -182,9 +182,9 @@ when run — see the Windows section above.
 
 ## ⚔️ Duel Mode (Extra Modes)
 
-From the main menu, **Extra Modes → Duel Mode** starts the team mode: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on a dedicated map (`resources/duel_levels/1`) mirrored both horizontally and vertically so both sides get the same terrain.
+From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mode, human players only: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on a dedicated map (`resources/duel_levels/1`) mirrored both horizontally and vertically so both sides get the same terrain.
 
-**Formats:** `1 vs 1`, `2 vs 2`, `3 vs 3`, `4 vs 4` or `Custom Teams` (1 to 4 tanks per team, e.g. 3 vs 1). The next screen sets how many human players join (up to 4) and each one's team; the remaining slots are filled with **CPU bots**, which either attack or defend.
+**Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (P1 and P2 on the keyboard, P3 and P4 on controllers), there is no 3 vs 3 or 4 vs 4.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -194,12 +194,13 @@ From the main menu, **Extra Modes → Duel Mode** starts the team mode: each tea
 | Back | Esc / B, Back |
 
 **Rules:**
-- A round is won by destroying the enemy base or eliminating every enemy tank; the match goes to the first team to win **2 rounds**.
-- Each tank has **3 lives** and respawns with a short shield.
+- A round is won by destroying the enemy base or eliminating every enemy player; the match goes to the first team to win **2 rounds**.
+- Each player has **3 lives** and respawns with a short shield.
+- **Reinforcement (tank power-up):** brings an **allied bot** in your team's color, with one life. The first one guards the base, the second attacks; with 2 of your team's reinforcements on the field, the power-up becomes an extra life. Reinforcements don't keep a round alive: if every player on a team is out, that team loses.
 - **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
-- **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only human players can pick them up.
+- **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only players can pick them up (reinforcements can't).
 - Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest.
-- **Uneven teams:** the smaller team gets more lives per tank (1 vs 3: 6 lives vs 3) and, if the other team has twice as many tanks or more, a stone wall around its base.
+- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
 - Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the duel setup, ready for a rematch.
 
 ## 🎯 Power-ups
@@ -213,7 +214,7 @@ Eight power-ups appear at random when you destroy enemy tanks:
 | **🛡️ Helmet** | Grants a temporary shield against damage |
 | **⏰ Clock** | Freezes every enemy for a while |
 | **⛏️ Shovel** | Surrounds the base (eagle) with indestructible stone walls |
-| **🚗 Tank** | Gives the player an extra life |
+| **🚗 Tank** | Gives the player an extra life (in duel mode, brings an allied reinforcement bot) |
 | **🔫 Gun** | Raises the star level by 3 (maximum) |
 | **🚤 Boat** | Lets the tank cross water |
 
@@ -322,7 +323,7 @@ Tank-1990/
 │   ├── objects/          # Game objects
 │   │   ├── player.h/cpp  # Player-controlled tank
 │   │   ├── enemy.h/cpp   # Enemy tanks
-│   │   ├── bot.h/cpp     # CPU tanks in duel mode
+│   │   ├── bot.h/cpp     # Allied bot (reinforcement power-up) in duel mode
 │   │   ├── tank.h/cpp    # Tank base class
 │   │   ├── bullet.h/cpp  # Bullets
 │   │   ├── bonus.h/cpp   # Power-ups

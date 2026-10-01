@@ -73,15 +73,12 @@ void Menu::buildItems()
         m_items = {ITEM_DUEL_MODE, ITEM_BACK};
         break;
     case SCREEN_DUEL_FORMAT:
-        m_items = {ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_3V3, ITEM_FORMAT_4V4, ITEM_FORMAT_CUSTOM, ITEM_BACK};
+        // Só jogadores humanos (até 4): 3 vs 3 e 4 vs 4 não cabem
+        m_items = {ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_CUSTOM, ITEM_BACK};
         break;
     case SCREEN_DUEL_SETUP:
-        if(s_duel_custom)
-        {
-            m_items.push_back(ITEM_TEAM_A_SIZE);
-            m_items.push_back(ITEM_TEAM_B_SIZE);
-        }
-        m_items.push_back(ITEM_HUMANS);
+        // Nos formatos fixos a quantidade de jogadores já está definida
+        if(s_duel_custom) m_items.push_back(ITEM_HUMANS);
         for(int i = 0; i < s_duel_config.humans; i++)
             m_items.push_back(static_cast<Item>(ITEM_HUMAN_1_TEAM + i));
         m_items.push_back(ITEM_START);
@@ -103,25 +100,15 @@ void Menu::openScreen(Screen screen)
 
 int Menu::itemY(int i) const
 {
-    switch(m_screen)
-    {
-    case SCREEN_MAIN:
-        return rowY(i + 1);   // como no original: 152, 184, 216...
-    case SCREEN_EXTRA:
-    case SCREEN_DUEL_FORMAT:
-        return rowY(i + 2);   // a linha 1 (152) é o título da tela
-    case SCREEN_DUEL_SETUP:
-        // Até 9 itens + título + linha de bots: sem o logo, a lista começa
-        // 3 linhas acima, na mesma grade (título em 56, itens a partir de 88)
-        return rowY(i - 1);
-    }
-    return rowY(i + 1);
+    // Tela principal como no original (152, 184, 216...); nas demais, a linha
+    // 152 é o título da tela e os itens começam na seguinte
+    if(m_screen == SCREEN_MAIN) return rowY(i + 1);
+    return rowY(i + 2);
 }
 
 bool Menu::isValueItem(Item item) const
 {
-    return item == ITEM_TEAM_A_SIZE || item == ITEM_TEAM_B_SIZE || item == ITEM_HUMANS ||
-           (item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM);
+    return item == ITEM_HUMANS || (item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM);
 }
 
 std::string Menu::itemText(Item item) const
@@ -138,11 +125,7 @@ std::string Menu::itemText(Item item) const
     case ITEM_DUEL_MODE: return "Duel Mode";
     case ITEM_FORMAT_1V1: return "1 vs 1";
     case ITEM_FORMAT_2V2: return "2 vs 2";
-    case ITEM_FORMAT_3V3: return "3 vs 3";
-    case ITEM_FORMAT_4V4: return "4 vs 4";
     case ITEM_FORMAT_CUSTOM: return "Custom Teams";
-    case ITEM_TEAM_A_SIZE: return "Team A    < " + Engine::intToString(c.team_size[0]) + " >";
-    case ITEM_TEAM_B_SIZE: return "Team B    < " + Engine::intToString(c.team_size[1]) + " >";
     case ITEM_HUMANS: return "Players   < " + Engine::intToString(c.humans) + " >";
     case ITEM_HUMAN_1_TEAM:
     case ITEM_HUMAN_2_TEAM:
@@ -161,10 +144,17 @@ std::string Menu::itemText(Item item) const
 void Menu::applyDuelFormat(int team_size)
 {
     DuelConfig& c = s_duel_config;
-    c.team_size[0] = c.team_size[1] = team_size;
-    c.humans = std::max(1, std::min({c.humans, 4, 2 * team_size}));
-    // Humanos alternam entre as equipes: P1 em A, P2 em B, P3 em A, P4 em B
+    c.humans = 2 * team_size;
+    // Jogadores alternam entre as equipes: P1 em A, P2 em B, P3 em A, P4 em B
     for(int i = 0; i < 4; i++) c.human_team[i] = i % 2;
+    syncTeamSizes();
+}
+
+void Menu::syncTeamSizes()
+{
+    // Sem bots ocupando vagas, cada equipe tem exatamente os jogadores escolhidos para ela
+    for(int team = 0; team < 2; team++)
+        s_duel_config.team_size[team] = s_duel_config.humansInTeam(team);
 }
 
 // ======================== Ações ========================
@@ -183,55 +173,28 @@ void Menu::changeValue(int delta)
     if(!isValueItem(item)) return;
 
     DuelConfig& c = s_duel_config;
-    if(item == ITEM_TEAM_A_SIZE || item == ITEM_TEAM_B_SIZE)
+    if(item == ITEM_HUMANS)
     {
-        // A equipe não pode ficar menor do que a quantidade de humanos nela
-        int team = (item == ITEM_TEAM_A_SIZE ? 0 : 1);
-        int min_size = std::max(1, c.humansInTeam(team));
-        int size = c.team_size[team] + delta;
-        if(size > 4) size = min_size;
-        else if(size < min_size) size = 4;
-        c.team_size[team] = size;
-    }
-    else if(item == ITEM_HUMANS)
-    {
-        int max_humans = std::min(4, c.team_size[0] + c.team_size[1]);
+        // 2 a 4 jogadores; as equipes recomeçam alternando (P1 em A, P2 em B...)
         int humans = c.humans + delta;
-        if(humans > max_humans) humans = 1;
-        else if(humans < 1) humans = max_humans;
-
-        // Recalcula as equipes do zero: P1 em A, os demais alternando, sempre respeitando as vagas
+        if(humans > 4) humans = 2;
+        else if(humans < 2) humans = 4;
         c.humans = humans;
-        int used[2] = {0, 0};
-        for(int i = 0; i < humans; i++)
-        {
-            int team = i % 2;
-            if(used[team] >= c.team_size[team]) team = 1 - team;
-            c.human_team[i] = team;
-            used[team]++;
-        }
+        for(int i = 0; i < 4; i++) c.human_team[i] = i % 2;
         buildItems(); // a lista de "Pn team" muda de tamanho
     }
     else
     {
         int i = item - ITEM_HUMAN_1_TEAM;
         int from = c.human_team[i], to = 1 - from;
-        if(c.humansInTeam(to) < c.team_size[to])
-            c.human_team[i] = to;
-        else if(s_duel_custom && c.team_size[to] < 4)
-        {
-            // Equipe cheia no modo personalizado: abre mais uma vaga nela
-            c.team_size[to]++;
-            c.human_team[i] = to;
-        }
-        else
-        {
-            // Equipe cheia: troca de lugar com o último humano da outra equipe
+        // No personalizado o jogador muda de equipe, desde que a dele não fique vazia.
+        // Nos formatos fixos (ou se ficaria vazia), troca de lugar com o último jogador da outra equipe.
+        if(!(s_duel_custom && c.humansInTeam(from) > 1))
             for(int j = c.humans - 1; j >= 0; j--)
-                if(c.human_team[j] == to) { c.human_team[j] = from; break; }
-            c.human_team[i] = to;
-        }
+                if(j != i && c.human_team[j] == to) { c.human_team[j] = from; break; }
+        c.human_team[i] = to;
     }
+    syncTeamSizes();
 }
 
 void Menu::confirm()
@@ -267,16 +230,15 @@ void Menu::confirm()
         break;
     case ITEM_FORMAT_1V1:
     case ITEM_FORMAT_2V2:
-    case ITEM_FORMAT_3V3:
-    case ITEM_FORMAT_4V4:
         s_duel_custom = false;
         applyDuelFormat(item - ITEM_FORMAT_1V1 + 1);
         openScreen(SCREEN_DUEL_SETUP);
         break;
     case ITEM_FORMAT_CUSTOM:
         s_duel_custom = true;
+        syncTeamSizes();
         openScreen(SCREEN_DUEL_SETUP);
-        m_menu_index = 0; // no personalizado, começa pelo tamanho das equipes
+        m_menu_index = 0; // no personalizado, começa pela quantidade de jogadores
         break;
     case ITEM_START:
         m_result = RESULT_DUEL;
@@ -323,14 +285,12 @@ void Menu::draw()
     renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 255}, true);
     renderer->drawRect(&AppConfig::status_rect, {0, 0, 0, 255}, true);
 
+    // Desenha o LOGO do jogo centralizado
+    const SpriteData* logo = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_TANKS_LOGO);
+    SDL_Rect dst = {(AppConfig::map_rect.w + AppConfig::status_rect.w - logo->rect.w)/2, 50, logo->rect.w, logo->rect.h};
+    renderer->drawObject(&logo->rect, &dst);
+
     SDL_Point text_start;
-    if(m_screen != SCREEN_DUEL_SETUP)
-    {
-        // Desenha o LOGO do jogo centralizado
-        const SpriteData* logo = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_TANKS_LOGO);
-        SDL_Rect dst = {(AppConfig::map_rect.w + AppConfig::status_rect.w - logo->rect.w)/2, 50, logo->rect.w, logo->rect.h};
-        renderer->drawObject(&logo->rect, &dst);
-    }
 
     // Título da tela: uma linha da grade acima do primeiro item, na mesma coluna
     std::string title;
@@ -338,9 +298,9 @@ void Menu::draw()
     else if(m_screen == SCREEN_DUEL_FORMAT) title = "Duel Mode";
     else if(m_screen == SCREEN_DUEL_SETUP)
     {
+        // Mostra a divisão atual das equipes, que muda ao trocar jogadores de lado
         const DuelConfig& c = s_duel_config;
-        title = s_duel_custom ? std::string("Duel  Custom")
-              : "Duel  " + Engine::intToString(c.team_size[0]) + " vs " + Engine::intToString(c.team_size[1]);
+        title = "Duel  " + Engine::intToString(c.humansInTeam(0)) + " vs " + Engine::intToString(c.humansInTeam(1));
     }
     if(!title.empty())
     {
@@ -355,24 +315,9 @@ void Menu::draw()
         renderer->drawText(&text_start, itemText(m_items[i]), WHITE, 2);
     }
 
-    // Bots de cada equipe, na linha seguinte da grade e na coluna dos valores
-    // ("Players   < 2 >": o valor começa no 11º caractere). A fonte é monoespaçada,
-    // então os espaços à esquerda alinham as partes de cores diferentes.
-    if(m_screen == SCREEN_DUEL_SETUP)
-    {
-        const DuelConfig& c = s_duel_config;
-        text_start = {TEXT_X, itemY(m_items.size())};
-        renderer->drawText(&text_start, "CPU", GRAY, 2);
-        for(int team = 0; team < 2; team++)
-        {
-            int bots = c.team_size[team] - c.humansInTeam(team);
-            std::string value = std::string(team == 0 ? 10 : 13, ' ') + (team == 0 ? "A" : "B") + Engine::intToString(bots);
-            renderer->drawText(&text_start, value, AppConfig::duel_team_colors.at(team), 2);
-        }
-    }
-
     // Desenha o tanque que indica a opção selecionada
     m_tank_pointer->pos_y = itemY(m_menu_index) - 10;
+    m_tank_pointer->dest_rect.y = m_tank_pointer->pos_y;
     m_tank_pointer->draw();
 
     renderer->flush();
@@ -381,7 +326,10 @@ void Menu::draw()
 // Atualiza o estado do menu (apenas atualiza o tanque ponteiro)
 void Menu::update(Uint32 dt)
 {
+    // Posiciona também o retângulo de desenho: durante a animação de criação
+    // o Tank::update ainda não o atualiza, e o ponteiro apareceria fora do lugar
     m_tank_pointer->pos_y = itemY(m_menu_index) - 10;
+    m_tank_pointer->dest_rect.y = m_tank_pointer->pos_y;
     m_tank_pointer->speed = m_tank_pointer->default_speed;
     m_tank_pointer->stop = true;
     m_tank_pointer->update(dt);

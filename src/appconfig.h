@@ -206,6 +206,11 @@ public:
     static unsigned duel_freeze_time;
 
     /**
+     * Máximo de bots aliados (bônus de reforço) em campo ao mesmo tempo, por equipe.
+     */
+    static int duel_max_allies;
+
+    /**
      * Velocidade padrão dos projéteis disparados.
      */
     static double bullet_default_speed;

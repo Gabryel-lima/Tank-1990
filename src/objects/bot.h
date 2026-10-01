@@ -4,7 +4,7 @@
 #include "enemy.h"
 
 /**
- * @brief Tanque controlado pela CPU no modo duelo.
+ * @brief Bot aliado do modo duelo, trazido pelo bônus de reforço (tanque).
  *
  * Reaproveita a inteligência do Enemy (perseguir target_position e atirar),
  * mas com as regras de um jogador: tem vidas (renascimentos) em vez de

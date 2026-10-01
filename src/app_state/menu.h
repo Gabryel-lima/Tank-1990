@@ -18,8 +18,8 @@
  * Telas do menu:
  * @li principal: 1 a 4 jogadores, Extra Modes, Exit
  * @li Extra Modes: Duel Mode
- * @li Duel Mode: 1 vs 1, 2 vs 2, 3 vs 3, 4 vs 4 ou equipes personalizadas
- * @li configuração do duelo: tamanho das equipes, quantidade de humanos e equipe de cada um
+ * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
+ * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
  */
 class Menu : public AppState
 {
@@ -85,8 +85,8 @@ private:
         ITEM_CAMPAIGN_1, ITEM_CAMPAIGN_2, ITEM_CAMPAIGN_3, ITEM_CAMPAIGN_4,
         ITEM_EXTRA_MODES, ITEM_EXIT,
         ITEM_DUEL_MODE,
-        ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_3V3, ITEM_FORMAT_4V4, ITEM_FORMAT_CUSTOM,
-        ITEM_TEAM_A_SIZE, ITEM_TEAM_B_SIZE, ITEM_HUMANS,
+        ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_CUSTOM,
+        ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_START, ITEM_BACK
     };
@@ -126,8 +126,11 @@ private:
     /** Altura (y) do texto do item na posição i. */
     int itemY(int i) const;
 
-    /** Define um formato de duelo N vs N com humanos alternando entre as equipes. */
+    /** Define um formato de duelo N vs N com os jogadores alternando entre as equipes. */
     void applyDuelFormat(int team_size);
+
+    /** Atualiza o tamanho de cada equipe a partir da equipe de cada jogador. */
+    void syncTeamSizes();
 
     Screen m_screen;
     std::vector<Item> m_items;

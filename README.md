@@ -183,9 +183,9 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 
 ## ⚔️ Modo Duelo (Extra Modes)
 
-No menu principal, **Extra Modes → Duel Mode** abre o modo de equipes: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, num mapa próprio (`resources/duel_levels/1`), espelhado na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
+No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, num mapa próprio (`resources/duel_levels/1`), espelhado na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
 
-**Formatos:** `1 vs 1`, `2 vs 2`, `3 vs 3`, `4 vs 4` ou `Custom Teams` (cada equipe com 1 a 4 tanques, por exemplo 3 contra 1). Na tela seguinte você escolhe quantos jogadores humanos participam (até 4) e a equipe de cada um; as vagas que sobram são preenchidas por **bots (CPU)**, que podem atacar ou defender.
+**Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (P1 e P2 no teclado, P3 e P4 no controle), não existem 3 vs 3 nem 4 vs 4.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -195,12 +195,13 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo de equipes: cada eq
 | Voltar | Esc / B, Back |
 
 **Regras:**
-- Vence a rodada quem destruir a base inimiga ou eliminar todos os tanques inimigos; vence a partida quem ganhar **2 rodadas**.
-- Cada tanque tem **3 vidas** e renasce com escudo por alguns segundos.
+- Vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos; vence a partida quem ganhar **2 rodadas**.
+- Cada jogador tem **3 vidas** e renasce com escudo por alguns segundos.
+- **Reforço (bônus de tanque):** traz um **bot aliado** da cor da sua equipe, com uma vida. O primeiro reforço guarda a base, o segundo ataca; com 2 reforços da equipe em campo, o bônus vira vida extra. O reforço não segura a rodada: se todos os jogadores da equipe caírem, ela perde.
 - **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
-- **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores humanos coletam.
+- **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores coletam (reforços não).
 - Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros.
-- **Equipes de tamanhos diferentes:** a menor recebe mais vidas por tanque (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de tanques ou mais, base com muralha de pedra.
+- **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, base com muralha de pedra.
 - Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a configuração do duelo, pronto para a revanche.
 
 ## 🎯 Power-ups e Bônus
@@ -214,7 +215,7 @@ O jogo possui 8 tipos diferentes de power-ups que aparecem aleatoriamente quando
 | **🛡️ Capacete** | Concede escudo temporário que protege contra danos |
 | **⏰ Relógio** | Congela todos os inimigos por um período |
 | **⛏️ Pá** | Protege a base (águia) com paredes de pedra indestrutíveis |
-| **🚗 Tanque** | Adiciona uma vida extra ao jogador |
+| **🚗 Tanque** | Adiciona uma vida extra ao jogador (no modo duelo, traz um bot aliado de reforço) |
 | **🔫 Canhão** | Aumenta o nível de estrela em 3 (máximo) |
 | **🚤 Barco** | Permite atravessar água sem afundar |
 
@@ -325,7 +326,7 @@ Tank-1990/
 │   ├── objects/          # Classes dos objetos do jogo
 │   │   ├── player.h/cpp  # Jogador controlável
 │   │   ├── enemy.h/cpp   # Tanques inimigos
-│   │   ├── bot.h/cpp     # Tanques da CPU no modo duelo
+│   │   ├── bot.h/cpp     # Bot aliado (bônus de reforço) no modo duelo
 │   │   ├── tank.h/cpp    # Classe base dos tanques
 │   │   ├── bullet.h/cpp  # Projéteis
 │   │   ├── bonus.h/cpp   # Power-ups

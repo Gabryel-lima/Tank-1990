@@ -10,12 +10,14 @@
 struct DuelConfig
 {
     /**
-     * Quantidade de tanques de cada equipe (1 a 4). Índice 0 = equipe A, 1 = equipe B.
+     * Quantidade de jogadores de cada equipe. Índice 0 = equipe A, 1 = equipe B.
+     * O Duel recalcula a partir de @a human_team.
      */
     int team_size[2] = {1, 1};
 
     /**
-     * Quantidade de jogadores humanos (1 a 4). As vagas restantes são preenchidas por bots.
+     * Quantidade de jogadores (2 a 4). Não há bots ocupando vagas: bots só entram
+     * pelo bônus de reforço.
      */
     int humans = 2;
 
@@ -35,11 +37,13 @@ struct DuelConfig
  *
  * Reaproveita do Game o mapa, as colisões e a assistência de curva; muda as regras:
  * @li a equipe A nasce embaixo e a B em cima, cada uma com a sua águia;
- * @li vence a rodada quem destruir a base inimiga ou eliminar todos os tanques inimigos;
+ * @li só jogadores humanos (1v1, 2v2 ou divisões como 2v1 e 3v1);
+ * @li vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos;
  * @li vence a partida quem ganhar AppConfig::duel_rounds_to_win rodadas;
  * @li projéteis não ferem aliados nem a própria base (nem os tijolos em volta dela);
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
+ * @li o bônus de tanque traz um bot aliado (reforço) da cor da equipe;
  * @li com equipes de tamanhos diferentes, a menor tem mais vidas (e base de pedra, se a outra tiver o dobro).
  */
 class Duel : public Game
@@ -92,10 +96,16 @@ private:
     /** Todos os tanques da partida (jogadores e bots). */
     std::vector<Tank*> allTanks();
 
-    /** Vidas restantes da equipe, contando o tanque em campo. */
+    /** Vidas restantes dos jogadores da equipe, contando o tanque em campo. */
     int teamLives(int team);
 
-    /** Equipe ainda tem algum tanque que não foi removido. */
+    /**
+     * Bônus de reforço: cria um bot aliado na equipe do jogador, com uma vida.
+     * @return false se a equipe já tem AppConfig::duel_max_allies reforços ou não há ponto livre
+     */
+    bool spawnAlly(Player* player);
+
+    /** Equipe ainda tem algum jogador que não foi removido. */
     bool teamAlive(int team);
 
     /** Vidas de cada tanque da equipe: equipes menores recebem mais vidas. */
