@@ -71,6 +71,15 @@ public:
     void drawText(const SDL_Point* start, std::string text, SDL_Color text_color, int font_size = 1);
 
     /**
+     * Tamanho (largura e altura, em pixels) que o texto ocupa ao ser desenhado com drawText.
+     * Serve para centralizar textos em relação a qualquer área, não só à janela.
+     * @param text - texto
+     * @param font_size - tamanho da fonte (1, 2 ou 3, como em drawText)
+     * @return {largura, altura}, ou {0, 0} se as fontes não estiverem carregadas
+     */
+    SDL_Point textSize(const std::string& text, int font_size = 1) const;
+
+    /**
      * Desenha um retângulo na tela.
      * @param rect Retângulo a ser desenhado (posição e tamanho).
      * @param rect_color Cor do retângulo.

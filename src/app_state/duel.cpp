@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <climits>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 namespace
 {
@@ -28,10 +30,72 @@ namespace
         return r.w > 0 && r.h > 0;
     }
 
-    // Cores dos textos no painel lateral (cinza): versões escuras das cores das equipes
-    const SDL_Color PANEL_TEAM_COLOR[2] = {{170, 110, 0, 255}, {0, 120, 0, 255}};
     const SDL_Color BLACK = {0, 0, 0, 255};
     const SDL_Color WHITE = {255, 255, 255, 255};
+    const SDL_Color LIGHT_GRAY = {200, 200, 200, 255};
+    const SDL_Color GRAY = {150, 150, 150, 255};
+    const SDL_Color PAUSE_RED = {255, 70, 70, 255};   // 6,2:1 sobre preto (o vermelho antigo dava 3,5:1)
+
+    // Texto centralizado horizontalmente em center_x (o drawText com x < 0 centraliza
+    // na janela inteira, mapa + painel, e não no mapa)
+    void drawCenteredText(Renderer* r, int center_x, int y, const std::string& text, SDL_Color color, int size)
+    {
+        SDL_Point p = {center_x - r->textSize(text, size).x / 2, y};
+        r->drawText(&p, text, color, size);
+    }
+
+    // Texto com contorno preto de 1 px: legível sobre qualquer terreno (gelo, pedra, arbusto)
+    void drawOutlinedText(Renderer* r, SDL_Point p, const std::string& text, SDL_Color color, int size)
+    {
+        for(int dy = -1; dy <= 1; dy++)
+            for(int dx = -1; dx <= 1; dx++)
+            {
+                if(dx == 0 && dy == 0) continue;
+                SDL_Point q = {p.x + dx, p.y + dy};
+                r->drawText(&q, text, BLACK, size);
+            }
+        r->drawText(&p, text, color, size);
+    }
+
+    struct MessageLine
+    {
+        std::string text;
+        SDL_Color color;
+        int size;
+        int gap;              ///< espaço até a próxima linha (px)
+        bool visible = true;  ///< linha invisível ainda ocupa espaço (a caixa não muda de tamanho)
+    };
+
+    // Caixa preta com borda, do tamanho do texto, centralizada no mapa. Assim a mensagem
+    // fica legível em qualquer mapa (texto branco direto sobre gelo ou pedra dava ~1,7:1)
+    void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border)
+    {
+        const int PAD_X = 18, PAD_Y = 14;
+        int width = 0, height = 0;
+        for(const MessageLine& line : lines)
+        {
+            SDL_Point size = r->textSize(line.text, line.size);
+            width = std::max(width, size.x);
+            height += size.y + line.gap;
+        }
+        if(!lines.empty()) height -= lines.back().gap;
+
+        SDL_Rect box = {AppConfig::map_rect.x + (AppConfig::map_rect.w - width - 2 * PAD_X) / 2,
+                        AppConfig::map_rect.y + (AppConfig::map_rect.h - height - 2 * PAD_Y) / 2,
+                        width + 2 * PAD_X, height + 2 * PAD_Y};
+        r->drawRect(&box, BLACK, true);
+        r->drawRect(&box, border, false);
+        SDL_Rect inner = {box.x + 1, box.y + 1, box.w - 2, box.h - 2};
+        r->drawRect(&inner, border, false);
+
+        int center_x = box.x + box.w / 2;
+        int y = box.y + PAD_Y;
+        for(const MessageLine& line : lines)
+        {
+            if(line.visible) drawCenteredText(r, center_x, y, line.text, line.color, line.size);
+            y += r->textSize(line.text, line.size).y + line.gap;
+        }
+    }
     const char* TEAM_NAME[2] = {"TEAM A", "TEAM B"};
 
     // Tempos das telas entre rodadas (ms)
@@ -728,8 +792,10 @@ void Duel::draw()
     for(auto bonus : m_bonuses)
     {
         if(bonus->owner_team < 0 || !bonus->visible() || bonus->to_erase) continue;
-        SDL_Point p = {bonus->dest_rect.x + 12, bonus->dest_rect.y - 11};
-        renderer->drawText(&p, bonus->owner_team == 0 ? "A" : "B", bonus->color, 3);
+        std::string letter = bonus->owner_team == 0 ? "A" : "B";
+        SDL_Point size = renderer->textSize(letter, 3);
+        drawOutlinedText(renderer, {bonus->dest_rect.x + (bonus->dest_rect.w - size.x) / 2, bonus->dest_rect.y - size.y - 1},
+                         letter, bonus->color, 3);
     }
 
     // Número de cada jogador acima do tanque: no começo da rodada e ao renascer
@@ -737,93 +803,104 @@ void Duel::draw()
     for(auto player : m_players)
     {
         if(!(round_start || player->testFlag(TSF_CREATE)) || player->testFlag(TSF_DESTROYED)) continue;
-        SDL_Point p = {player->dest_rect.x + 6, player->dest_rect.y - 11};
+        std::string label = "P" + Engine::intToString(player->playerIndex() + 1);
+        SDL_Point size = renderer->textSize(label, 3);
+        SDL_Point p = {player->dest_rect.x + (player->dest_rect.w - size.x) / 2, player->dest_rect.y - size.y - 1};
         if(p.y < 0) p.y = player->dest_rect.y + player->dest_rect.h + 1;
-        renderer->drawText(&p, "P" + Engine::intToString(player->playerIndex() + 1), player->color, 3);
+        drawOutlinedText(renderer, p, label, player->color, 3);
     }
 
     //=========== Painel lateral: equipe B em cima, rodada no meio, equipe A embaixo ===========
+    // Cada equipe num bloco da cor dela com texto preto (contraste de ~15:1; o texto
+    // colorido direto sobre o cinza do painel ficava em ~1,2:1, quase invisível)
     SDL_Rect flag_src = engine.getSpriteConfig()->getSpriteData(ST_FLAG)->rect;
+    const int block_x = AppConfig::status_rect.x + 2, block_w = AppConfig::status_rect.w - 4;
     for(int team = 0; team < 2; team++)
     {
-        int y = (team == 1 ? 8 : 330);
-        int x = AppConfig::status_rect.x + 6;
-        SDL_Point p = {x, y};
-        renderer->drawText(&p, team == 0 ? "A" : "B", PANEL_TEAM_COLOR[team], 2);
+        std::vector<Player*> members;
+        for(auto player : m_players)
+            if(player->team == team && !player->to_erase) members.push_back(player);
+        int height = 4 + 16 + static_cast<int>(members.size()) * 13 + 3;
+        int y = (team == 1 ? 6 : AppConfig::map_rect.h - 6 - height);
+        SDL_Rect block = {block_x, y, block_w, height};
+        renderer->drawRect(&block, teamColor(team), true);
 
+        SDL_Point p = {block_x + 4, y + 4};
+        renderer->drawText(&p, team == 0 ? "A" : "B", BLACK, 2);
         // Uma bandeira por rodada vencida
         for(int w = 0; w < m_wins[team]; w++)
         {
-            SDL_Rect dst = {x + 14 + w * 13, y + 1, 12, 12};
+            SDL_Rect dst = {block_x + 18 + w * 12, y + 4, 12, 12};
             renderer->drawObject(&flag_src, &dst);
         }
-
-        // Jogadores da equipe e as vidas de cada um ("P1 3")
-        int row = 0;
-        for(auto player : m_players)
+        // Jogadores da equipe e as vidas de cada um ("P1  3")
+        for(size_t row = 0; row < members.size(); row++)
         {
-            if(player->team != team || player->to_erase) continue;
-            p = {x, y + 26 + row * 16};
-            renderer->drawText(&p, "P" + Engine::intToString(player->playerIndex() + 1), PANEL_TEAM_COLOR[team], 3);
-            p = {x + 26, y + 26 + row * 16};
-            renderer->drawText(&p, Engine::intToString(player->lives_count), BLACK, 3);
-            row++;
+            p = {block_x + 4, y + 21 + static_cast<int>(row) * 13};
+            renderer->drawText(&p, "P" + Engine::intToString(members[row]->playerIndex() + 1), BLACK, 3);
+            p = {block_x + 30, p.y};
+            renderer->drawText(&p, Engine::intToString(members[row]->lives_count), BLACK, 3);
         }
-
     }
-    SDL_Point p = {AppConfig::status_rect.x + 6, 190};
-    renderer->drawText(&p, "RND", BLACK, 3);
-    p = {AppConfig::status_rect.x + 10, 204};
-    renderer->drawText(&p, Engine::intToString(m_round), BLACK, 2);
+    // Rodada atual no meio do painel, em branco sobre preto
+    SDL_Rect round_box = {block_x, AppConfig::map_rect.h / 2 - 20, block_w, 40};
+    renderer->drawRect(&round_box, BLACK, true);
+    drawCenteredText(renderer, round_box.x + round_box.w / 2, round_box.y + 5, "RND", GRAY, 3);
+    drawCenteredText(renderer, round_box.x + round_box.w / 2, round_box.y + 19, Engine::intToString(m_round), WHITE, 2);
 
-    //=========== Mensagens no centro ===========
+    //=========== Mensagens no centro: sempre numa caixa, centralizada no mapa ===========
+    std::string score = Engine::intToString(m_wins[0]) + " - " + Engine::intToString(m_wins[1]);
     if(m_phase == PHASE_INTRO)
     {
-        renderer->drawText(nullptr, "ROUND " + Engine::intToString(m_round), WHITE, 1);
-        p = {-1, 160};
-        renderer->drawText(&p, AppConfig::duel_maps.at(m_map).second, WHITE, 2);
-        p = {-1, 240};
-        renderer->drawText(&p, "FIRST TO " + Engine::intToString(AppConfig::duel_rounds_to_win) + " WINS", WHITE, 2);
+        drawMessageBox(renderer, {
+            {"ROUND " + Engine::intToString(m_round), WHITE, 1, 8},
+            {AppConfig::duel_maps.at(m_map).second, LIGHT_GRAY, 2, 8},
+            {"FIRST TO " + Engine::intToString(AppConfig::duel_rounds_to_win) + " WINS", GRAY, 3, 0},
+        }, GRAY);
     }
     else if(m_phase == PHASE_PLAY && m_pause)
-        renderer->drawText(nullptr, std::string("PAUSE"), {200, 0, 0, 255}, 1);
+    {
+        drawMessageBox(renderer, {
+            {"PAUSE", PAUSE_RED, 1, 8},
+            {"ENTER / START", GRAY, 3, 0},
+        }, PAUSE_RED);
+    }
     else if(m_phase == PHASE_ROUND_END)
     {
         if(m_round_winner < 0)
-            renderer->drawText(nullptr, std::string("DRAW"), WHITE, 1);
+            drawMessageBox(renderer, {
+                {"DRAW", WHITE, 1, 8},
+                {"ROUND REPLAYED", GRAY, 3, 0},
+            }, GRAY);
         else
-        {
-            p = {-1, 180};
-            renderer->drawText(&p, TEAM_NAME[m_round_winner], teamColor(m_round_winner), 1);
-            p = {-1, 220};
-            renderer->drawText(&p, std::string("WINS THE ROUND"), WHITE, 2);
-        }
+            drawMessageBox(renderer, {
+                {TEAM_NAME[m_round_winner], teamColor(m_round_winner), 1, 8},
+                {"WINS THE ROUND", WHITE, 2, 8},
+                {score, LIGHT_GRAY, 2, 0},
+            }, teamColor(m_round_winner));
     }
     else if(m_phase == PHASE_MATCH_END)
     {
-        SDL_Rect box = {32, 104, AppConfig::map_rect.w - 64, 208};
-        renderer->drawRect(&box, {0, 0, 0, 255}, true);
-        renderer->drawRect(&box, teamColor(m_round_winner), false);
-
-        p = {-1, 120};
-        renderer->drawText(&p, TEAM_NAME[m_round_winner], teamColor(m_round_winner), 1);
-        p = {-1, 156};
-        renderer->drawText(&p, std::string("WINS THE DUEL"), WHITE, 2);
-        p = {-1, 180};
-        renderer->drawText(&p, Engine::intToString(m_wins[0]) + " - " + Engine::intToString(m_wins[1]), WHITE, 2);
-
+        std::vector<MessageLine> lines = {
+            {TEAM_NAME[m_round_winner], teamColor(m_round_winner), 1, 8},
+            {"WINS THE DUEL", WHITE, 2, 8},
+            {score, LIGHT_GRAY, 2, 14},
+        };
+        // Tabela de eliminações: todas as linhas com o mesmo número de caracteres
+        // (a fonte é monoespaçada), então as colunas ficam alinhadas
         for(int i = 0; i < m_config.humans; i++)
         {
             int team = m_config.human_team[i];
-            p = {-1, 212 + i * 16};
-            renderer->drawText(&p, "P" + Engine::intToString(i + 1) + (team == 0 ? "  A  " : "  B  ") +
-                               Engine::intToString(m_kills[i]) + " KILLS", teamColor(team), 3);
+            std::string kills = Engine::intToString(m_kills[i]);
+            if(kills.size() < 2) kills = " " + kills;
+            std::string line = "P" + Engine::intToString(i + 1) + "  " + (team == 0 ? "A" : "B") + "  " + kills +
+                               (m_kills[i] == 1 ? " KILL " : " KILLS");
+            lines.push_back({line, teamColor(team), 3, 4});
         }
-        if(m_phase_time > MATCH_END_INPUT_DELAY)
-        {
-            p = {-1, 290};
-            renderer->drawText(&p, std::string("PRESS FIRE"), WHITE, 3);
-        }
+        lines.back().gap = 14;
+        // "PRESS FIRE" ocupa o espaço desde o início, para a caixa não mudar de tamanho
+        lines.push_back({"PRESS FIRE", WHITE, 3, 0, m_phase_time > MATCH_END_INPUT_DELAY});
+        drawMessageBox(renderer, lines, teamColor(m_round_winner));
     }
 
     renderer->flush();
