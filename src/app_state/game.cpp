@@ -91,6 +91,7 @@ Game::Game(NoCampaign)
     m_level_start_screen = false;
     m_level_start_time = 0;
     m_game_over = false;
+    m_game_over_hold_time = 0;
     m_game_over_position = 0;
     m_finished = false;
 }
@@ -110,8 +111,9 @@ void Game::draw()
 
     if(m_level_start_screen)
     {
+        // Como no Battle City original: "STAGE N" em preto sobre a tela cinza
         std::string level_name = "STAGE " + Engine::intToString(m_current_level);
-        renderer->drawText(nullptr, level_name, {255, 255, 255, 255}, 1);
+        renderer->drawText(nullptr, level_name, {0, 0, 0, 255}, 1);
     }
     else
     {
@@ -126,12 +128,13 @@ void Game::draw()
         for(auto bonus : m_bonuses) bonus->draw();
         m_eagle->draw();
 
+        // "GAME OVER" sobe até o centro do mapa (centralizado no mapa, não na janela),
+        // com contorno para não sumir sobre os tijolos
         if(m_game_over)
         {
-            SDL_Point pos;
-            pos.x = -1;
-            pos.y = m_game_over_position;
-            renderer->drawText(&pos, AppConfig::game_over_text, {255, 10, 10, 255});
+            SDL_Point size = renderer->textSize(AppConfig::game_over_text, 1);
+            SDL_Point pos = {AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2, static_cast<int>(m_game_over_position)};
+            renderer->drawTextOutlined(pos, AppConfig::game_over_text, {255, 10, 10, 255}, 1);
         }
 
         //===========Status do jogo===========
@@ -144,14 +147,16 @@ void Game::draw()
             dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
             renderer->drawObject(&src, &dst);
         }
-        // vidas dos jogadores
+        // vidas dos jogadores: ícone fixo do tanque, na cor do jogador (o quadro atual do
+        // sprite virava estrela durante o nascimento, e sem a cor P3/P4 pareciam P2/P1)
         int i = 0;
         for(auto player : m_players)
         {
             dst = {AppConfig::status_rect.x + 5, i * 18 + 180, 16, 16};
             p_dst = {dst.x + dst.w + 2, dst.y + 3};
             i++;
-            renderer->drawObject(&player->src_rect, &dst);
+            SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->type)->rect;
+            renderer->drawObjectWithColor(&icon, &dst, player->color);
             renderer->drawText(&p_dst, Engine::intToString(player->lives_count), {0, 0, 0, 255}, 3);
         }
         // número do mapa/nível
@@ -161,8 +166,15 @@ void Game::draw()
         renderer->drawObject(&src, &dst);
         renderer->drawText(&p_dst, Engine::intToString(m_current_level), {0, 0, 0, 255}, 2);
 
-        if(m_pause)
-            renderer->drawText(nullptr, std::string("PAUSE"), {200, 0, 0, 255}, 1);
+        // "PAUSE" piscando no centro do mapa, como no original; contorno para não sumir
+        // sobre os tijolos (o vermelho direto sobre tijolo vermelho desaparecia)
+        if(m_pause && (SDL_GetTicks() / AppConfig::pause_blink_time) % 2 == 0)
+        {
+            SDL_Point size = renderer->textSize("PAUSE", 1);
+            SDL_Point pos = {AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2,
+                             AppConfig::map_rect.y + (AppConfig::map_rect.h - size.y) / 2};
+            renderer->drawTextOutlined(pos, "PAUSE", {255, 70, 70, 255}, 1);
+        }
     }
 
     renderer->flush();
@@ -309,11 +321,19 @@ void Game::update(Uint32 dt)
             m_game_over = true;
         }
 
-        // Animação de game over
+        // Animação de game over: como no original, o texto sobe até o centro do mapa,
+        // fica parado um instante e só então o jogo segue para a pontuação
         if(m_game_over)
         {
-            if(m_game_over_position < 10) m_finished = true;
-            else m_game_over_position -= AppConfig::game_over_entry_speed * dt;
+            double center = AppConfig::map_rect.y +
+                (AppConfig::map_rect.h - Engine::getEngine().getRenderer()->textSize(AppConfig::game_over_text, 1).y) / 2.0;
+            if(m_game_over_position > center)
+                m_game_over_position = std::max(center, m_game_over_position - AppConfig::game_over_entry_speed * dt);
+            else
+            {
+                m_game_over_hold_time += dt;
+                if(m_game_over_hold_time > AppConfig::game_over_hold_time) m_finished = true;
+            }
         }
 
         // Lógica de proteção temporária da águia
@@ -1066,6 +1086,7 @@ void Game::nextLevel()
     m_level_start_screen = true;
     m_level_start_time = 0;
     m_game_over = false;
+    m_game_over_hold_time = 0;
     m_finished = false;
     m_enemy_to_kill = AppConfig::enemy_start_count;
 

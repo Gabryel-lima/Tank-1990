@@ -324,6 +324,11 @@ protected:
     double m_game_over_position;
 
     /**
+     * Tempo (ms) que o "GAME OVER" já ficou parado no centro do mapa.
+     */
+    Uint32 m_game_over_hold_time;
+
+    /**
      * Indica se o estado atual do jogo deve ser finalizado e transitar para a tela de resultados ou menu.
      */
     bool m_finished;

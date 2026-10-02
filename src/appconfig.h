@@ -166,6 +166,16 @@ public:
     static double game_over_entry_speed;
 
     /**
+     * Tempo (ms) que o texto "GAME OVER" fica parado no centro do mapa antes da pontuação.
+     */
+    static unsigned game_over_hold_time;
+
+    /**
+     * Intervalo (ms) do piscar do texto "PAUSE".
+     */
+    static unsigned pause_blink_time;
+
+    /**
      * Velocidade padrão de movimento dos tanques.
      */
     static double tank_default_speed;

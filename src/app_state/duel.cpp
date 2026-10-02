@@ -36,27 +36,6 @@ namespace
     const SDL_Color GRAY = {150, 150, 150, 255};
     const SDL_Color PAUSE_RED = {255, 70, 70, 255};   // 6,2:1 sobre preto (o vermelho antigo dava 3,5:1)
 
-    // Texto centralizado horizontalmente em center_x (o drawText com x < 0 centraliza
-    // na janela inteira, mapa + painel, e não no mapa)
-    void drawCenteredText(Renderer* r, int center_x, int y, const std::string& text, SDL_Color color, int size)
-    {
-        SDL_Point p = {center_x - r->textSize(text, size).x / 2, y};
-        r->drawText(&p, text, color, size);
-    }
-
-    // Texto com contorno preto de 1 px: legível sobre qualquer terreno (gelo, pedra, arbusto)
-    void drawOutlinedText(Renderer* r, SDL_Point p, const std::string& text, SDL_Color color, int size)
-    {
-        for(int dy = -1; dy <= 1; dy++)
-            for(int dx = -1; dx <= 1; dx++)
-            {
-                if(dx == 0 && dy == 0) continue;
-                SDL_Point q = {p.x + dx, p.y + dy};
-                r->drawText(&q, text, BLACK, size);
-            }
-        r->drawText(&p, text, color, size);
-    }
-
     struct MessageLine
     {
         std::string text;
@@ -92,7 +71,7 @@ namespace
         int y = box.y + PAD_Y;
         for(const MessageLine& line : lines)
         {
-            if(line.visible) drawCenteredText(r, center_x, y, line.text, line.color, line.size);
+            if(line.visible) r->drawTextCentered(center_x, y, line.text, line.color, line.size);
             y += r->textSize(line.text, line.size).y + line.gap;
         }
     }
@@ -794,7 +773,7 @@ void Duel::draw()
         if(bonus->owner_team < 0 || !bonus->visible() || bonus->to_erase) continue;
         std::string letter = bonus->owner_team == 0 ? "A" : "B";
         SDL_Point size = renderer->textSize(letter, 3);
-        drawOutlinedText(renderer, {bonus->dest_rect.x + (bonus->dest_rect.w - size.x) / 2, bonus->dest_rect.y - size.y - 1},
+        renderer->drawTextOutlined({bonus->dest_rect.x + (bonus->dest_rect.w - size.x) / 2, bonus->dest_rect.y - size.y - 1},
                          letter, bonus->color, 3);
     }
 
@@ -807,7 +786,7 @@ void Duel::draw()
         SDL_Point size = renderer->textSize(label, 3);
         SDL_Point p = {player->dest_rect.x + (player->dest_rect.w - size.x) / 2, player->dest_rect.y - size.y - 1};
         if(p.y < 0) p.y = player->dest_rect.y + player->dest_rect.h + 1;
-        drawOutlinedText(renderer, p, label, player->color, 3);
+        renderer->drawTextOutlined(p, label, player->color, 3);
     }
 
     //=========== Painel lateral: equipe B em cima, rodada no meio, equipe A embaixo ===========
@@ -845,8 +824,8 @@ void Duel::draw()
     // Rodada atual no meio do painel, em branco sobre preto
     SDL_Rect round_box = {block_x, AppConfig::map_rect.h / 2 - 20, block_w, 40};
     renderer->drawRect(&round_box, BLACK, true);
-    drawCenteredText(renderer, round_box.x + round_box.w / 2, round_box.y + 5, "RND", GRAY, 3);
-    drawCenteredText(renderer, round_box.x + round_box.w / 2, round_box.y + 19, Engine::intToString(m_round), WHITE, 2);
+    renderer->drawTextCentered(round_box.x + round_box.w / 2, round_box.y + 5, "RND", GRAY, 3);
+    renderer->drawTextCentered(round_box.x + round_box.w / 2, round_box.y + 19, Engine::intToString(m_round), WHITE, 2);
 
     //=========== Mensagens no centro: sempre numa caixa, centralizada no mapa ===========
     std::string score = Engine::intToString(m_wins[0]) + " - " + Engine::intToString(m_wins[1]);

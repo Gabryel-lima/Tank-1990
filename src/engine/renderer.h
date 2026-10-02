@@ -80,6 +80,19 @@ public:
     SDL_Point textSize(const std::string& text, int font_size = 1) const;
 
     /**
+     * Desenha o texto centralizado horizontalmente em @a center_x. Diferente de drawText com
+     * x < 0, que centraliza na janela inteira (mapa + painel), serve para centralizar no mapa
+     * ou dentro de uma caixa.
+     */
+    void drawTextCentered(int center_x, int y, const std::string& text, SDL_Color text_color, int font_size = 1);
+
+    /**
+     * Desenha o texto com contorno preto de 1 px, legível sobre qualquer fundo do mapa
+     * (gelo, pedra, tijolo).
+     */
+    void drawTextOutlined(SDL_Point start, const std::string& text, SDL_Color text_color, int font_size = 1);
+
+    /**
      * Desenha um retângulo na tela.
      * @param rect Retângulo a ser desenhado (posição e tamanho).
      * @param rect_color Cor do retângulo.
