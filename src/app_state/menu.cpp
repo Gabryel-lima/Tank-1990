@@ -423,8 +423,9 @@ void Menu::drawMapPreview(int map_index)
     if(map_index < 0 || m_map_grids[map_index].empty())
     {
         // Aleatório (ou mapa não encontrado)
-        SDL_Point p = {inside.x + inside.w / 2 - 7, inside.y + inside.h / 2 - 7};
-        renderer->drawText(&p, "?", GRAY, 2);
+        SDL_Point size = renderer->textSize("?", 1);
+        SDL_Point p = {inside.x + (inside.w - size.x) / 2, inside.y + (inside.h - size.y) / 2};
+        renderer->drawText(&p, "?", GRAY, 1);
         return;
     }
 

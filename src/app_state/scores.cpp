@@ -53,31 +53,38 @@ void Scores::draw()
     SDL_Point p_dst;
     SDL_Rect dst;
 
+    // Tudo alinhado ao centro da janela (a tela inteira é preta, mapa + painel),
+    // inclusive a tabela, que antes ficava 7 px fora do eixo do título
+    const int center_x = AppConfig::windows_rect.x + (AppConfig::map_rect.w + AppConfig::status_rect.w) / 2;
+    const int left = center_x - 125, right = center_x + 125;
+    const SDL_Color WHITE = {255, 255, 255, 255};
+
     // Desenha o nome do estágio/nível
-    p_dst = {-1, 10};
-    renderer->drawText(&p_dst, std::string("STAGE ") + Engine::intToString(m_level), {255, 255, 220, 255}, 1);
-    // Cabeçalhos das colunas
-    p_dst = {100, 50};
-    renderer->drawText(&p_dst, std::string("PLAYER"), {255, 255, 255, 255}, 2);
-    p_dst = {270, 50};
-    renderer->drawText(&p_dst, std::string("SCORE"), {255, 255, 255, 255}, 2);
+    renderer->drawTextCentered(center_x, 10, std::string("STAGE ") + Engine::intToString(m_level), {255, 255, 220, 255}, 1);
+    // Cabeçalhos das colunas: "PLAYER" alinhado à esquerda, "SCORE" à direita (como os números)
+    p_dst = {left, 50};
+    renderer->drawText(&p_dst, std::string("PLAYER"), WHITE, 2);
+    p_dst = {right - renderer->textSize("SCORE", 2).x, 50};
+    renderer->drawText(&p_dst, std::string("SCORE"), WHITE, 2);
     // Linha divisória
-    dst = {75, 75, 300, 2};
+    dst = {left - 25, 75, (right - left) + 50, 2};
     renderer->drawRect(&dst, {250, 250, 200, 255}, true);
 
     int i = 0;
-    // Para cada jogador, desenha sprite, vidas e pontuação
+    // Para cada jogador, desenha sprite (na cor dele), vidas e pontuação
     for(auto player : m_players)
     {
+        int row_y = 90 + i * player->src_rect.h;
         // Sprite do jogador
-        dst = {100, 90 + i * (player->src_rect.h), player->src_rect.w, player->src_rect.h};
-        renderer->drawObject(&player->src_rect, &dst);
+        dst = {left, row_y, player->src_rect.w, player->src_rect.h};
+        renderer->drawObjectWithColor(&player->src_rect, &dst, player->color);
         // Quantidade de vidas
-        p_dst = {140, 98 + i * (player->src_rect.h)};
-        renderer->drawText(&p_dst, std::string("x") + Engine::intToString(player->lives_count), {255, 255, 255, 255}, 2);
-        // Pontuação (animação do contador)
-        p_dst = {270, 98 + i * (player->src_rect.h)};
-        renderer->drawText(&p_dst, (m_score_counter < player->score ? Engine::intToString(m_score_counter) : Engine::intToString(player->score)), {255, 255, 255, 255}, 2);
+        p_dst = {left + 40, row_y + 8};
+        renderer->drawText(&p_dst, std::string("x") + Engine::intToString(player->lives_count), WHITE, 2);
+        // Pontuação (animação do contador), alinhada à direita
+        std::string score = (m_score_counter < player->score ? Engine::intToString(m_score_counter) : Engine::intToString(player->score));
+        p_dst = {right - renderer->textSize(score, 2).x, row_y + 8};
+        renderer->drawText(&p_dst, score, WHITE, 2);
         i++;
     }
 

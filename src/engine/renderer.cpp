@@ -122,6 +122,32 @@ void Renderer::setScale(float xs, float ys)
 }
 
 // Desenha um texto na tela em uma posição específica, usando a fonte e cor indicadas
+SDL_Point Renderer::textSize(const string& text, int font_size) const
+{
+    TTF_Font* font = (font_size == 2 ? m_font2 : (font_size == 3 ? m_font3 : m_font1));
+    int w = 0, h = 0;
+    if(font == nullptr || TTF_SizeText(font, text.c_str(), &w, &h) != 0) return {0, 0};
+    return {w, h};
+}
+
+void Renderer::drawTextCentered(int center_x, int y, const string& text, SDL_Color text_color, int font_size)
+{
+    SDL_Point start = {center_x - textSize(text, font_size).x / 2, y};
+    drawText(&start, text, text_color, font_size);
+}
+
+void Renderer::drawTextOutlined(SDL_Point start, const string& text, SDL_Color text_color, int font_size)
+{
+    for(int dy = -1; dy <= 1; dy++)
+        for(int dx = -1; dx <= 1; dx++)
+        {
+            if(dx == 0 && dy == 0) continue;
+            SDL_Point shadow = {start.x + dx, start.y + dy};
+            drawText(&shadow, text, {0, 0, 0, 255}, font_size);
+        }
+    drawText(&start, text, text_color, font_size);
+}
+
 void Renderer::drawText(const SDL_Point* start, string text, SDL_Color text_color, int font_size)
 {
     // Verifica se as fontes estão carregadas

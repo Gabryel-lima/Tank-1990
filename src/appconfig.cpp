@@ -108,6 +108,10 @@ unsigned AppConfig::player_reload_time = 120;
 int AppConfig::enemy_max_count_on_map = 4;
 // Velocidade de entrada do texto "Game Over"
 double AppConfig::game_over_entry_speed = 0.13;
+// Tempo (ms) que o "GAME OVER" fica parado no centro antes da tela de pontuação
+unsigned AppConfig::game_over_hold_time = 2500;
+// Intervalo (ms) do piscar do "PAUSE"
+unsigned AppConfig::pause_blink_time = 400;
 // Velocidade padrão dos tanques
 double AppConfig::tank_default_speed = 0.08;
 // Velocidade padrão dos projéteis
