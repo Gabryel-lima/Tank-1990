@@ -119,6 +119,28 @@ public:
      */
     void setFlag(TankStateFlag flag);
 
+    /**
+     * Quantidade atual de estrelas (0 a 3). Com 3, o tiro quebra pedra.
+     */
+    int stars() const { return star_count; }
+
+    /**
+     * Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque (como no original).
+     * O duelo desliga (ver AppConfig::duel_star_armor).
+     */
+    bool star_armor = true;
+
+    /**
+     * Jogador controlado pelo computador (usado pela simulação do duelo, tools/duel_sim):
+     * ignora teclado e controle e segue @a cpu_command.
+     */
+    bool cpu = false;
+
+    /**
+     * Comando da IA aplicado no próximo update, se @a cpu for verdadeiro.
+     */
+    TankCommand cpu_command;
+
 private:
     /**
      * Índice do jogador (0 = Jogador 1). Guardado à parte porque no duelo

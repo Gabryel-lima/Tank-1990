@@ -10,6 +10,17 @@
 typedef unsigned TankStateFlags;
 
 /**
+ * @brief Decisão da IA para um tanque em um quadro: para onde virar, se anda e se atira.
+ * Preenchida pelo modo de jogo (ver Duel) e aplicada pelo próprio tanque no update.
+ */
+struct TankCommand
+{
+    Direction direction = D_UP;
+    bool move = false;
+    bool fire = false;
+};
+
+/**
  * @brief
  * Classe responsável pela mecânica básica dos tanques: movimentação e disparo.
  */
@@ -95,13 +106,19 @@ public:
      * Seta uma flag de estado do tanque.
      * @param flag - flag a ser ativada
      */
-    void setFlag(TankStateFlag flag);
+    virtual void setFlag(TankStateFlag flag);
 
     /**
      * Congela o tanque por um tempo diferente do padrão (AppConfig::tank_frozen_time).
      * @param duration - duração do congelamento em ms
      */
     void freeze(Uint32 duration);
+
+    /**
+     * Ativa o escudo por um tempo diferente do padrão (AppConfig::tank_shield_time).
+     * @param duration - duração do escudo em ms
+     */
+    void shield(Uint32 duration);
 
     /**
      * Limpa uma flag de estado do tanque.

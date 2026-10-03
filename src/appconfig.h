@@ -227,6 +227,29 @@ public:
     static int duel_max_allies;
 
     /**
+     * Duração (ms) do escudo dado pelo capacete no duelo.
+     */
+    static unsigned duel_helmet_time;
+
+    /**
+     * No duelo, com 3 estrelas um tiro só tira uma estrela (como na campanha)?
+     * Desligado, o canhão quebra pedra mas não vale uma vida extra.
+     */
+    static bool duel_star_armor;
+
+    /**
+     * A equipe menor do duelo defende a base com pedra se a outra tiver pelo menos
+     * esta proporção de tanques (2 = o dobro).
+     */
+    static int duel_stone_wall_ratio;
+
+    /**
+     * Chance (0 a 1) de um bônus surgir cinza, como no jogo original: qualquer equipe pega.
+     * No resto das vezes ele surge na cor de uma equipe e só ela pega.
+     */
+    static double duel_neutral_bonus_chance;
+
+    /**
      * Chance (0 a 1) de um bônus de equipe surgir na metade do mapa da equipe adversária.
      */
     static double duel_team_bonus_enemy_side_chance;

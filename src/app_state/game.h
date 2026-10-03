@@ -165,10 +165,10 @@ protected:
      * Assistência de curva: se o jogador foi parado pela quina de um obstáculo, mas estaria livre
      * se estivesse alinhado à grade (a até AppConfig::tank_corner_slide_max pixels de distância),
      * desliza o tanque de lado em direção ao alinhamento em vez de deixá-lo travado.
-     * @param player - jogador a ser verificado
+     * @param tank - tanque a ser verificado (jogador ou bot do duelo)
      * @param dt - última alteração de tempo
      */
-    void tryCornerSlide(Player* player, Uint32 dt);
+    void tryCornerSlide(Tank* tank, Uint32 dt);
 
     /**
      * Verifica se o projétil colide com algum elemento do mapa (água e gelo são ignorados). Se sim, projétil e objeto são destruídos.

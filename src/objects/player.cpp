@@ -45,8 +45,19 @@ void Player::update(Uint32 dt)
     {
         bool up = false, down = false, left = false, right = false, shoot = false;
 
+        // Jogador do computador: a IA do modo de jogo decide no lugar do teclado
+        if(cpu)
+        {
+            up    = cpu_command.move && cpu_command.direction == D_UP;
+            down  = cpu_command.move && cpu_command.direction == D_DOWN;
+            left  = cpu_command.move && cpu_command.direction == D_LEFT;
+            right = cpu_command.move && cpu_command.direction == D_RIGHT;
+            shoot = cpu_command.fire;
+            if(!cpu_command.move) setDirection(cpu_command.direction); // vira sem andar
+        }
+
         // Teclado: o layout que a classe Controllers deu a este jogador (reserva de quem não tem controle)
-        const Uint8 *key_state = SDL_GetKeyboardState(NULL);
+        const Uint8 *key_state = cpu ? nullptr : SDL_GetKeyboardState(NULL);
         const PlayerKeys* keys = Controllers::keyboardFor(playerIndex());
         if(key_state != nullptr && keys != nullptr)
         {
@@ -58,7 +69,7 @@ void Player::update(Uint32 dt)
         }
 
         // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira
-        SDL_GameController* pad = Controllers::forPlayer(playerIndex());
+        SDL_GameController* pad = cpu ? nullptr : Controllers::forPlayer(playerIndex());
         if(pad != nullptr)
         {
             Sint16 axis_x = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_LEFTX);
@@ -134,6 +145,9 @@ void Player::respawn()
 
     // Renasce apontando para cima; no duelo, a equipe de cima (B) renasce apontando para baixo
     setDirection(team == 1 ? D_DOWN : D_UP);
+    // A IA começa parada, olhando para onde o tanque nasceu (Tank::respawn chama update)
+    cpu_command = TankCommand();
+    cpu_command.direction = direction;
     Tank::respawn(); // Chama respawn da classe base
     setFlag(TSF_SHIELD); // Ativa escudo temporário
     m_shield_time = AppConfig::tank_shield_time / 2; // Tempo reduzido de escudo
@@ -161,8 +175,9 @@ void Player::destroy()
         return;
     }
 
-    // Se está no nível máximo de estrela, perde só uma estrela
-    if(star_count == 3)
+    // Se está no nível máximo de estrela, perde só uma estrela (a menos que o modo
+    // de jogo desligue essa "armadura", como o duelo)
+    if(star_count == 3 && star_armor)
         changeStarCountBy(-1);
     else
     {

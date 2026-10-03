@@ -396,6 +396,14 @@ void Tank::freeze(Uint32 duration)
     m_frozen_duration = duration;
 }
 
+// Ativa o escudo por um tempo específico (em ms): o escudo some quando
+// m_shield_time passa de AppConfig::tank_shield_time, então começa adiantado
+void Tank::shield(Uint32 duration)
+{
+    setFlag(TSF_SHIELD);
+    if(duration < AppConfig::tank_shield_time) m_shield_time = AppConfig::tank_shield_time - duration;
+}
+
 // Limpa uma flag de estado do tanque e remove efeitos especiais.
 void Tank::clearFlag(TankStateFlag flag)
 {

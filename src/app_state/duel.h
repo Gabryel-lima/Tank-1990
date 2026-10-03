@@ -2,7 +2,10 @@
 #define DUEL_H
 
 #include "game.h"
+#include "navgrid.h"
 #include "../objects/bot.h"
+
+#include <map>
 
 /**
  * @brief Configuração de uma partida do modo duelo, montada no menu "Extra Modes".
@@ -32,9 +35,45 @@ struct DuelConfig
     int map = 0;
 
     /**
+     * Jogadores controlados pelo computador (usado pela simulação, tools/duel_sim).
+     * No jogo normal, todos são humanos.
+     */
+    bool cpu[4] = {false, false, false, false};
+
+    /**
      * Quantos humanos estão na equipe.
      */
     int humansInTeam(int team) const;
+};
+
+/**
+ * @brief Registro do que aconteceu na partida, para medir o equilíbrio (tools/duel_sim).
+ */
+struct DuelStats
+{
+    /** Um bônus coletado. */
+    struct Pickup
+    {
+        int round;        ///< rodada (começa em 1)
+        int team;         ///< equipe de quem coletou
+        SpriteType type;  ///< tipo do bônus
+        bool neutral;     ///< cinza (qualquer equipe pega) ou da cor da equipe
+        int side;         ///< onde estava: -1 no meio, 0 na metade de quem pegou, 1 na do adversário
+        double lead;      ///< vantagem em vidas de quem coletou, proporcional (-1 a 1)
+    };
+    std::vector<Pickup> pickups;
+
+    std::vector<int> round_winner;       ///< equipe vencedora de cada rodada (-1 = empate)
+    std::vector<bool> round_by_base;     ///< rodada decidida pela base (senão, por eliminação)
+    std::vector<Uint32> round_time;      ///< duração de cada rodada (ms)
+    std::vector<int> round_map;          ///< mapa de cada rodada
+
+    // IA, separada em [0] bots de reforço e [1] jogadores do computador
+    double ai_alive_time[2] = {0, 0}; ///< tempo somado de tanques da IA em campo (ms)
+    double ai_stuck_time[2] = {0, 0}; ///< parte desse tempo em que a IA queria andar e não saiu do lugar
+    int ai_unstick[2] = {0, 0};       ///< vezes em que a IA desistiu do caminho por estar presa
+    std::vector<double> bot_heat;     ///< tempo dos bots em cada bloco do mapa (linha * colunas + coluna)
+    int heat_columns = 0;
 };
 
 /**
@@ -48,9 +87,10 @@ struct DuelConfig
  * @li projéteis não ferem aliados nem a própria base (nem os tijolos em volta dela);
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
- * @li a cor é da equipe (companheiros têm a mesma cor); o bônus de tanque é da equipe:
- *     surge na cor de uma equipe, só jogadores dela coletam, mais na metade adversária,
- *     e traz um bot aliado (reforço) da mesma cor;
+ * @li a cor é da equipe (companheiros têm a mesma cor); cada bônus surge na cor de uma
+ *     equipe (só jogadores dela coletam, mais na metade adversária) ou cinza, como no jogo
+ *     original (qualquer jogador coleta, no meio do mapa); o bônus de tanque traz um bot
+ *     aliado (reforço) da cor da equipe;
  * @li com equipes de tamanhos diferentes, a menor tem mais vidas (e base de pedra, se a outra tiver o dobro).
  */
 class Duel : public Game
@@ -79,6 +119,9 @@ public:
      * Companheiros de equipe têm a mesma cor; cores diferentes só entre equipes diferentes.
      */
     static SDL_Color teamColor(int team);
+
+    /** O que aconteceu na partida até agora (usado pela simulação). */
+    const DuelStats& stats() const { return m_stats; }
 
 protected:
     std::vector<Eagle*> bases() override;
@@ -139,8 +182,59 @@ private:
     /** Base da equipe. */
     Eagle* baseOf(int team);
 
-    /** Define os alvos dos bots de acordo com o papel de cada um. */
-    void updateBotTargets();
+    // ======================== IA (duel_ai.cpp) ========================
+
+    /** Memória da IA de um tanque entre um quadro e outro. */
+    struct AIState
+    {
+        std::vector<int> field;     ///< distância de cada célula até o destino (NavGrid)
+        SDL_Rect face = {0, 0, 0, 0}; ///< o que encarar ao chegar (tanque ou base), ou w = 0
+        Uint32 replan = 0;          ///< tempo até recalcular o destino (ms)
+        double last_x = -1, last_y = -1;
+        bool wanted_move = false;   ///< no quadro anterior, a IA mandou andar
+        Uint32 still_time = 0;      ///< tempo querendo andar sem sair do lugar (ms)
+        Uint32 unstick_time = 0;    ///< tempo restante andando numa direção qualquer para destravar
+        Direction unstick_dir = D_UP;
+    };
+
+    /** Tanque controlado pela IA: bot de reforço ou jogador do computador. */
+    bool isAI(Tank* tank) const;
+
+    /** Papel do tanque da IA (o jogador do computador ataca; o segundo da equipe defende). */
+    Bot::Role roleOf(Tank* tank) const;
+
+    /** O que o tanque consegue atravessar (barco, tiro forte). */
+    NavGrid::Abilities abilitiesOf(Tank* tank) const;
+
+    /** Monta as grades de navegação das duas equipes a partir do mapa atual. */
+    void buildNavGrids();
+
+    /** Decide o comando de cada tanque da IA neste quadro. */
+    void updateAI(Uint32 dt);
+
+    /** Escolhe o destino do tanque e calcula o campo de distâncias até ele. */
+    void planAI(Tank* tank, AIState& state);
+
+    /** Comando do quadro: segue o caminho, destrava, vira para atirar. */
+    TankCommand steerAI(Tank* tank, AIState& state, Uint32 dt);
+
+    /**
+     * Células de onde se acerta o alvo atirando em linha reta (na mesma linha ou coluna,
+     * sem pedra no meio e com no máximo dois tijolos), até @a range blocos de distância.
+     */
+    std::vector<int> fireGoals(const SDL_Rect& target, int team, const NavGrid::Abilities& abilities, int range) const;
+
+    /**
+     * O tiro do tanque na direção @a d acerta o alvo: alinhado, à frente, a até @a range
+     * blocos e sem pedra (nem muralha protegida) no caminho; tijolos, no máximo dois.
+     */
+    bool clearShot(Tank* shooter, Direction d, const SDL_Rect& target, int range) const;
+
+    /** Atirar na direção @a d acerta algum inimigo, a base inimiga ou um projétil que vem vindo. */
+    bool worthFiring(Tank* shooter, Direction d, int range);
+
+    /** Há tijolo (ou pedra, com tiro forte) colado na frente do tanque. */
+    bool breakableAhead(Tank* tank, Direction d) const;
 
     /**
      * Projéteis do atirador contra um tanque de outra equipe.
@@ -151,16 +245,16 @@ private:
     /** Destrói o tanque e conta a eliminação para o jogador, se de fato morreu. */
     void hitTank(Tank* target, Tank* shooter);
 
-    /** Bônus que surge para uma equipe específica (só jogadores daquela cor coletam). */
-    static bool isTeamBonus(SpriteType type);
-
     /** Equipe bem atrás em vidas (proporcionalmente), ou -1 se estão parelhas. */
     int trailingTeam();
 
     /** Pontos simétricos de surgimento de bônus dentro da metade do mapa da equipe. */
     std::vector<SDL_Point> halfSpots(int team) const;
 
-    /** Sorteia a equipe dona de um bônus exclusivo: 50/50, ou a que está atrás em vidas. */
+    /** Vantagem em vidas da equipe, proporcional ao total de cada uma (-1 a 1). */
+    double teamLead(int team);
+
+    /** Sorteia a equipe dona de um bônus colorido: 50/50, ou a que está atrás em vidas. */
     int chooseBonusTeam();
 
     /** Sorteia um bônus em um dos pontos simétricos do mapa. */
@@ -192,6 +286,10 @@ private:
     int m_kills[4];            ///< eliminações de cada jogador humano na partida
     int m_map;                 ///< mapa da rodada atual (índice em AppConfig::duel_maps)
     std::vector<int> m_player_columns; ///< colunas (x) de nascimento usadas pelos jogadores
+
+    NavGrid m_nav[2];                  ///< grade de navegação de cada equipe (muralha própria bloqueia)
+    std::map<Tank*, AIState> m_ai;     ///< memória da IA de cada tanque
+    DuelStats m_stats;
 };
 
 #endif // DUEL_H

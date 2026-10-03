@@ -132,6 +132,20 @@ int AppConfig::duel_tank_lives = 3;
 int AppConfig::duel_rounds_to_win = 2;
 // Tempo (ms) com o mapa sem bônus até aparecer o próximo
 unsigned AppConfig::duel_bonus_interval = 10000;
+// Duração (ms) do escudo do capacete no duelo (na campanha, tank_shield_time = 10 s).
+// Com 10 s dava para atravessar o mapa e destruir a base sem risco: na simulação
+// (tools/duel_sim), quem pegava o capacete cinza no 1 contra 1 vencia 78% das rodadas
+// (65% com 6 s)
+unsigned AppConfig::duel_helmet_time = 6000;
+// Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque? No duelo, não:
+// essa "armadura" fazia do canhão uma vida extra que ainda quebra pedra (quem pegava
+// vencia 70-74% das rodadas; sem ela, 49-68%). O barco e o capacete continuam protegendo
+bool AppConfig::duel_star_armor = false;
+// A equipe menor ganha base de pedra se a outra tiver pelo menos esta proporção de tanques
+int AppConfig::duel_stone_wall_ratio = 2;
+// Chance de um bônus surgir cinza (qualquer equipe pega); no resto das vezes ele
+// surge na cor de uma equipe e só ela pega
+double AppConfig::duel_neutral_bonus_chance = 0.35;
 // Chance de um bônus de equipe surgir na metade do mapa do adversário
 // (no resto das vezes, surge na metade da própria equipe)
 double AppConfig::duel_team_bonus_enemy_side_chance = 0.7;

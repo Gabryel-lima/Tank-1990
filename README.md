@@ -212,12 +212,26 @@ Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmo
 - Cada jogador tem **3 vidas** e renasce com escudo por alguns segundos.
 - **Nascimento sem mira:** cada jogador nasce numa coluna só dele, alternando os lados da base (no 1 contra 1, um nasce à esquerda e o outro à direita). Como o tiro só anda em linha reta, ninguém nasce na linha de tiro de um adversário, em nenhum mapa ou formato; o escudo de nascimento fica como proteção extra.
 - **Cores:** a cor é da **equipe**: companheiros têm a mesma cor (equipe A amarela, B verde) e cores diferentes só aparecem entre adversários. A paleta tem 4 cores (amarelo, verde, azul, vermelho), pronta para um futuro modo cada um por si, em que cada jogador seria a própria equipe. O painel lateral lista os jogadores de cada equipe e as vidas de cada um.
-- **Bônus da equipe (tanque):** surge na **cor de uma equipe** e só jogadores dela conseguem pegar; os adversários passam por cima. Aparece **70% das vezes na metade do adversário** (é preciso invadir para buscar) e 30% na própria. A equipe é sorteada 50/50 (ou é a que estiver atrás em vidas), inclusive num 3 contra 1.
-- **Reforço:** o bônus da equipe traz um **bot aliado** na cor da equipe, com uma vida.
+- **Bônus coloridos e cinza:** qualquer bônus pode surgir de duas formas:
+  - **na cor de uma equipe** (com a letra **A** ou **B** em cima, ~65% das vezes): só jogadores dela conseguem pegar; os adversários passam por cima. Aparece **70% das vezes na metade do adversário** (é preciso invadir para buscar) e 30% na própria. A equipe é sorteada 50/50 (ou é a que estiver atrás em vidas), inclusive num 3 contra 1;
+  - **cinza**, com o ícone original do jogo (~35%): **qualquer jogador** pega. Surge num ponto simétrico do meio do mapa (à mesma distância das duas bases) ou, se uma equipe estiver bem atrás em vidas, do lado dela.
+- **Reforço:** o bônus de tanque traz um **bot aliado** na cor da equipe, com uma vida. O primeiro reforço guarda a base e o segundo ataca.
+- **IA dos reforços:** o bot calcula um caminho pelo mapa (busca em grade, como num GPS), contornando pedra e água e abrindo caminho a tiro pelos tijolos, então funciona em qualquer mapa, inclusive nos personalizados. Ele atira quando um inimigo ou a base inimiga está na linha de tiro, vira para atirar em quem aparece ao lado e, se ficar preso (outro tanque na frente), desvia e recalcula.
 - **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
-- **Bônus:** com o mapa vazio de bônus por 10 s, surge um num ponto simétrico do meio do mapa (à mesma distância das duas bases). Se uma equipe estiver bem atrás em vidas, o bônus surge do lado dela. Só jogadores coletam (reforços não).
-- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros.
+- **Bônus:** com o mapa vazio de bônus por 10 s, surge o próximo. Só jogadores coletam (reforços não).
+- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
 - **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, base com muralha de pedra.
+
+**Simulação de equilíbrio:** `make duel-sim` compila `build/bin/duel_sim`, que joga partidas inteiras sem janela, com todos os jogadores controlados pela IA, e mostra quantas rodadas cada equipe vence em cada mapa, quanto cada bônus ajuda quem o pega (separado por quem estava atrás, parelho ou na frente em vidas) e quanto tempo os bots passam presos. Os ajustes de equilíbrio (`AppConfig::duel_*`) podem ser testados sem recompilar:
+
+```bash
+make duel-sim
+cd build/bin
+./duel_sim --matches 200 --teams ABAB --map 0      # 2 contra 2 na Arena
+./duel_sim --teams AAB --helmet 8000 --heat        # 2 contra 1, capacete de 8 s, mapa de calor dos bots
+```
+
+A IA não joga como uma pessoa, então os números indicam tendências (um bônus que decide a rodada sozinho, um mapa que favorece um lado), não o resultado exato entre jogadores.
 - Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
 
 ## 🎯 Power-ups e Bônus
@@ -359,6 +373,8 @@ Tank-1990/
 │   │   ├── menu.h/cpp    # Menu principal
 │   │   ├── game.h/cpp    # Lógica principal do jogo
 │   │   ├── duel.h/cpp    # Modo duelo (equipes)
+│   │   ├── duel_ai.cpp   # IA do duelo (bots de reforço)
+│   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
 │   │   └── scores.h/cpp  # Tela de pontuação
 │   ├── engine/           # Motor do jogo
 │   │   ├── renderer.h/cpp    # Sistema de renderização
@@ -375,6 +391,9 @@ Tank-1990/
 │   ├── font/             # Fontes do jogo
 │   ├── levels/           # Arquivos dos 36 níveis
 │   └── duel_levels/      # Mapas do modo duelo (Arena, Fortress, River, Maze, Open Field)
+├── tools/
+│   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
+│   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
 └── README.md             # Este arquivo

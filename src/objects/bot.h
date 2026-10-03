@@ -6,10 +6,11 @@
 /**
  * @brief Bot aliado do modo duelo, trazido pelo bônus de reforço (tanque).
  *
- * Reaproveita a inteligência do Enemy (perseguir target_position e atirar),
- * mas com as regras de um jogador: tem vidas (renascimentos) em vez de
- * blindagem, renasce no ponto da sua equipe com escudo temporário e é
- * desenhado com o sprite prateado tingido com a cor da equipe.
+ * Não usa o passeio aleatório do Enemy: quem decide é o modo de jogo, que calcula
+ * um caminho pelo mapa (ver NavGrid) e preenche @a command a cada quadro. Tem as
+ * regras de um jogador: vidas (renascimentos) em vez de blindagem, renasce no ponto
+ * da sua equipe com escudo temporário e é desenhado com o sprite prateado tingido
+ * com a cor da equipe.
  */
 class Bot : public Enemy
 {
@@ -34,7 +35,7 @@ public:
     Bot(SDL_Point spawn, SpriteType type, int team, int lives, SDL_Color team_color, Role role);
 
     /**
-     * Atualiza a IA do Enemy e corrige o sprite para a cor da equipe.
+     * Move o tanque e aplica @a command: vira, anda ou para, e atira respeitando a recarga.
      */
     void update(Uint32 dt);
 
@@ -52,6 +53,15 @@ public:
      * Papel do bot na equipe.
      */
     Role role;
+
+    /**
+     * Decisão da IA para este quadro (preenchida pelo Duel).
+     */
+    TankCommand command;
+
+private:
+    Uint32 m_fire_time;   ///< tempo desde o último tiro (ms)
+    Uint32 m_reload_time; ///< espera até o próximo tiro (ms): mais lenta que a de um jogador
 };
 
 #endif // BOT_H

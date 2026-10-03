@@ -114,7 +114,7 @@ ifeq ($(OS),Windows_NT)
     endif
 
     LFLAGS = -O2 $(WIN_SUBSYSTEM) -static-libgcc -static-libstdc++
-    CFLAGS = -c -Wall -std=c++17
+    CFLAGS = -c -Wall -std=c++17 -MMD -MP
     LIBS   = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf
 
     # Recursos individuais copiados para o lado do executável
@@ -143,7 +143,7 @@ else
     endif
 
     LFLAGS = -O
-    CFLAGS = -c -Wall -std=c++17
+    CFLAGS = -c -Wall -std=c++17 -MMD -MP
     LIBS   = -lSDL2main -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf
     APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
     RESOURCES     = $(APP_RESOURCES)
@@ -161,6 +161,12 @@ BUILD_DIRS = $(BIN) $(addprefix $(BUILD)/,$(MODULES))
 
 SOURCES = $(foreach d,$(SRC_DIRS),$(wildcard $(d)/*.cpp))
 OBJS    = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SOURCES))
+# Dependências de cabeçalhos geradas pelo compilador (-MMD): mudar um .h recompila quem o inclui
+DEPS    = $(OBJS:.o=.d)
+
+# Simulação do duelo (tools/duel_sim.cpp): o jogo sem o main.cpp e sem janela
+SIM_EXE  = $(BIN)/duel_sim$(EXE_EXT)
+SIM_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/duel_sim.o
 
 vpath %.cpp $(SRC_DIRS)
 
@@ -280,9 +286,26 @@ copy_resources: | $(BIN)
 compile: $(OBJS)
 	$(CC) $(OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) $(LFLAGS) -o $(EXE)
 
-# Compila cada .cpp
-build/%.o: src/%.cpp
+# Compila cada .cpp (e recompila tudo se o Makefile mudar, já que as flags podem ter mudado)
+build/%.o: src/%.cpp Makefile
 	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
+
+-include $(DEPS)
+
+# Simulação do modo duelo, sem janela: todos os jogadores pela IA (ver tools/duel_sim.cpp)
+duel-sim: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SIM_EXE)
+	@echo ""
+	@echo "✅ Simulação compilada: $(SIM_EXE)"
+	@echo "   cd $(BIN) && ./duel_sim --matches 100 --teams ABAB"
+
+$(SIM_EXE): $(SIM_OBJS)
+	$(CC) $(SIM_OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) -o $@
+
+$(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
+	@mkdir -p $(BUILD)/tools
+	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
+
+-include $(BUILD)/tools/duel_sim.d
 
 # Copia arquivos/diretórios específicos listados em APP_RESOURCES
 $(APP_RESOURCES): | $(BIN)
@@ -325,6 +348,7 @@ help:
 	@echo "COMANDOS AUXILIARES:"
 	@echo "  make info        - Mostra informações do sistema"
 	@echo "  make doc         - Gera documentação (Doxygen)"
+	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""
@@ -348,7 +372,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

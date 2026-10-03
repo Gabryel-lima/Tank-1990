@@ -6,24 +6,12 @@
 #include "../controllers.h"
 
 #include <algorithm>
-#include <climits>
 #include <cstdlib>
 #include <string>
 #include <vector>
 
 namespace
 {
-    // Centro do retângulo de desenho de um objeto
-    SDL_Point centerOf(const Object* o)
-    {
-        return {o->dest_rect.x + o->dest_rect.w / 2, o->dest_rect.y + o->dest_rect.h / 2};
-    }
-
-    int manhattan(SDL_Point a, SDL_Point b)
-    {
-        return std::abs(a.x - b.x) + std::abs(a.y - b.y);
-    }
-
     bool intersects(SDL_Rect a, SDL_Rect b)
     {
         SDL_Rect r = intersectRect(&a, &b);
@@ -138,6 +126,7 @@ void Duel::startRound()
     m_phase_time = 0;
     m_pause = false;
     m_bonus_time = 0;
+    m_ai.clear();
     for(int t = 0; t < 2; t++)
     {
         m_fortified[t] = false;
@@ -178,6 +167,8 @@ void Duel::startRound()
         Player* p = new Player(i);
         // A cor é da equipe: companheiros têm a mesma cor (e o mesmo sprite)
         p->team = team;
+        p->cpu = m_config.cpu[i];
+        p->star_armor = AppConfig::duel_star_armor;
         p->type = static_cast<SpriteType>(ST_PLAYER_1 + team);
         p->setPlayerColor(teamColor(team));
         p->spawn_point = spawns.at(i);
@@ -192,6 +183,14 @@ void Duel::startRound()
 void Duel::endRound(int winner)
 {
     if(m_phase != PHASE_PLAY) return;
+
+    bool by_base = false;
+    for(Eagle* base : bases())
+        if(base->type != ST_EAGLE) by_base = true;
+    m_stats.round_winner.push_back(winner);
+    m_stats.round_by_base.push_back(by_base);
+    m_stats.round_time.push_back(m_phase_time);
+    m_stats.round_map.push_back(m_map);
 
     m_round_winner = winner;
     m_phase_time = 0;
@@ -264,10 +263,10 @@ int Duel::livesPerTank(int team) const
 
 SpriteType Duel::defaultWall(int team) const
 {
-    // Se a outra equipe tem o dobro de tanques ou mais, a menor defende a base com pedra:
-    // vidas a mais não seguram vários atacantes na base, só a muralha segura.
-    // Com diferença menor (3 contra 4, 2 contra 3), a pedra desequilibrava para o outro lado.
-    return 2 * m_config.team_size[team] <= m_config.team_size[1 - team] ? ST_STONE_WALL : ST_BRICK_WALL;
+    // Se a outra equipe tem AppConfig::duel_stone_wall_ratio vezes mais tanques, a menor
+    // defende a base com pedra: vidas a mais não seguram vários atacantes na base, só a
+    // muralha segura. Com diferença menor, a pedra desequilibra para o outro lado.
+    return AppConfig::duel_stone_wall_ratio * m_config.team_size[team] <= m_config.team_size[1 - team] ? ST_STONE_WALL : ST_BRICK_WALL;
 }
 
 std::vector<Tank*> Duel::allTanks()
@@ -400,47 +399,6 @@ void Duel::checkBulletsAgainstTank(Tank* shooter, Tank* target)
     }
 }
 
-void Duel::updateBotTargets()
-{
-    std::vector<Tank*> tanks = allTanks();
-    for(auto e : m_enemies)
-    {
-        Bot* bot = dynamic_cast<Bot*>(e);
-        if(bot == nullptr || !bot->testFlag(TSF_LIFE)) continue;
-
-        int enemy_team = 1 - bot->team;
-        Eagle* own_base = baseOf(bot->team);
-        Eagle* enemy_base = baseOf(enemy_team);
-        if(own_base == nullptr || enemy_base == nullptr) continue;
-
-        // Atacante procura inimigos perto de si; defensor, perto da própria base
-        SDL_Point reference = (bot->role == Bot::ROLE_DEFEND ? centerOf(own_base) : centerOf(bot));
-        Tank* nearest = nullptr;
-        int best = INT_MAX;
-        for(Tank* t : tanks)
-        {
-            if(t->team != enemy_team || t->to_erase || !t->testFlag(TSF_LIFE)) continue;
-            int d = manhattan(centerOf(t), reference);
-            if(d < best) { best = d; nearest = t; }
-        }
-
-        if(bot->role == Bot::ROLE_ATTACK)
-        {
-            // Bot não quebra pedra (não coleta a arma): com a base inimiga de pedra, caça os tanques
-            bool base_blocked = (m_base_wall[enemy_team] == ST_STONE_WALL);
-            bool chase = nearest != nullptr && (base_blocked || best < 10 * AppConfig::tile_rect.w);
-            bot->target_position = chase ? centerOf(nearest) : centerOf(enemy_base);
-        }
-        else
-        {
-            // Sem invasores, fica de guarda na frente da própria base
-            SDL_Point guard = centerOf(own_base);
-            guard.y += (bot->team == 0 ? -6 : 6) * AppConfig::tile_rect.h;
-            bot->target_position = (nearest != nullptr && best < 13 * AppConfig::tile_rect.w) ? centerOf(nearest) : guard;
-        }
-    }
-}
-
 // ======================== Bônus ========================
 
 SDL_Color Duel::teamColor(int team)
@@ -451,21 +409,21 @@ SDL_Color Duel::teamColor(int team)
     return Player::getPlayerColor(team);
 }
 
-bool Duel::isTeamBonus(SpriteType type)
+double Duel::teamLead(int team)
 {
-    // Bônus que surgem para uma equipe específica. Para tornar outro poder exclusivo,
-    // basta incluí-lo aqui: sorteio da equipe, lado do mapa, cor e coleta já são genéricos.
-    return type == ST_BONUS_TANK;
+    // Vidas restantes de cada equipe, proporcionais ao total com que ela começou
+    double ratio[2];
+    for(int t = 0; t < 2; t++)
+        ratio[t] = static_cast<double>(teamLives(t)) / (m_config.team_size[t] * livesPerTank(t));
+    return ratio[team] - ratio[1 - team];
 }
 
 int Duel::trailingTeam()
 {
     // Equipe bem atrás em vidas (proporcionalmente ao total dela), ou -1
-    double ratio[2];
-    for(int team = 0; team < 2; team++)
-        ratio[team] = static_cast<double>(teamLives(team)) / (m_config.team_size[team] * livesPerTank(team));
-    if(ratio[0] + 0.25 <= ratio[1]) return 0;
-    if(ratio[1] + 0.25 <= ratio[0]) return 1;
+    double lead = teamLead(0);
+    if(lead <= -0.25) return 0;
+    if(lead >= 0.25) return 1;
     return -1;
 }
 
@@ -480,7 +438,7 @@ std::vector<SDL_Point> Duel::halfSpots(int team) const
 int Duel::chooseBonusTeam()
 {
     // Sorteia a equipe (50/50, ou a que está atrás em vidas), não o jogador:
-    // a equipe menor de um 3 contra 1 recebe tantos bônus exclusivos quanto a maior
+    // a equipe menor de um 3 contra 1 recebe tantos bônus coloridos quanto a maior
     int trailing = trailingTeam();
     int first = trailing >= 0 ? trailing : rand() % 2;
     for(int team : {first, 1 - first})
@@ -505,13 +463,14 @@ void Duel::spawnBonus()
         roll -= entry.weight;
     }
 
-    // Bônus da equipe: só jogadores daquela cor coletam, e ele surge com mais frequência
-    // na metade do adversário (é preciso invadir para buscar) do que na própria
-    int owner_team = isTeamBonus(type) ? chooseBonusTeam() : -1;
+    // Bônus da equipe (colorido): só jogadores daquela cor coletam, e ele surge com mais
+    // frequência na metade do adversário (é preciso invadir para buscar) do que na própria
+    double chance = static_cast<double>(rand()) / RAND_MAX;
+    int owner_team = chance < AppConfig::duel_neutral_bonus_chance ? -1 : chooseBonusTeam();
     if(owner_team >= 0)
     {
-        double roll = static_cast<double>(rand()) / RAND_MAX;
-        int side = (roll < AppConfig::duel_team_bonus_enemy_side_chance) ? 1 - owner_team : owner_team;
+        double side_roll = static_cast<double>(rand()) / RAND_MAX;
+        int side = (side_roll < AppConfig::duel_team_bonus_enemy_side_chance) ? 1 - owner_team : owner_team;
         std::vector<SDL_Point> spots = halfSpots(side);
         SDL_Point p = spots.at(rand() % spots.size());
         Bonus* bonus = new Bonus(p.x, p.y, type);
@@ -520,10 +479,10 @@ void Duel::spawnBonus()
         m_bonuses.push_back(bonus);
         return;
     }
-    if(isTeamBonus(type)) type = ST_BONUS_STAR; // nenhuma equipe em jogo (não deve ocorrer)
 
-    // Bônus comuns, em pontos simétricos: no meio do mapa (mesma distância das duas
-    // bases) ou, se uma equipe estiver bem atrás em vidas, na metade dela
+    // Bônus cinza (o ícone original, sem tinta): qualquer jogador coleta. Surge em pontos
+    // simétricos no meio do mapa (mesma distância das duas bases) ou, se uma equipe
+    // estiver bem atrás em vidas, na metade dela
     int t = AppConfig::tile_rect.w;
     int trailing = trailingTeam();
     std::vector<SDL_Point> spots;
@@ -544,6 +503,10 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
     SoundManager::getInstance().playSound("bonus");
     int team = player->team;
     int enemy_team = 1 - team;
+    int middle = AppConfig::map_rect.h / 2, center_y = bonus->dest_rect.y + bonus->dest_rect.h / 2;
+    int half = center_y == middle ? -1 : (center_y > middle ? 0 : 1); // A embaixo, B em cima
+    int side = half < 0 ? -1 : (half == team ? 0 : 1);
+    m_stats.pickups.push_back({m_round, team, bonus->type, bonus->owner_team < 0, side, teamLead(team)});
 
     switch(bonus->type)
     {
@@ -554,7 +517,7 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
                 hitTank(t, player);
         break;
     case ST_BONUS_HELMET:
-        player->setFlag(TSF_SHIELD);
+        player->shield(AppConfig::duel_helmet_time);
         break;
     case ST_BONUS_CLOCK:
         // Imobiliza a equipe inimiga por pouco tempo; humanos ainda podem girar e atirar
@@ -711,9 +674,9 @@ void Duel::update(Uint32 dt)
 
     // Tanques contra o cenário
     for(Tank* t : tanks) checkCollisionTankWithLevel(t, dt);
-    for(auto player : m_players) tryCornerSlide(player, dt);
+    for(Tank* t : tanks) tryCornerSlide(t, dt);
 
-    updateBotTargets();
+    updateAI(dt);
 
     for(auto enemy : m_enemies) enemy->update(dt);
     for(auto player : m_players) player->update(dt);
@@ -727,6 +690,9 @@ void Duel::update(Uint32 dt)
     auto erase = [](auto& v) {
         v.erase(std::remove_if(v.begin(), v.end(), [](auto* o){ if(o->to_erase) { delete o; return true; } return false; }), v.end());
     };
+    // A memória da IA de um tanque sai junto com ele (o endereço pode ser reaproveitado)
+    for(Tank* t : tanks)
+        if(t->to_erase) m_ai.erase(t);
     erase(m_enemies);
     erase(m_players);
     erase(m_bonuses);

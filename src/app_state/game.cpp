@@ -739,14 +739,14 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
 }
 
 // Desliza o jogador para o lado quando ele bate na quina de um obstáculo
-void Game::tryCornerSlide(Player* player, Uint32 dt)
+void Game::tryCornerSlide(Tank* tank, Uint32 dt)
 {
     if(AppConfig::tank_corner_slide_max <= 0) return;
-    if(player->to_erase || !player->stop || player->speed == 0) return;
-    if(!player->testFlag(TSF_LIFE) || player->testFlag(TSF_FROZEN)) return;
+    if(tank->to_erase || !tank->stop || tank->speed == 0) return;
+    if(!tank->testFlag(TSF_LIFE) || tank->testFlag(TSF_FROZEN)) return;
 
-    bool vertical = (player->direction == D_UP || player->direction == D_DOWN);
-    double &lateral = vertical ? player->pos_x : player->pos_y;
+    bool vertical = (tank->direction == D_UP || tank->direction == D_DOWN);
+    double &lateral = vertical ? tank->pos_x : tank->pos_y;
     int tile = vertical ? AppConfig::tile_rect.w : AppConfig::tile_rect.h;
 
     // Posições alinhadas à grade de cada lado; testa primeiro a mais próxima
@@ -755,9 +755,9 @@ void Game::tryCornerSlide(Player* player, Uint32 dt)
     double candidates[2] = {before, before + tile};
     if(candidates[1] - lateral < lateral - candidates[0]) std::swap(candidates[0], candidates[1]);
 
-    SDL_Rect current = player->collision_rect;
-    SDL_Rect ahead = player->nextCollisionRect(dt);
-    int inset = vertical ? (player->dest_rect.w - current.w) / 2 : (player->dest_rect.h - current.h) / 2;
+    SDL_Rect current = tank->collision_rect;
+    SDL_Rect ahead = tank->nextCollisionRect(dt);
+    int inset = vertical ? (tank->dest_rect.w - current.w) / 2 : (tank->dest_rect.h - current.h) / 2;
     int current_lateral = vertical ? current.x : current.y;
     int size = vertical ? current.w : current.h;
 
@@ -771,16 +771,16 @@ void Game::tryCornerSlide(Player* player, Uint32 dt)
         // A frente precisa estar livre na posição alinhada...
         SDL_Rect ahead_aligned = ahead;
         (vertical ? ahead_aligned.x : ahead_aligned.y) = target_lateral;
-        if(!isAreaFreeForTank(ahead_aligned, player, dt)) continue;
+        if(!isAreaFreeForTank(ahead_aligned, tank, dt)) continue;
 
         // ...e o caminho lateral até lá também
         SDL_Rect sweep = current;
         (vertical ? sweep.x : sweep.y) = std::min(current_lateral, target_lateral);
         (vertical ? sweep.w : sweep.h) = std::abs(target_lateral - current_lateral) + size;
-        if(!isAreaFreeForTank(sweep, player, dt)) continue;
+        if(!isAreaFreeForTank(sweep, tank, dt)) continue;
 
         // Desliza na mesma velocidade do tanque, sem passar do alinhamento
-        double step = player->speed * dt;
+        double step = tank->speed * dt;
         if(std::fabs(distance) <= step) lateral = target;
         else lateral += (distance > 0 ? step : -step);
         return;

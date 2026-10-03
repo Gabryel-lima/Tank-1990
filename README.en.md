@@ -211,12 +211,26 @@ To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as th
 - Each player has **3 lives** and respawns with a short shield.
 - **No spawn camping by design:** each player spawns in a column of their own, alternating sides of the base (in a 1 vs 1, one spawns on the left and the other on the right). Since bullets only travel in straight lines, nobody spawns in an opponent's line of fire, on any map or format; the spawn shield is an extra safety net.
 - **Colors:** color belongs to the **team**: teammates share a color (team A yellow, B green) and different colors only show up between opponents. The palette has 4 colors (yellow, green, blue, red), ready for a future free-for-all mode where each player would be their own team. The side panel lists each team's players and their lives.
-- **Team power-up (tank):** appears in **one team's color** and only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1.
-- **Reinforcement:** the team power-up brings an **allied bot** in the team's color, with one life.
+- **Colored and gray power-ups:** any power-up can show up in one of two ways:
+  - **in one team's color** (with an **A** or **B** above it, ~65% of the time): only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1;
+  - **gray**, with the game's original icon (~35%): **any player** can pick it up. It appears at a symmetric spot in the middle of the map (same distance from both bases) or, if a team is far behind on lives, on that team's side.
+- **Reinforcement:** the tank power-up brings an **allied bot** in the team's color, with one life. The first reinforcement guards the base and the second one attacks.
+- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and, if it gets stuck (another tank in the way), sidesteps and plans again.
 - **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
-- **Power-ups:** after 10 s with no power-up on the map, one appears at a symmetric spot in the middle (same distance from both bases). If a team is far behind on lives, it appears on that team's side instead. Only players can pick them up (reinforcements can't).
-- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest.
+- **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
+- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
 - **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
+
+**Balance simulation:** `make duel-sim` builds `build/bin/duel_sim`, which plays whole matches with no window, every player driven by the AI, and reports how many rounds each team wins on each map, how much each power-up helps whoever picks it up (split by whether they were behind, even or ahead on lives) and how long bots spend stuck. The balance settings (`AppConfig::duel_*`) can be tried without recompiling:
+
+```bash
+make duel-sim
+cd build/bin
+./duel_sim --matches 200 --teams ABAB --map 0      # 2 vs 2 on Arena
+./duel_sim --teams AAB --helmet 8000 --heat        # 2 vs 1, 8 s helmet, bot heat map
+```
+
+The AI doesn't play like a person, so the numbers show trends (a power-up that decides the round on its own, a map that favors one side), not the exact result between players.
 - Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
 
 ## 🎯 Power-ups
@@ -357,6 +371,8 @@ Tank-1990/
 │   │   ├── menu.h/cpp    # Main menu
 │   │   ├── game.h/cpp    # Main game logic
 │   │   ├── duel.h/cpp    # Duel (team) mode
+│   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
+│   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen
 │   ├── engine/           # Game engine
 │   │   ├── renderer.h/cpp     # Rendering
@@ -373,7 +389,9 @@ Tank-1990/
 │   ├── font/             # Fonts
 │   ├── levels/           # The 36 level files
 │   └── duel_levels/      # Duel mode maps (Arena, Fortress, River, Maze, Open Field)
-├── tools/                # WSL install/uninstall scripts
+├── tools/                # WSL install/uninstall scripts and the duel simulation
+│   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)
+│   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows
 ├── uninstall.cmd         # Windows uninstaller
