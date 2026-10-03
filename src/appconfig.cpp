@@ -151,6 +151,10 @@ double AppConfig::duel_neutral_bonus_chance = 0.35;
 double AppConfig::duel_team_bonus_enemy_side_chance = 0.7;
 // Reforços (bots aliados do bônus de tanque) em campo ao mesmo tempo, por equipe
 int AppConfig::duel_max_allies = 2;
+// Cadência máxima de tiro de cada jogador no duelo (tiros por segundo). Na campanha
+// o limite é AppConfig::player_reload_time (até ~8 tiros/s com 3 estrelas); no duelo,
+// isso derrubava uma base em menos de 1 s
+double AppConfig::duel_max_shots_per_second = 3.0;
 // Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
 unsigned AppConfig::duel_freeze_time = 4000;
 

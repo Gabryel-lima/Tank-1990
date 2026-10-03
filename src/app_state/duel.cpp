@@ -173,6 +173,7 @@ void Duel::startRound()
         p->setPlayerColor(teamColor(team));
         p->spawn_point = spawns.at(i);
         p->lives_count = livesPerTank(team) + 1; // respawn() gasta uma ao entrar no mapa
+        p->setReloadTime(static_cast<Uint32>(1000.0 / AppConfig::duel_max_shots_per_second));
         p->respawn();
         m_players.push_back(p);
     }
@@ -240,6 +241,25 @@ bool Duel::isBaseWall(int team, int row, int column) const
     int top = std::min(base_row, front_row), bottom = std::max(base_row + 1, front_row);
     if((column == 11 || column == 14) && row >= top && row <= bottom) return true;
     return row == front_row && (column == 12 || column == 13);
+}
+
+bool Duel::isInBaseZone(int row, int column) const
+{
+    // Retângulo em volta de cada águia: colunas 9 a 16 (a base ocupa 12-13) e as 7 linhas
+    // do lado da base. Cobre a muralha e as defesas do mapa logo à frente dela (como a
+    // pedra do Fortress e do River)
+    const int HALF_WIDTH = 4, DEPTH = 7;
+    if(column < 12 - HALF_WIDTH + 1 || column > 13 + HALF_WIDTH - 1) return false;
+    return row < DEPTH || row >= m_level_rows_count - DEPTH;
+}
+
+bool Duel::powerAppliesAt(Bullet*, int row, int column)
+{
+    // Perto das bases, o canhão (3 estrelas) não vale: o projétil age como um comum,
+    // desgasta tijolo e para na pedra. Assim a pedra que protege a base (do mapa ou da pá)
+    // continua indestrutível e a base não cai em menos de um segundo. Longe das bases,
+    // o tanque potente continua destruindo pedra do cenário
+    return !isInBaseZone(row, column);
 }
 
 bool Duel::bulletCanDamage(Bullet* bullet, int row, int column)

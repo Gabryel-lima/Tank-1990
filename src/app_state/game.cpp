@@ -848,7 +848,7 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
                 {
                     // bloco protegido: o projétil some sem causar dano
                 }
-                else if(bullet->increased_damage)
+                else if(bullet->increased_damage && powerAppliesAt(bullet, i, j))
                 {
                     delete o;
                     m_level.at(i).at(j) = nullptr;
@@ -900,6 +900,12 @@ void Game::onBaseHit(Eagle* base, Bullet* bullet)
 
 // Campanha: todo bloco pode ser danificado
 bool Game::bulletCanDamage(Bullet*, int, int)
+{
+    return true;
+}
+
+// Campanha: o projétil reforçado (3 estrelas) destrói qualquer bloco em qualquer lugar
+bool Game::powerAppliesAt(Bullet*, int, int)
 {
     return true;
 }

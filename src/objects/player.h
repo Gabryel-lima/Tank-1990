@@ -141,6 +141,12 @@ public:
      */
     TankCommand cpu_command;
 
+    /**
+     * Define o intervalo mínimo entre tiros (ms). O padrão é AppConfig::player_reload_time;
+     * o modo duelo usa um intervalo maior para limitar a cadência.
+     */
+    void setReloadTime(Uint32 ms);
+
 private:
     /**
      * Índice do jogador (0 = Jogador 1). Guardado à parte porque no duelo
@@ -159,6 +165,11 @@ private:
      * Usado para controlar o tempo de recarga.
      */
     Uint32 m_fire_time;
+
+    /**
+     * Intervalo mínimo entre tiros (ms).
+     */
+    Uint32 m_reload_time;
 };
 
 #endif // PLAYER_H

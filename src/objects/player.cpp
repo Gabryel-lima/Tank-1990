@@ -21,6 +21,7 @@ Player::Player(int idx)
     m_shield = new Object(pos_x, pos_y, ST_SHIELD); // Cria o escudo do jogador
     m_shield_time = 0; // Tempo de escudo inicial
     m_fire_time = 0; // Tempo desde o ultimo disparo
+    m_reload_time = AppConfig::player_reload_time; // Intervalo mínimo entre tiros
 
     // Define a cor do jogador baseada no índice
     setPlayerColor(getPlayerColor(idx));
@@ -96,7 +97,7 @@ void Player::update(Uint32 dt)
             speed = 0.0; // Para o tanque, exceto se estiver escorregando no gelo
 
         // Disparo: respeita o tempo de recarga
-        if(shoot && m_fire_time > AppConfig::player_reload_time)
+        if(shoot && m_fire_time > m_reload_time)
         {
             fire();
             m_fire_time = 0;
@@ -219,6 +220,11 @@ void Player::changeStarCountBy(int c)
     // Se tem pelo menos uma estrela, aumenta a velocidade padrão
     if(star_count > 0) default_speed = AppConfig::tank_default_speed * 1.3;
     else default_speed = AppConfig::tank_default_speed;
+}
+
+void Player::setReloadTime(Uint32 ms)
+{
+    m_reload_time = ms;
 }
 
 void Player::addLife() {

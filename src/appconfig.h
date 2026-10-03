@@ -222,6 +222,11 @@ public:
     static unsigned duel_freeze_time;
 
     /**
+     * Cadência máxima de tiro de cada jogador no duelo (tiros por segundo).
+     */
+    static double duel_max_shots_per_second;
+
+    /**
      * Máximo de bots aliados (bônus de reforço) em campo ao mesmo tempo, por equipe.
      */
     static int duel_max_allies;
