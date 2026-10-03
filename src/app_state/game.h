@@ -106,6 +106,13 @@ protected:
     virtual bool bulletCanDamage(Bullet* bullet, int row, int column);
 
     /**
+     * Indica se o poder do projétil reforçado (3 estrelas: destrói o bloco inteiro, até pedra)
+     * vale no bloco da linha/coluna informada. Se não valer, o projétil age como um comum:
+     * desgasta tijolo e para na pedra. Na campanha, sempre vale.
+     */
+    virtual bool powerAppliesAt(Bullet* bullet, int row, int column);
+
+    /**
      * Carrega o mapa do nível a partir de um arquivo.
      * @param path - caminho para o arquivo do mapa
      */

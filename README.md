@@ -198,7 +198,15 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 | **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
 | **Random** | Um mapa sorteado a cada rodada |
 
-Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmos símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio) e acrescente o arquivo e o nome em `AppConfig::duel_maps`. Mantenha a base B nas linhas 0-1 e a A nas linhas 24-25 (colunas 12-13), a muralha de tijolos em volta delas, os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e os pontos de bônus livres, e corredores com pelo menos 2 tiles de largura, a largura de um tanque.
+**Criar um mapa novo** (sem mexer em código):
+
+1. Salve uma grade de **26×26** em `resources/duel_levels/` com os símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio.
+2. Acrescente uma linha `arquivo;Nome` em `resources/duel_levels/maps.txt`. O nome é o que aparece no menu.
+3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema.
+
+O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas) e a **muralha das bases**, que não precisa estar no arquivo; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a pedra do mapa fica indestrutível; os pontos de nascimento sem mira; e os pontos de bônus.
+
+O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e de bônus; e ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até a base inimiga e até cada bônus. Um mapa que não passa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -219,7 +227,9 @@ Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmo
 - **IA dos reforços:** o bot calcula um caminho pelo mapa (busca em grade, como num GPS), contornando pedra e água e abrindo caminho a tiro pelos tijolos, então funciona em qualquer mapa, inclusive nos personalizados. Ele atira quando um inimigo ou a base inimiga está na linha de tiro, vira para atirar em quem aparece ao lado e, se ficar preso (outro tanque na frente), desvia e recalcula.
 - **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge o próximo. Só jogadores coletam (reforços não).
-- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** quebra pedra (resposta à pá). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
+- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
+- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. A pedra que protege a base, seja do mapa (Fortress, River) ou da pá, não cai.
+- **Cadência:** no duelo, cada jogador dispara no máximo **3 tiros por segundo** (`AppConfig::duel_max_shots_per_second`), para que uma rajada não derrube a base inimiga sem chance de defesa.
 - **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, base com muralha de pedra.
 
 **Simulação de equilíbrio:** `make duel-sim` compila `build/bin/duel_sim`, que joga partidas inteiras sem janela, com todos os jogadores controlados pela IA, e mostra quantas rodadas cada equipe vence em cada mapa, quanto cada bônus ajuda quem o pega (separado por quem estava atrás, parelho ou na frente em vidas) e quanto tempo os bots passam presos. Os ajustes de equilíbrio (`AppConfig::duel_*`) podem ser testados sem recompilar:
@@ -373,6 +383,7 @@ Tank-1990/
 │   │   ├── menu.h/cpp    # Menu principal
 │   │   ├── game.h/cpp    # Lógica principal do jogo
 │   │   ├── duel.h/cpp    # Modo duelo (equipes)
+│   │   ├── duel_layout.h/cpp # Geometria do duelo e validação dos mapas
 │   │   ├── duel_ai.cpp   # IA do duelo (bots de reforço)
 │   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
 │   │   └── scores.h/cpp  # Tela de pontuação

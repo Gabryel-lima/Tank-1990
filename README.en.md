@@ -197,7 +197,15 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 | **Open Field** | Open and fast: bushes for ambushes, and ice |
 | **Random** | A random map each round |
 
-To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as the levels: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty) and add the file and its name to `AppConfig::duel_maps`. Keep base B on rows 0-1 and base A on rows 24-25 (columns 12-13), the brick wall around them, the spawn points (columns 4-5, 8-9, 16-17 and 20-21 on rows 0-1 and 24-25) and the power-up spots clear, and corridors at least 2 tiles wide, the width of a tank.
+**Adding a new map** (no code changes):
+
+1. Save a **26×26** grid in `resources/duel_levels/` using the level symbols: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty.
+2. Add an `file;Name` line to `resources/duel_levels/maps.txt`. The name is what the menu shows.
+3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem.
+
+What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows) and the **base walls**, which don't need to be in the file; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and the map's stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
+
+What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; and have a path **2 tiles wide** (a tank's width) from every spawn to the enemy base and to every power-up spot. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -218,7 +226,9 @@ To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as th
 - **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and, if it gets stuck (another tank in the way), sidesteps and plans again.
 - **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
 - **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
-- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** breaks stone (the answer to the shovel). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
+- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
+- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. Stone protecting a base, whether from the map (Fortress, River) or from the shovel, stays up.
+- **Fire rate:** in duel mode each player fires at most **3 shots per second** (`AppConfig::duel_max_shots_per_second`), so a barrage can't take down the enemy base with no chance to defend.
 - **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
 
 **Balance simulation:** `make duel-sim` builds `build/bin/duel_sim`, which plays whole matches with no window, every player driven by the AI, and reports how many rounds each team wins on each map, how much each power-up helps whoever picks it up (split by whether they were behind, even or ahead on lives) and how long bots spend stuck. The balance settings (`AppConfig::duel_*`) can be tried without recompiling:
@@ -371,6 +381,7 @@ Tank-1990/
 │   │   ├── menu.h/cpp    # Main menu
 │   │   ├── game.h/cpp    # Main game logic
 │   │   ├── duel.h/cpp    # Duel (team) mode
+│   │   ├── duel_layout.h/cpp # Duel geometry and map validation
 │   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen

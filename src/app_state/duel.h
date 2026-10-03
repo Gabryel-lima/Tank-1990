@@ -127,6 +127,7 @@ protected:
     std::vector<Eagle*> bases() override;
     void onBaseHit(Eagle* base, Bullet* bullet) override;
     bool bulletCanDamage(Bullet* bullet, int row, int column) override;
+    bool powerAppliesAt(Bullet* bullet, int row, int column) override;
 
 private:
     enum Phase
@@ -268,6 +269,9 @@ private:
 
     /** Controla a duração da pá (base reforçada com pedra) de cada equipe. */
     void updateFortify(Uint32 dt);
+
+    /** O bloco (linha, coluna) fica na zona de uma das bases, onde o canhão não vale. */
+    bool isInBaseZone(int row, int column) const;
 
     /** O bloco (linha, coluna) faz parte da muralha da base da equipe. */
     bool isBaseWall(int team, int row, int column) const;

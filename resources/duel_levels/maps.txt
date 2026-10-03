@@ -1,0 +1,9 @@
+# Mapas do modo duelo: um por linha, "arquivo;Nome" (o nome aparece no menu).
+# Para adicionar um mapa, crie o arquivo nesta pasta e acrescente uma linha aqui.
+# Mapas que não respeitam a geometria do duelo são recusados ao iniciar o jogo
+# (o motivo aparece no terminal); "make check-maps" verifica todos antes disso.
+1;Arena
+2;Fortress
+3;River
+4;Maze
+5;Open Field

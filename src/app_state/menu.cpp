@@ -5,11 +5,11 @@
 #include "../type.h"
 #include "../app_state/game.h"
 #include "../app_state/duel.h"
+#include "../app_state/duel_layout.h"
 #include "../soundmanager.h"
 #include "../controllers.h"
 
 #include <algorithm>
-#include <fstream>
 #include <iostream>
 
 DuelConfig Menu::s_duel_config;
@@ -54,17 +54,7 @@ Menu::Menu(Screen screen)
 
     // Grades dos mapas do duelo para as miniaturas (um mapa ausente fica com a grade vazia)
     for(auto& map : AppConfig::duel_maps)
-    {
-        std::vector<std::string> grid;
-        std::ifstream file(AppConfig::duel_levels_path + map.first);
-        std::string line;
-        while(std::getline(file, line))
-        {
-            while(!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
-            if(!line.empty()) grid.push_back(line);
-        }
-        m_map_grids.push_back(grid);
-    }
+        m_map_grids.push_back(DuelLayout::readMap(AppConfig::duel_levels_path + map.first));
 
     openScreen(screen);
 }
