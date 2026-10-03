@@ -168,6 +168,10 @@ DEPS    = $(OBJS:.o=.d)
 SIM_EXE  = $(BIN)/duel_sim$(EXE_EXT)
 SIM_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/duel_sim.o
 
+# Verificação dos mapas do duelo (tools/check_duel_maps.cpp): mesmas regras do jogo
+CHECK_MAPS_EXE  = $(BIN)/check_duel_maps$(EXE_EXT)
+CHECK_MAPS_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/check_duel_maps.o
+
 vpath %.cpp $(SRC_DIRS)
 
 # ============================================================================
@@ -307,6 +311,19 @@ $(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
 
 -include $(BUILD)/tools/duel_sim.d
 
+# Verifica os mapas do duelo listados em resources/duel_levels/maps.txt
+check-maps: $(BUILD_DIRS) copy_resources $(RESOURCES) $(CHECK_MAPS_EXE)
+	cd $(BIN) && ./check_duel_maps$(EXE_EXT)
+
+$(CHECK_MAPS_EXE): $(CHECK_MAPS_OBJS)
+	$(CC) $(CHECK_MAPS_OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) -o $@
+
+$(BUILD)/tools/check_duel_maps.o: tools/check_duel_maps.cpp Makefile
+	@mkdir -p $(BUILD)/tools
+	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
+
+-include $(BUILD)/tools/check_duel_maps.d
+
 # Copia arquivos/diretórios específicos listados em APP_RESOURCES
 $(APP_RESOURCES): | $(BIN)
 	@if [ -d "$(RESOURCES_DIR)/$@" ]; then \
@@ -349,6 +366,7 @@ help:
 	@echo "  make info        - Mostra informações do sistema"
 	@echo "  make doc         - Gera documentação (Doxygen)"
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
+	@echo "  make check-maps  - Verifica os mapas do duelo (mesmas regras do jogo)"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""
@@ -372,7 +390,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

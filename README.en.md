@@ -197,7 +197,15 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 | **Open Field** | Open and fast: bushes for ambushes, and ice |
 | **Random** | A random map each round |
 
-To add a map: save a 26×26 grid in `resources/duel_levels/` (same symbols as the levels: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty) and add the file and its name to `AppConfig::duel_maps`. Keep base B on rows 0-1 and base A on rows 24-25 (columns 12-13), the brick wall around them, the spawn points (columns 4-5, 8-9, 16-17 and 20-21 on rows 0-1 and 24-25) and the power-up spots clear, and corridors at least 2 tiles wide, the width of a tank.
+**Adding a new map** (no code changes):
+
+1. Save a **26×26** grid in `resources/duel_levels/` using the level symbols: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty.
+2. Add an `file;Name` line to `resources/duel_levels/maps.txt`. The name is what the menu shows.
+3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem.
+
+What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows) and the **base walls**, which don't need to be in the file; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and the map's stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
+
+What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; and have a path **2 tiles wide** (a tank's width) from every spawn to the enemy base and to every power-up spot. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -373,6 +381,7 @@ Tank-1990/
 │   │   ├── menu.h/cpp    # Main menu
 │   │   ├── game.h/cpp    # Main game logic
 │   │   ├── duel.h/cpp    # Duel (team) mode
+│   │   ├── duel_layout.h/cpp # Duel geometry and map validation
 │   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen

@@ -198,7 +198,15 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 | **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
 | **Random** | Um mapa sorteado a cada rodada |
 
-Para criar um mapa: salve uma grade de 26×26 em `resources/duel_levels/` (mesmos símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio) e acrescente o arquivo e o nome em `AppConfig::duel_maps`. Mantenha a base B nas linhas 0-1 e a A nas linhas 24-25 (colunas 12-13), a muralha de tijolos em volta delas, os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e os pontos de bônus livres, e corredores com pelo menos 2 tiles de largura, a largura de um tanque.
+**Criar um mapa novo** (sem mexer em código):
+
+1. Salve uma grade de **26×26** em `resources/duel_levels/` com os símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio.
+2. Acrescente uma linha `arquivo;Nome` em `resources/duel_levels/maps.txt`. O nome é o que aparece no menu.
+3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema.
+
+O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas) e a **muralha das bases**, que não precisa estar no arquivo; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a pedra do mapa fica indestrutível; os pontos de nascimento sem mira; e os pontos de bônus.
+
+O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e de bônus; e ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até a base inimiga e até cada bônus. Um mapa que não passa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -375,6 +383,7 @@ Tank-1990/
 │   │   ├── menu.h/cpp    # Menu principal
 │   │   ├── game.h/cpp    # Lógica principal do jogo
 │   │   ├── duel.h/cpp    # Modo duelo (equipes)
+│   │   ├── duel_layout.h/cpp # Geometria do duelo e validação dos mapas
 │   │   ├── duel_ai.cpp   # IA do duelo (bots de reforço)
 │   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
 │   │   └── scores.h/cpp  # Tela de pontuação

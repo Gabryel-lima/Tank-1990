@@ -18,6 +18,7 @@
 
 #include <SDL2/SDL.h>
 
+#include "../src/app_state/duel_layout.h"
 #include "../src/app_state/duel.h"
 #include "../src/appconfig.h"
 #include "../src/engine/engine.h"
@@ -128,6 +129,7 @@ int main(int argc, char* argv[])
 
     // Só a configuração de sprites (tamanhos e quadros): nada é desenhado
     Engine::getEngine().initModules();
+    DuelLayout::loadMapList();
     std::srand(seed);
 
     // (tipo, cinza, lado: -1 meio, 0 próprio, 1 adversário)

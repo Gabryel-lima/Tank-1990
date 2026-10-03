@@ -1,4 +1,5 @@
 #include "duel.h"
+#include "duel_layout.h"
 #include "menu.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
@@ -6,6 +7,7 @@
 #include "../controllers.h"
 
 #include <algorithm>
+#include <iostream>
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -138,25 +140,32 @@ void Duel::startRound()
     int map_count = static_cast<int>(AppConfig::duel_maps.size());
     m_map = (m_config.map >= 0 && m_config.map < map_count) ? m_config.map : rand() % map_count;
 
-    // A águia da equipe A (embaixo) é criada pelo loadLevel, como na campanha
-    loadLevel(AppConfig::duel_levels_path + AppConfig::duel_maps.at(m_map).first);
-    if(m_level_rows_count < 4 || m_level_columns_count < 15)
+    // Mapa fora da geometria do duelo (arquivo ausente, tamanho errado...): volta ao menu
+    // em vez de rodar uma partida quebrada. Normalmente já foi recusado em DuelLayout::loadMapList
+    std::string path = AppConfig::duel_levels_path + AppConfig::duel_maps.at(m_map).first;
+    std::vector<std::string> problems = DuelLayout::validate(DuelLayout::readMap(path));
+    if(!problems.empty())
     {
-        // Mapa não encontrado: volta ao menu em vez de rodar sem cenário
+        std::cerr << "Mapa de duelo " << path << " inválido: " << problems.front() << "\n";
         m_finished = true;
         return;
     }
 
+    // A águia da equipe A (embaixo) é criada pelo loadLevel, como na campanha
+    loadLevel(path);
+
     // Base da equipe B, espelhada no topo do mapa
-    m_base_b = new Eagle(12 * AppConfig::tile_rect.w, 0);
-    for(int row = 0; row < 2; row++)
-        for(int column = 12; column < 14; column++)
+    int t = AppConfig::tile_rect.w;
+    m_base_b = new Eagle(DuelLayout::BASE_COLUMN * t, DuelLayout::baseRow(1) * t);
+    for(int row = DuelLayout::baseRow(1); row < DuelLayout::baseRow(1) + 2; row++)
+        for(int column = DuelLayout::BASE_COLUMN; column < DuelLayout::BASE_COLUMN + 2; column++)
         {
             delete m_level.at(row).at(column);
             m_level.at(row).at(column) = nullptr;
         }
-    for(int team = 0; team < 2; team++)
-        if(defaultWall(team) != ST_BRICK_WALL) setBaseWalls(team, defaultWall(team));
+    // O jogo monta a muralha das duas bases (tijolo, ou pedra para a equipe menor):
+    // o arquivo do mapa não precisa trazê-la
+    for(int team = 0; team < 2; team++) setBaseWalls(team, defaultWall(team));
 
     // Jogadores humanos: sprite amarelo na equipe A, verde na B (como P1 e P2 no original)
     Controllers::setPlayerCount(m_config.humans);
@@ -235,22 +244,14 @@ void Duel::onBaseHit(Eagle* base, Bullet* bullet)
 
 bool Duel::isBaseWall(int team, int row, int column) const
 {
-    // Equipe A: base nas duas últimas linhas; equipe B: nas duas primeiras
-    int base_row = (team == 0 ? m_level_rows_count - 2 : 0);
-    int front_row = (team == 0 ? base_row - 1 : base_row + 2);
-    int top = std::min(base_row, front_row), bottom = std::max(base_row + 1, front_row);
-    if((column == 11 || column == 14) && row >= top && row <= bottom) return true;
-    return row == front_row && (column == 12 || column == 13);
+    return DuelLayout::isBaseWall(team, row, column);
 }
 
 bool Duel::isInBaseZone(int row, int column) const
 {
-    // Retângulo em volta de cada águia: colunas 9 a 16 (a base ocupa 12-13) e as 7 linhas
-    // do lado da base. Cobre a muralha e as defesas do mapa logo à frente dela (como a
-    // pedra do Fortress e do River)
-    const int HALF_WIDTH = 4, DEPTH = 7;
-    if(column < 12 - HALF_WIDTH + 1 || column > 13 + HALF_WIDTH - 1) return false;
-    return row < DEPTH || row >= m_level_rows_count - DEPTH;
+    // Retângulo em volta de cada águia (DuelLayout): cobre a muralha e as defesas do mapa
+    // logo à frente dela, como a pedra do Fortress e do River
+    return DuelLayout::inBaseZone(row, column);
 }
 
 bool Duel::powerAppliesAt(Bullet*, int row, int column)
@@ -315,14 +316,7 @@ bool Duel::teamAlive(int team)
 
 std::vector<SDL_Point> Duel::spawnOrder(int team) const
 {
-    // Equipe A: colunas na ordem de AppConfig; equipe B: espelho em ponto (troca os lados)
-    std::vector<SDL_Point> order;
-    for(int x : AppConfig::duel_spawn_columns)
-    {
-        int column = (team == 0) ? x : AppConfig::map_rect.w - 2 * AppConfig::tile_rect.w - x;
-        order.push_back({column, AppConfig::duel_spawn_rows.at(team)});
-    }
-    return order;
+    return DuelLayout::spawnOrder(team);
 }
 
 std::vector<SDL_Point> Duel::assignSpawns()
@@ -449,10 +443,7 @@ int Duel::trailingTeam()
 
 std::vector<SDL_Point> Duel::halfSpots(int team) const
 {
-    // Pontos simétricos dentro da metade do mapa da equipe (A embaixo, B em cima)
-    int t = AppConfig::tile_rect.w;
-    if(team == 0) return {{4 * t, 16 * t}, {20 * t, 16 * t}, {12 * t, 18 * t}};
-    return {{4 * t, 8 * t}, {20 * t, 8 * t}, {12 * t, 6 * t}};
+    return DuelLayout::halfBonusSpots(team);
 }
 
 int Duel::chooseBonusTeam()
@@ -503,7 +494,6 @@ void Duel::spawnBonus()
     // Bônus cinza (o ícone original, sem tinta): qualquer jogador coleta. Surge em pontos
     // simétricos no meio do mapa (mesma distância das duas bases) ou, se uma equipe
     // estiver bem atrás em vidas, na metade dela
-    int t = AppConfig::tile_rect.w;
     int trailing = trailingTeam();
     std::vector<SDL_Point> spots;
     if(trailing >= 0)
@@ -512,7 +502,7 @@ void Duel::spawnBonus()
         spots.pop_back(); // só os pontos das laterais
     }
     else
-        spots = {{12 * t, 12 * t}, {4 * t, 12 * t}, {20 * t, 12 * t}};
+        spots = DuelLayout::midBonusSpots();
 
     SDL_Point p = spots.at(rand() % spots.size());
     m_bonuses.push_back(new Bonus(p.x, p.y, type));
@@ -573,24 +563,23 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
 void Duel::setBaseWalls(int team, SpriteType wall)
 {
     std::vector<Tank*> tanks = allTanks();
-    for(int row = 0; row < m_level_rows_count; row++)
-        for(int column = 11; column <= 14; column++)
-        {
-            if(!isBaseWall(team, row, column)) continue;
+    for(const DuelLayout::Tile& wall_tile : DuelLayout::baseWallTiles(team))
+    {
+        int row = wall_tile.row, column = wall_tile.column;
 
-            // Não cria parede em cima de um tanque (ele ficaria preso)
-            SDL_Rect tile = {column * AppConfig::tile_rect.w, row * AppConfig::tile_rect.h, AppConfig::tile_rect.w, AppConfig::tile_rect.h};
-            bool occupied = false;
-            for(Tank* t : tanks)
-                if(!t->to_erase && intersects(t->collision_rect, tile)) occupied = true;
-            if(occupied) continue;
+        // Não cria parede em cima de um tanque (ele ficaria preso)
+        SDL_Rect tile = {column * AppConfig::tile_rect.w, row * AppConfig::tile_rect.h, AppConfig::tile_rect.w, AppConfig::tile_rect.h};
+        bool occupied = false;
+        for(Tank* t : tanks)
+            if(!t->to_erase && intersects(t->collision_rect, tile)) occupied = true;
+        if(occupied) continue;
 
-            delete m_level.at(row).at(column);
-            if(wall == ST_STONE_WALL)
-                m_level.at(row).at(column) = new Object(tile.x, tile.y, ST_STONE_WALL);
-            else
-                m_level.at(row).at(column) = new Brick(tile.x, tile.y);
-        }
+        delete m_level.at(row).at(column);
+        if(wall == ST_STONE_WALL)
+            m_level.at(row).at(column) = new Object(tile.x, tile.y, ST_STONE_WALL);
+        else
+            m_level.at(row).at(column) = new Brick(tile.x, tile.y);
+    }
 }
 
 void Duel::updateFortify(Uint32 dt)
