@@ -190,6 +190,25 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                     problems.push_back("não é espelhado na horizontal e na vertical (primeira diferença na " + where(r, c) + ")");
             }
 
+    // Pedra na borda da zona de uma base: a pedra de dentro da zona é da equipe (colorida,
+    // o adversário não derruba) e a de fora é comum (o canhão quebra). Uma fileira de pedra
+    // que cruza a borda ficaria metade de cada jeito, sem nada no mapa que explique a
+    // diferença; a zona precisa terminar num espaço, tijolo ou outro bloco que não seja pedra
+    for(int r = 0; r < TILES; r++)
+        for(int c = 0; c < TILES; c++)
+        {
+            if(grid[r][c] != '@' || !inBaseZone(r, c)) continue;
+            const int dr[] = {1, -1, 0, 0}, dc[] = {0, 0, 1, -1};
+            for(int k = 0; k < 4; k++)
+            {
+                int nr = r + dr[k], nc = c + dc[k];
+                if(nr < 0 || nc < 0 || nr >= TILES || nc >= TILES) continue;
+                if(grid[nr][nc] == '@' && !inBaseZone(nr, nc))
+                    problems.push_back("pedra cruza a borda da zona da base entre a " + where(r, c) + " e a " + where(nr, nc) +
+                                       " (a de dentro fica colorida e a de fora não): separe com espaço ou tijolo");
+            }
+        }
+
     // Posição (canto superior esquerdo, em tiles) de um tanque 2x2 que cabe ali
     auto fits = [&](int r, int c) {
         if(r < 0 || c < 0 || r + 1 >= TILES || c + 1 >= TILES) return false;

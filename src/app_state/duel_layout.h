@@ -116,7 +116,7 @@ namespace DuelLayout
      */
     std::vector<std::string> validate(const std::vector<std::string>& grid);
 
-    /** Quantos blocos de pedra do mapa ficam na zona das bases (informativo). */
+    /** Quantos blocos de pedra do arquivo do mapa ficam na zona das bases, coloridos (informativo). */
     int protectedStone(const std::vector<std::string>& grid);
 
     /**

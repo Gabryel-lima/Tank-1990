@@ -31,7 +31,7 @@ static bool check(const std::string& path, const std::string& name, const Valida
     if(problems.empty())
     {
         if(duel)
-            std::printf("ok    %-12s %s  (%d bloco(s) de pedra na zona das bases, protegidos do canhão)\n",
+            std::printf("ok    %-12s %s  (%d bloco(s) de pedra nas zonas das bases: coloridos, só o dono derruba)\n",
                         name.c_str(), path.c_str(), DuelLayout::protectedStone(grid));
         else
             std::printf("ok    %-12s %s\n", name.c_str(), path.c_str());

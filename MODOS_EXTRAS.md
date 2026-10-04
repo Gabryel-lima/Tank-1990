@@ -36,6 +36,7 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 | P2 | Uma classe `<Modo>Layout` valida cada mapa e diz o motivo (com linha e coluna). Mapa inválido é **recusado ao iniciar**, com o motivo no terminal, em vez de quebrar uma partida. | `DuelLayout`, `SurvivalLayout` |
 | P3 | `make check-maps` verifica as pastas de todos os modos. | `tools/check_duel_maps.cpp` |
 | P4 | Pontos de nascimento e os lugares que importam (base, bônus, surgimento de inimigos) ligados por caminho da **largura de um tanque** (2 tiles). | `<Modo>Layout` |
+| P5 | Se o modo tem área com dono, pintada (C3), **a pedra não cruza a borda dela**: a área termina num espaço, tijolo ou outro bloco que não seja pedra. Uma parede que cruzasse a borda ficaria metade colorida e metade comum, sem nada no mapa que explique a diferença. | `DuelLayout::validate` |
 
 ## 4. Cores
 
