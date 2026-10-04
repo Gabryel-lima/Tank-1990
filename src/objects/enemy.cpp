@@ -197,7 +197,6 @@ void Enemy::update(Uint32 dt)
 void Enemy::destroy()
 {
     lives_count--;
-    // clearFlag(TSF_BONUS); // possível queda única de bônus (comentado)
     if(lives_count <= 0)
     {
         lives_count = 0;

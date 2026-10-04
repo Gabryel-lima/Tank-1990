@@ -949,7 +949,13 @@ void Game::checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy)
             intersect_rect = intersectRect(&bullet->collision_rect, &enemy->collision_rect);
             if(intersect_rect.w > 0 && intersect_rect.h > 0)
             {
-                if(enemy->testFlag(TSF_BONUS)) generateBonus();
+                // Como no original: o tanque vermelho solta o bônus no primeiro acerto e deixa
+                // de carregá-lo (antes, um tanque blindado soltava um bônus a cada tiro)
+                if(enemy->testFlag(TSF_BONUS))
+                {
+                    generateBonus();
+                    enemy->clearFlag(TSF_BONUS);
+                }
 
                 bullet->destroy();
                 enemy->destroy();
@@ -1148,6 +1154,10 @@ void Game::generateEnemy()
 // Gera um bônus aleatório no mapa, evitando sobreposição com a águia
 void Game::generateBonus()
 {
+    // Como no original, só um bônus fica no mapa: o novo substitui o anterior
+    for(auto bonus : m_bonuses) delete bonus;
+    m_bonuses.clear();
+
     Bonus* b = new Bonus(0, 0, static_cast<SpriteType>(rand() % (ST_BONUS_BOAT - ST_BONUS_GRENADE + 1) + ST_BONUS_GRENADE));
     SDL_Rect intersect_rect;
     do
