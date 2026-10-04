@@ -94,6 +94,8 @@ make clean       # Remove arquivos de build
 make info        # Mostra informações do sistema
 make doc         # Gera documentação (Doxygen)
 make sprites     # Desenha a pixel art de tools/sprites/ em resources/png/texture.png
+make pad-tools   # Diagnóstico (padprobe) e ponte (padbridge) de controles
+make pad-selftest # Testa a ponte de controles de ponta a ponta
 make install-deps # Instala as dependências (apk, apt, dnf ou brew)
 make help        # Mostra todos os comandos disponíveis
 ```
@@ -429,10 +431,44 @@ novo. Outros comandos: `gamepads.cmd --list` (mostra os autorizados) e
 |---|---|
 | PlayStation (DualShock 4, DualSense), Switch Pro, 8BitDo, genéricos USB | Sim |
 | Xbox 360 / One / Series (cabo) | Sim, via o SDL2 com libusb que o `install.cmd` compila |
-| Qualquer controle por **Bluetooth** | Não (o usbipd só repassa USB) |
+| Qualquer controle por **Bluetooth** | Sim, pela ponte de controles (abaixo) |
 
 O `gamepads.cmd` só autoriza dispositivos que o Windows identifica como
 gamepad/joystick (ou controle Xbox); teclado e mouse nunca são repassados.
+
+### Controles por Bluetooth
+
+Pareie o controle **no sistema** (Configurações → Bluetooth, no Windows e no macOS;
+`bluetoothctl` ou as configurações da área de trabalho, no Linux) e abra o jogo. O jogo usa o
+SDL2, que recebe o controle já tratado pelo sistema: por cabo ou por Bluetooth, para o jogo é o
+mesmo controle. A investigação completa (protocolos, APIs de cada sistema, WSL2, fatos e
+hipóteses) está em [CONTROLES.md](CONTROLES.md).
+
+| Onde o jogo roda | Controle Bluetooth |
+|---|---|
+| Linux, macOS, Windows nativo (MSYS2) | Direto: pareie e jogue. No macOS, se aparecer o pedido de **Monitoramento de Entrada**, permita. |
+| Windows com o `install.cmd` (WSL) | Pela **ponte de controles**: o `install.cmd` gera o `padbridge.exe`, e o `play.cmd` o abre em segundo plano. Ele lê no Windows os controles que o WSL não enxerga e os manda ao jogo, onde viram controles comuns. |
+
+Sobre a ponte, no Windows:
+
+- Ela leva **qualquer** controle que o Windows enxergue: Bluetooth, e também por cabo, mesmo sem
+  o `gamepads.cmd`.
+- Os controles repassados pelo `gamepads.cmd` saem do Windows, então não chegam em dobro.
+- Se o **Smart App Control** do Windows 11 bloquear o `padbridge.exe` (é um executável compilado
+  na sua máquina), o jogo abre do mesmo jeito, sem os controles Bluetooth. Nesse caso, use o
+  controle por cabo com o `gamepads.cmd`.
+
+**Diagnóstico** (em qualquer sistema):
+
+```bash
+make pad-tools
+build/bin/padprobe          # lista os controles (nome, USB/Bluetooth, VID:PID) e mostra os botões
+build/bin/padprobe --list   # só lista
+make pad-selftest           # testa a ponte de ponta a ponta, sem controle de verdade
+```
+
+No Windows com WSL, o `padbridge.exe --list` (em `%LOCALAPPDATA%\Tank1990\bridge`) mostra o que a
+ponte enxerga.
 
 ## 👾 Tipos de Inimigos
 
@@ -491,6 +527,11 @@ Tank-1990/
 │   ├── app.h/cpp         # Aplicação principal
 │   ├── appconfig.h/cpp   # Configurações globais (inclui os layouts de teclado)
 │   ├── controllers.h/cpp # Gamepads: hotplug e distribuição entre jogadores
+│   ├── input/            # Controles abaixo do jogo (ver CONTROLES.md)
+│   │   ├── netpad.h/cpp  # Controles da ponte (rede) viram controles virtuais do SDL
+│   │   ├── pad_protocol.h # Protocolo da ponte
+│   │   ├── pad_socket.h/cpp # TCP portátil (Winsock / BSD)
+│   │   └── pad_info.h/cpp # Barramento (USB/Bluetooth/virtual) e VID:PID, para diagnóstico
 │   ├── soundmanager.h/cpp # Gerenciador de áudio
 │   └── type.h            # Definições de tipos
 ├── resources/            # Recursos do jogo
@@ -503,6 +544,9 @@ Tank-1990/
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
 │   ├── paint_sprites.cpp # Desenha a pixel art em texto na textura (make sprites)
+│   ├── padprobe.cpp      # Diagnóstico de controles (USB/Bluetooth/virtual, eventos)
+│   ├── padbridge.cpp     # Ponte de controles: lê no Windows, manda ao jogo no WSL
+│   ├── pad-selftest.sh   # Teste de ponta a ponta da ponte (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art dos poderes novos
 │   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)

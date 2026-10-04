@@ -96,6 +96,8 @@ make clean        # Removes build files
 make info         # Shows system information
 make doc          # Generates documentation (Doxygen)
 make sprites      # Paints the pixel art from tools/sprites/ into resources/png/texture.png
+make pad-tools    # Controller diagnostics (padprobe) and bridge (padbridge)
+make pad-selftest # Tests the controller bridge end to end
 make install-deps # Installs dependencies (apk, apt, dnf or brew)
 make help         # Lists every available command
 ```
@@ -430,11 +432,45 @@ Other commands: `gamepads.cmd --list` (show authorized controllers) and
 |---|---|
 | PlayStation (DualShock 4, DualSense), Switch Pro, 8BitDo, generic USB | Yes |
 | Xbox 360 / One / Series (cable) | Yes, through the libusb-enabled SDL2 that `install.cmd` builds |
-| Any **Bluetooth** controller | No (usbipd only forwards USB) |
+| Any **Bluetooth** controller | Yes, through the controller bridge (below) |
 
 `gamepads.cmd` only authorizes devices Windows identifies as a
 gamepad/joystick (or an Xbox controller); keyboards and mice are never
 forwarded.
+
+### Bluetooth controllers
+
+Pair the controller **in the system** (Settings → Bluetooth on Windows and macOS; `bluetoothctl`
+or the desktop settings on Linux) and open the game. The game uses SDL2, which gets the controller
+already handled by the system: wired or Bluetooth, it's the same controller to the game. The full
+investigation (protocols, each system's APIs, WSL2, facts and hypotheses) is in
+[CONTROLES.md](CONTROLES.md) (in Portuguese).
+
+| Where the game runs | Bluetooth controller |
+|---|---|
+| Linux, macOS, native Windows (MSYS2) | Directly: pair and play. On macOS, allow **Input Monitoring** if asked. |
+| Windows with `install.cmd` (WSL) | Through the **controller bridge**: `install.cmd` builds `padbridge.exe` and `play.cmd` starts it in the background. It reads on Windows the controllers WSL can't see and sends them to the game, where they become regular controllers. |
+
+About the bridge, on Windows:
+
+- It carries **any** controller Windows sees: Bluetooth, and wired too, even without
+  `gamepads.cmd`.
+- Controllers forwarded by `gamepads.cmd` leave Windows, so they don't show up twice.
+- If Windows 11's **Smart App Control** blocks `padbridge.exe` (an executable built on your own
+  machine), the game still opens, without the Bluetooth controllers. In that case, use a wired
+  controller with `gamepads.cmd`.
+
+**Diagnostics** (on any system):
+
+```bash
+make pad-tools
+build/bin/padprobe          # lists controllers (name, USB/Bluetooth, VID:PID) and shows the buttons
+build/bin/padprobe --list   # list only
+make pad-selftest           # tests the bridge end to end, no real controller needed
+```
+
+On Windows with WSL, `padbridge.exe --list` (in `%LOCALAPPDATA%\Tank1990\bridge`) shows what the
+bridge sees.
 
 ## 👾 Enemies
 
@@ -489,6 +525,11 @@ Tank-1990/
 │   ├── app.h/cpp         # Main application
 │   ├── appconfig.h/cpp   # Global settings (including keyboard layouts)
 │   ├── controllers.h/cpp # Gamepads: hotplug and player assignment
+│   ├── input/            # Controller layers below the game (see CONTROLES.md)
+│   │   ├── netpad.h/cpp  # Bridge (network) controllers become SDL virtual controllers
+│   │   ├── pad_protocol.h # Bridge protocol
+│   │   ├── pad_socket.h/cpp # Portable TCP (Winsock / BSD)
+│   │   └── pad_info.h/cpp # Bus (USB/Bluetooth/virtual) and VID:PID, for diagnostics
 │   ├── soundmanager.h/cpp # Audio manager
 │   └── type.h            # Type definitions
 ├── resources/            # Game assets
@@ -501,6 +542,9 @@ Tank-1990/
 ├── tools/                # WSL install/uninstall scripts and the duel simulation
 │   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)
 │   ├── paint_sprites.cpp # Paints text pixel art into the texture (make sprites)
+│   ├── padprobe.cpp      # Controller diagnostics (USB/Bluetooth/virtual, events)
+│   ├── padbridge.cpp     # Controller bridge: reads on Windows, sends to the game in WSL
+│   ├── pad-selftest.sh   # End-to-end test of the bridge (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art of the new powers
 │   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)

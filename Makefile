@@ -115,7 +115,10 @@ ifeq ($(OS),Windows_NT)
 
     LFLAGS = -O2 $(WIN_SUBSYSTEM) -static-libgcc -static-libstdc++
     CFLAGS = -c -Wall -std=c++17 -MMD -MP
-    LIBS   = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf
+    LIBS   = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf -lws2_32
+    # Ferramentas de controle (padprobe, padbridge): só o SDL e a rede. libgcc e libstdc++
+    # estáticas, como no jogo: sem elas o .exe pediria DLLs do MinGW que não vão junto
+    PAD_LIBS = -lmingw32 -lSDL2main -lSDL2 -lws2_32 -static-libgcc -static-libstdc++
 
     # Recursos individuais copiados para o lado do executável
     APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels survival_levels
@@ -145,6 +148,8 @@ else
     LFLAGS = -O
     CFLAGS = -c -Wall -std=c++17 -MMD -MP
     LIBS   = -lSDL2main -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf
+    # Ferramentas de controle (padprobe, padbridge): só o SDL
+    PAD_LIBS = -lSDL2main -lSDL2
     APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels survival_levels
     RESOURCES     = $(APP_RESOURCES)
     SDL_FOUND     = yes
@@ -155,7 +160,7 @@ endif
 EXE = $(BIN)/$(PROJECT_NAME)$(EXE_EXT)
 
 # Módulos do projeto
-MODULES    = engine app_state objects
+MODULES    = engine app_state objects input
 SRC_DIRS   = src $(addprefix src/,$(MODULES))
 BUILD_DIRS = $(BIN) $(addprefix $(BUILD)/,$(MODULES))
 
@@ -324,6 +329,55 @@ $(BUILD)/tools/check_duel_maps.o: tools/check_duel_maps.cpp Makefile
 
 -include $(BUILD)/tools/check_duel_maps.d
 
+# ---------- Controles: diagnóstico e ponte (ver CONTROLES.md) ----------
+# padprobe: lista os controles que o SDL vê (barramento USB/Bluetooth/virtual) e os eventos
+# padbridge: lê os controles deste computador e manda o estado ao jogo por TCP (Windows → WSL)
+PAD_OBJS      = $(BUILD)/input/pad_info.o $(BUILD)/input/pad_socket.o
+PADPROBE_EXE  = $(BIN)/padprobe$(EXE_EXT)
+PADBRIDGE_EXE = $(BIN)/padbridge$(EXE_EXT)
+
+pad-tools: $(BUILD_DIRS) $(PADPROBE_EXE) $(PADBRIDGE_EXE)
+	@echo ""
+	@echo "✅ Ferramentas de controle: $(PADPROBE_EXE) e $(PADBRIDGE_EXE)"
+	@echo "   $(PADPROBE_EXE)                 lista os controles e mostra os eventos"
+	@echo "   $(PADPROBE_EXE) --selftest 47991 & $(PADBRIDGE_EXE) --fake --port 47991 --once"
+
+padprobe: $(BUILD_DIRS) $(PADPROBE_EXE)
+padbridge: $(BUILD_DIRS) $(PADBRIDGE_EXE)
+
+# Teste de ponta a ponta da ponte, sem controle de verdade (tools/pad-selftest.sh)
+pad-selftest: pad-tools
+	sh tools/pad-selftest.sh $(BIN)
+
+$(PADPROBE_EXE): $(BUILD)/tools/padprobe.o $(PAD_OBJS) $(BUILD)/input/netpad.o
+	$(CC) $^ $(INCLUDEPATH) $(LIBSPATH) $(PAD_LIBS) -o $@
+
+$(PADBRIDGE_EXE): $(BUILD)/tools/padbridge.o $(PAD_OBJS)
+	$(CC) $^ $(INCLUDEPATH) $(LIBSPATH) $(PAD_LIBS) -o $@
+
+$(BUILD)/tools/%.o: tools/%.cpp Makefile
+	@mkdir -p $(BUILD)/tools
+	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
+
+-include $(BUILD)/tools/padprobe.d $(BUILD)/tools/padbridge.d
+
+# padbridge.exe para Windows compilado a partir do Linux/WSL com o MinGW (é o que o
+# install.cmd faz dentro do WSL, sem pedir compilador no Windows). Precisa do SDL2 para MinGW:
+#   make padbridge-win SDL2_MINGW=/caminho/SDL2-2.x/x86_64-w64-mingw32
+MINGW_CXX ?= x86_64-w64-mingw32-g++
+PADBRIDGE_WIN_SRCS = tools/padbridge.cpp src/input/pad_info.cpp src/input/pad_socket.cpp
+padbridge-win:
+	@if [ -z "$(SDL2_MINGW)" ] || [ ! -d "$(SDL2_MINGW)/include/SDL2" ]; then \
+		echo "❌ Informe o SDL2 para MinGW: make padbridge-win SDL2_MINGW=<SDL2-2.x>/x86_64-w64-mingw32"; \
+		exit 1; \
+	fi
+	@mkdir -p $(BUILD)/win
+	$(MINGW_CXX) -std=c++17 -O2 -Wall -I$(SDL2_MINGW)/include $(PADBRIDGE_WIN_SRCS) \
+		-L$(SDL2_MINGW)/lib -lmingw32 -lSDL2main -lSDL2 -lws2_32 -static-libgcc -static-libstdc++ \
+		-o $(BUILD)/win/padbridge.exe
+	cp $(SDL2_MINGW)/bin/SDL2.dll $(BUILD)/win/
+	@echo "✅ $(BUILD)/win/padbridge.exe (com o SDL2.dll ao lado)"
+
 # Desenha a pixel art dos poderes dos modos extras (tools/sprites/powers.txt) em
 # resources/png/texture.png. Só é preciso rodar ao mudar a arte; a textura vai no git
 SPRITES_EXE = $(BIN)/paint_sprites$(EXE_EXT)
@@ -377,6 +431,9 @@ help:
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
 	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
 	@echo "  make sprites     - Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura"
+	@echo "  make pad-tools   - Compila o padprobe (diagnóstico de controles) e o padbridge (ponte de controles)"
+	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
+	@echo "  make padbridge-win SDL2_MINGW=<dir> - padbridge.exe para Windows, a partir do Linux/WSL (MinGW)"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""
@@ -400,7 +457,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps sprites
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps sprites pad-tools padprobe padbridge padbridge-win pad-selftest
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

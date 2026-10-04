@@ -4,6 +4,7 @@ title Tank-1990 - Controles
 
 rem ===========================================================================
 rem  Tank-1990 - configura controles (gamepads) USB para jogar no WSL
+rem  (controles Bluetooth nao passam por aqui: ver play.cmd e CONTROLES.md)
 rem ===========================================================================
 rem
 rem  O WSL nao enxerga controles USB sozinho. Este script:
@@ -75,7 +76,8 @@ rem  2. Autorizar os controles conectados
 rem ---------------------------------------------------------------------------
 echo.
 echo  [2/2] Conecte os controles por cabo USB agora, se ainda nao conectou.
-echo        ^(controles por Bluetooth nao podem ser repassados ao WSL^)
+echo        ^(controles por Bluetooth nao precisam deste script: pareie-os no
+echo        Windows e o play.cmd os leva ao jogo pela ponte de controles^)
 echo.
 pause
 %PS% "%PS1%" setup

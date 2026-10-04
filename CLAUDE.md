@@ -25,7 +25,15 @@ em mais de um modo, ele vira regra lá e sobe para um ponto comum no código.
 make build        # compila (sem warnings)
 make check-maps   # valida os mapas de todos os modos extras
 make duel-sim     # simulação do duelo sem janela (equilíbrio e partidas travadas)
+make pad-selftest # ponte de controles de ponta a ponta (controle de mentira)
 ```
+
+A CI (`.github/workflows/build.yml`) roda isso no Linux, no macOS, no Windows (MSYS2) e o
+`tools/wsl-setup.sh` num Alpine, como o `install.cmd`.
+
+Controles: o jogo só conhece o gamepad padronizado do SDL; o transporte (USB, Bluetooth, ponte)
+fica abaixo (ver `CONTROLES.md`). Fonte nova de controles entra como joystick virtual do SDL,
+como o `NetPad`, sem mudar o `Controllers` nem o jogo.
 
 Mudança no `Game`, no `Player`, no `Tank`, no `Object` ou no `Renderer`: confirme que as
 telas da campanha continuam idênticas pixel a pixel.
