@@ -197,6 +197,7 @@ Bullet* Player::fire()
     {
         // sound
         SoundManager::getInstance().playSound("shoot");
+        b->from_player = true;
         // Se tem pelo menos uma estrela, aumenta a velocidade do tiro
         if(star_count > 0) b->speed = AppConfig::bullet_default_speed * 1.3;
         // Se está no nível máximo, o tiro causa mais dano

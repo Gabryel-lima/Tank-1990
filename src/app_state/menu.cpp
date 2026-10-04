@@ -6,6 +6,7 @@
 #include "../app_state/game.h"
 #include "../app_state/duel.h"
 #include "../app_state/duel_layout.h"
+#include "../app_state/survival.h"
 #include "../soundmanager.h"
 #include "../controllers.h"
 
@@ -14,6 +15,7 @@
 
 DuelConfig Menu::s_duel_config;
 bool Menu::s_duel_custom = false;
+int Menu::s_survival_players = 1;
 
 namespace
 {
@@ -76,7 +78,10 @@ void Menu::buildItems()
         m_items = {ITEM_CAMPAIGN_1, ITEM_CAMPAIGN_2, ITEM_CAMPAIGN_3, ITEM_CAMPAIGN_4, ITEM_EXTRA_MODES, ITEM_EXIT};
         break;
     case SCREEN_EXTRA:
-        m_items = {ITEM_DUEL_MODE, ITEM_BACK};
+        m_items = {ITEM_DUEL_MODE, ITEM_SURVIVAL, ITEM_BACK};
+        break;
+    case SCREEN_SURVIVAL:
+        m_items = {ITEM_SURVIVAL_PLAYERS, ITEM_START, ITEM_BACK};
         break;
     case SCREEN_DUEL_FORMAT:
         // Só jogadores humanos (até 4): 3 vs 3 e 4 vs 4 não cabem
@@ -111,6 +116,8 @@ void Menu::openScreen(Screen screen)
     // (assim a revanche é um botão só)
     if(screen == SCREEN_DUEL_SETUP)
         m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_NEXT) - m_items.begin();
+    if(screen == SCREEN_SURVIVAL)
+        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_START) - m_items.begin();
     if(screen == SCREEN_DUEL_MAP)
     {
         Item last = s_duel_config.map < 0 ? ITEM_MAP_RANDOM : static_cast<Item>(ITEM_MAP_FIRST + s_duel_config.map);
@@ -131,6 +138,13 @@ int Menu::slotY(int slot) const
 int Menu::itemY(int i) const
 {
     return slotY(i - m_scroll);
+}
+
+int Menu::playersOnScreen() const
+{
+    if(m_screen == SCREEN_DUEL_SETUP) return s_duel_config.humans;
+    if(m_screen == SCREEN_SURVIVAL) return s_survival_players;
+    return 0;
 }
 
 int Menu::visibleRows() const
@@ -164,7 +178,7 @@ void Menu::drawScrollArrow(int y, bool up)
 
 bool Menu::isValueItem(Item item) const
 {
-    return item == ITEM_HUMANS || (item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM);
+    return item == ITEM_HUMANS || item == ITEM_SURVIVAL_PLAYERS || (item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM);
 }
 
 std::string Menu::itemText(Item item) const
@@ -179,6 +193,9 @@ std::string Menu::itemText(Item item) const
     case ITEM_EXTRA_MODES: return "Extra Modes";
     case ITEM_EXIT: return "Exit";
     case ITEM_DUEL_MODE: return "Duel Mode";
+    case ITEM_SURVIVAL: return "Survival";
+    case ITEM_SURVIVAL_PLAYERS: return "Players   < " + Engine::intToString(s_survival_players) + " >";
+    case ITEM_START: return "Start";
     case ITEM_FORMAT_1V1: return "1 vs 1";
     case ITEM_FORMAT_2V2: return "2 vs 2";
     case ITEM_FORMAT_CUSTOM: return "Custom Teams";
@@ -238,6 +255,15 @@ void Menu::changeValue(int delta)
     Item item = m_items.at(m_menu_index);
     if(!isValueItem(item)) return;
 
+    if(item == ITEM_SURVIVAL_PLAYERS)
+    {
+        // 1 a 4 jogadores, dando a volta nos extremos
+        s_survival_players += delta;
+        if(s_survival_players > 4) s_survival_players = 1;
+        else if(s_survival_players < 1) s_survival_players = 4;
+        return;
+    }
+
     DuelConfig& c = s_duel_config;
     if(item == ITEM_HUMANS)
     {
@@ -294,6 +320,15 @@ void Menu::confirm()
     case ITEM_DUEL_MODE:
         openScreen(SCREEN_DUEL_FORMAT);
         break;
+    case ITEM_SURVIVAL:
+        openScreen(SCREEN_SURVIVAL);
+        break;
+    case ITEM_START:
+        // Como no duelo: só começa se todo jogador tiver controle ou teclado
+        if(Controllers::playersWithoutInput(s_survival_players) > 0) break;
+        m_result = RESULT_SURVIVAL;
+        m_finished = true;
+        break;
     case ITEM_FORMAT_1V1:
     case ITEM_FORMAT_2V2:
         s_duel_custom = false;
@@ -349,6 +384,10 @@ void Menu::back()
     case SCREEN_DUEL_FORMAT:
         openScreen(SCREEN_EXTRA);
         break;
+    case SCREEN_SURVIVAL:
+        openScreen(SCREEN_EXTRA);
+        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_SURVIVAL) - m_items.begin();
+        break;
     case SCREEN_DUEL_SETUP:
         openScreen(SCREEN_DUEL_FORMAT);
         break;
@@ -382,6 +421,7 @@ void Menu::draw()
     if(m_screen == SCREEN_EXTRA) title = "Extra Modes";
     else if(m_screen == SCREEN_DUEL_FORMAT) title = "Duel Mode";
     else if(m_screen == SCREEN_DUEL_MAP) title = "Select Map";
+    else if(m_screen == SCREEN_SURVIVAL) title = "Survival";
     else if(m_screen == SCREEN_DUEL_SETUP)
     {
         // Mostra a divisão atual das equipes, que muda ao trocar jogadores de lado
@@ -390,7 +430,7 @@ void Menu::draw()
     }
     // Na configuração do duelo, jogadores sem controle nem teclado bloqueiam o início:
     // o título vira o aviso (atualiza sozinho ao conectar um controle)
-    int missing = (m_screen == SCREEN_DUEL_SETUP ? Controllers::playersWithoutInput(s_duel_config.humans) : 0);
+    int missing = Controllers::playersWithoutInput(playersOnScreen());
     SDL_Color title_color = GRAY;
     if(missing > 0)
     {
@@ -412,7 +452,7 @@ void Menu::draw()
     {
         Item item = m_items[i];
         SDL_Color color = WHITE;
-        if(item == ITEM_NEXT && missing > 0) color = GRAY;
+        if((item == ITEM_NEXT || item == ITEM_START) && missing > 0) color = GRAY;
         if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM &&
            Controllers::inputName(s_duel_config.humans, item - ITEM_HUMAN_1_TEAM) == "NO PAD")
             color = RED;
@@ -594,6 +634,8 @@ AppState* Menu::nextState()
         return new Game(m_campaign_players);
     case RESULT_DUEL:
         return new Duel(s_duel_config);
+    case RESULT_SURVIVAL:
+        return new Survival(s_survival_players);
     default:
         // "Exit" ou Esc na tela principal: encerra o app
         return nullptr;

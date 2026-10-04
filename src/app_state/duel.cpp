@@ -1,5 +1,6 @@
 #include "duel.h"
 #include "duel_layout.h"
+#include "message_box.h"
 #include "menu.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
@@ -26,45 +27,6 @@ namespace
     const SDL_Color GRAY = {150, 150, 150, 255};
     const SDL_Color PAUSE_RED = {255, 70, 70, 255};   // 6,2:1 sobre preto (o vermelho antigo dava 3,5:1)
 
-    struct MessageLine
-    {
-        std::string text;
-        SDL_Color color;
-        int size;
-        int gap;              ///< espaço até a próxima linha (px)
-        bool visible = true;  ///< linha invisível ainda ocupa espaço (a caixa não muda de tamanho)
-    };
-
-    // Caixa preta com borda, do tamanho do texto, centralizada no mapa. Assim a mensagem
-    // fica legível em qualquer mapa (texto branco direto sobre gelo ou pedra dava ~1,7:1)
-    void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border)
-    {
-        const int PAD_X = 18, PAD_Y = 14;
-        int width = 0, height = 0;
-        for(const MessageLine& line : lines)
-        {
-            SDL_Point size = r->textSize(line.text, line.size);
-            width = std::max(width, size.x);
-            height += size.y + line.gap;
-        }
-        if(!lines.empty()) height -= lines.back().gap;
-
-        SDL_Rect box = {AppConfig::map_rect.x + (AppConfig::map_rect.w - width - 2 * PAD_X) / 2,
-                        AppConfig::map_rect.y + (AppConfig::map_rect.h - height - 2 * PAD_Y) / 2,
-                        width + 2 * PAD_X, height + 2 * PAD_Y};
-        r->drawRect(&box, BLACK, true);
-        r->drawRect(&box, border, false);
-        SDL_Rect inner = {box.x + 1, box.y + 1, box.w - 2, box.h - 2};
-        r->drawRect(&inner, border, false);
-
-        int center_x = box.x + box.w / 2;
-        int y = box.y + PAD_Y;
-        for(const MessageLine& line : lines)
-        {
-            if(line.visible) r->drawTextCentered(center_x, y, line.text, line.color, line.size);
-            y += r->textSize(line.text, line.size).y + line.gap;
-        }
-    }
     const char* TEAM_NAME[2] = {"TEAM A", "TEAM B"};
 
     // Tempos das telas entre rodadas (ms)
@@ -234,8 +196,10 @@ void Duel::onBaseHit(Eagle* base, Bullet* bullet)
 {
     int owner = (base == m_eagle ? 0 : 1);
     bullet->destroy();
-    // Fogo amigo não destrói a própria base
-    if(bullet->team == owner || m_phase != PHASE_PLAY) return;
+    if(m_phase != PHASE_PLAY) return;
+    // Fogo amigo: o tiro de um jogador destrói a própria base (como no original), e a
+    // rodada vai para o adversário. O do bot de reforço não (ele não erra de propósito)
+    if(bullet->team == owner && !bullet->from_player) return;
 
     base->destroy();
     SoundManager::getInstance().playSound("fexplosion");
@@ -265,9 +229,9 @@ bool Duel::powerAppliesAt(Bullet*, int row, int column)
 
 bool Duel::bulletCanDamage(Bullet* bullet, int row, int column)
 {
-    // Uma equipe não derruba a muralha da própria base (evita que bots e
-    // jogadores abram a defesa sem querer)
-    return !(bullet->team >= 0 && isBaseWall(bullet->team, row, column));
+    // O jogador derruba os tijolos da própria muralha (abrir uma passagem ou um ângulo de
+    // tiro faz parte da estratégia); o bot de reforço não, para não abrir a defesa sem querer
+    return !(bullet->team >= 0 && !bullet->from_player && isBaseWall(bullet->team, row, column));
 }
 
 int Duel::livesPerTank(int team) const
@@ -521,10 +485,16 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
     switch(bonus->type)
     {
     case ST_BONUS_GRENADE:
-        // Destrói os inimigos em campo (escudo, barco e 3 estrelas protegem como num tiro)
+        // Explode os inimigos em campo. Diferente de um tiro, escudo (o do capacete e os
+        // 5 s depois de renascer) e barco não seguram a explosão: antes seguravam, e a
+        // granada pega logo depois de uma morte quase nunca matava ninguém
         for(Tank* t : allTanks())
             if(t->team == enemy_team && !t->to_erase && t->testFlag(TSF_LIFE))
+            {
+                t->clearFlag(TSF_SHIELD);
+                t->clearFlag(TSF_BOAT);
                 hitTank(t, player);
+            }
         break;
     case ST_BONUS_HELMET:
         player->shield(AppConfig::duel_helmet_time);
@@ -562,8 +532,12 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
 
 void Duel::setBaseWalls(int team, SpriteType wall)
 {
+    // Laterais, cantos e o pilar são sempre de pedra; a frente da águia (o ponto de ataque)
+    // é do material pedido: tijolo, ou pedra com a pá / para a equipe menor
     std::vector<Tank*> tanks = allTanks();
-    for(const DuelLayout::Tile& wall_tile : DuelLayout::baseWallTiles(team))
+    std::vector<DuelLayout::Tile> tiles = DuelLayout::baseWallTiles(team);
+    for(const DuelLayout::Tile& t : DuelLayout::pillarTiles(team)) tiles.push_back(t);
+    for(const DuelLayout::Tile& wall_tile : tiles)
     {
         int row = wall_tile.row, column = wall_tile.column;
 
@@ -575,7 +549,7 @@ void Duel::setBaseWalls(int team, SpriteType wall)
         if(occupied) continue;
 
         delete m_level.at(row).at(column);
-        if(wall == ST_STONE_WALL)
+        if(wall == ST_STONE_WALL || !DuelLayout::isBaseFront(team, row, column))
             m_level.at(row).at(column) = new Object(tile.x, tile.y, ST_STONE_WALL);
         else
             m_level.at(row).at(column) = new Brick(tile.x, tile.y);

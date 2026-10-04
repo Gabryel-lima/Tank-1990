@@ -17,10 +17,11 @@
  *
  * Telas do menu:
  * @li principal: 1 a 4 jogadores, Extra Modes, Exit
- * @li Extra Modes: Duel Mode
+ * @li Extra Modes: Duel Mode, Survival
  * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
  * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
  * @li escolha do mapa do duelo, com miniatura (ou aleatório a cada rodada)
+ * @li sobrevivência: quantidade de jogadores (1 a 4) e início
  */
 class Menu : public AppState
 {
@@ -34,7 +35,8 @@ public:
         SCREEN_EXTRA,
         SCREEN_DUEL_FORMAT,
         SCREEN_DUEL_SETUP,
-        SCREEN_DUEL_MAP
+        SCREEN_DUEL_MAP,
+        SCREEN_SURVIVAL
     };
 
     /**
@@ -91,6 +93,7 @@ private:
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
+        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS, ITEM_START,
         ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i de AppConfig::duel_maps
     };
 
@@ -99,7 +102,7 @@ private:
      */
     enum Result
     {
-        RESULT_NONE, RESULT_EXIT, RESULT_CAMPAIGN, RESULT_DUEL
+        RESULT_NONE, RESULT_EXIT, RESULT_CAMPAIGN, RESULT_DUEL, RESULT_SURVIVAL
     };
 
     /** Monta a lista de itens da tela atual. */
@@ -131,6 +134,9 @@ private:
 
     /** Altura (y) do texto do item i (considera a rolagem da lista). */
     int itemY(int i) const;
+
+    /** Jogadores que a tela atual vai pôr em jogo (para o aviso de controle faltando). */
+    int playersOnScreen() const;
 
     /** Quantas linhas da lista cabem na tela sem passar da borda inferior. */
     int visibleRows() const;
@@ -175,6 +181,9 @@ private:
      */
     static DuelConfig s_duel_config;
     static bool s_duel_custom;
+
+    /** Jogadores do modo sobrevivência (1 a 4), lembrado para jogar de novo. */
+    static int s_survival_players;
 
     /**
      * Ponteiro para o objeto Player que representa o tanque usado como ponteiro visual no menu.

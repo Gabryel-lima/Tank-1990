@@ -135,7 +135,25 @@ protected:
      * O nível de armadura indica quantos tiros são necessários para destruir o inimigo (de 1 a 4, cada um com cor diferente).
      * O inimigo gerado pode, ao ser destruído, gerar um bônus no mapa.
      */
-    void generateEnemy();
+    virtual void generateEnemy();
+
+    /**
+     * Cria um inimigo no ponto indicado, com tipo, blindagem e chance de carregar bônus
+     * sorteados pela dificuldade @a level (1 a 35, a escala das fases da campanha).
+     */
+    Enemy* createEnemy(SDL_Point point, int level);
+
+    /** Quantos inimigos podem estar no mapa ao mesmo tempo (campanha: 4). */
+    virtual int enemyLimit() const;
+
+    /** Intervalo mínimo (ms) entre o surgimento de dois inimigos. */
+    virtual Uint32 enemySpawnDelay() const;
+
+    /** Painel lateral: inimigos restantes, vidas dos jogadores e número da fase. */
+    virtual void drawStatus();
+
+    /** Desenhado por cima de tudo, antes de apresentar o quadro (mensagens dos modos extras). */
+    virtual void drawOverlay();
 
     /**
      * Gera um bônus aleatório no mapa e o posiciona em local que não colida com a águia.

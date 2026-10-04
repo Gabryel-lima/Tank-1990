@@ -259,6 +259,36 @@ public:
      */
     static double duel_team_bonus_enemy_side_chance;
 
+    // ======================== Modo sobrevivência ========================
+
+    /** Inimigos da primeira onda. */
+    static int survival_first_wave_enemies;
+
+    /** Inimigos a mais em cada onda seguinte. */
+    static int survival_wave_enemy_step;
+
+    /** Limite de inimigos numa onda. */
+    static int survival_max_wave_enemies;
+
+    /** Inimigos no mapa ao mesmo tempo na primeira onda (um a mais a cada jogador extra). */
+    static int survival_first_on_map;
+
+    /** A cada quantas ondas cabe mais um inimigo no mapa ao mesmo tempo. */
+    static int survival_on_map_every_waves;
+
+    /** Limite de inimigos no mapa ao mesmo tempo. */
+    static int survival_max_on_map;
+
+    /** Intervalo (ms) entre o surgimento de inimigos na primeira onda e o mínimo nas últimas. */
+    static unsigned survival_first_spawn_delay;
+    static unsigned survival_min_spawn_delay;
+
+    /** Pausa (ms) com o aviso "WAVE N" antes de cada onda. */
+    static unsigned survival_wave_intro_time;
+
+    /** A cada quantas ondas vencidas todos ganham uma vida (e quem caiu volta). */
+    static int survival_life_every_waves;
+
     /**
      * Velocidade padrão dos projéteis disparados.
      */

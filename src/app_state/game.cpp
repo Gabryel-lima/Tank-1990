@@ -137,34 +137,7 @@ void Game::draw()
             renderer->drawTextOutlined(pos, AppConfig::game_over_text, {255, 10, 10, 255}, 1);
         }
 
-        //===========Status do jogo===========
-        SDL_Rect src = engine.getSpriteConfig()->getSpriteData(ST_LEFT_ENEMY)->rect;
-        SDL_Rect dst;
-        SDL_Point p_dst;
-        // inimigos restantes para eliminar
-        for(int i = 0; i < m_enemy_to_kill; i++)
-        {
-            dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
-            renderer->drawObject(&src, &dst);
-        }
-        // vidas dos jogadores: ícone fixo do tanque, na cor do jogador (o quadro atual do
-        // sprite virava estrela durante o nascimento, e sem a cor P3/P4 pareciam P2/P1)
-        int i = 0;
-        for(auto player : m_players)
-        {
-            dst = {AppConfig::status_rect.x + 5, i * 18 + 180, 16, 16};
-            p_dst = {dst.x + dst.w + 2, dst.y + 3};
-            i++;
-            SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->type)->rect;
-            renderer->drawObjectWithColor(&icon, &dst, player->color);
-            renderer->drawText(&p_dst, Engine::intToString(player->lives_count), {0, 0, 0, 255}, 3);
-        }
-        // número do mapa/nível
-        src = engine.getSpriteConfig()->getSpriteData(ST_STAGE_STATUS)->rect;
-        dst = {AppConfig::status_rect.x + 8, static_cast<int>(185 + (m_players.size() + m_killed_players.size()) * 18), src.w, src.h};
-        p_dst = {dst.x + 10, dst.y + 26};
-        renderer->drawObject(&src, &dst);
-        renderer->drawText(&p_dst, Engine::intToString(m_current_level), {0, 0, 0, 255}, 2);
+        drawStatus();
 
         // "PAUSE" piscando no centro do mapa, como no original; contorno para não sumir
         // sobre os tijolos (o vermelho direto sobre tijolo vermelho desaparecia)
@@ -175,9 +148,49 @@ void Game::draw()
                              AppConfig::map_rect.y + (AppConfig::map_rect.h - size.y) / 2};
             renderer->drawTextOutlined(pos, "PAUSE", {255, 70, 70, 255}, 1);
         }
+        drawOverlay();
     }
 
     renderer->flush();
+}
+
+void Game::drawOverlay()
+{
+}
+
+// Painel lateral da campanha
+void Game::drawStatus()
+{
+    Engine& engine = Engine::getEngine();
+    Renderer* renderer = engine.getRenderer();
+    //===========Status do jogo===========
+    SDL_Rect src = engine.getSpriteConfig()->getSpriteData(ST_LEFT_ENEMY)->rect;
+    SDL_Rect dst;
+    SDL_Point p_dst;
+    // inimigos restantes para eliminar
+    for(int i = 0; i < m_enemy_to_kill; i++)
+    {
+        dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
+        renderer->drawObject(&src, &dst);
+    }
+    // vidas dos jogadores: ícone fixo do tanque, na cor do jogador (o quadro atual do
+    // sprite virava estrela durante o nascimento, e sem a cor P3/P4 pareciam P2/P1)
+    int i = 0;
+    for(auto player : m_players)
+    {
+        dst = {AppConfig::status_rect.x + 5, i * 18 + 180, 16, 16};
+        p_dst = {dst.x + dst.w + 2, dst.y + 3};
+        i++;
+        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->type)->rect;
+        renderer->drawObjectWithColor(&icon, &dst, player->color);
+        renderer->drawText(&p_dst, Engine::intToString(player->lives_count), {0, 0, 0, 255}, 3);
+    }
+    // número do mapa/nível
+    src = engine.getSpriteConfig()->getSpriteData(ST_STAGE_STATUS)->rect;
+    dst = {AppConfig::status_rect.x + 8, static_cast<int>(185 + (m_players.size() + m_killed_players.size()) * 18), src.w, src.h};
+    p_dst = {dst.x + 10, dst.y + 26};
+    renderer->drawObject(&src, &dst);
+    renderer->drawText(&p_dst, Engine::intToString(m_current_level), {0, 0, 0, 255}, 2);
 }
 
 // Atualiza o estado do jogo
@@ -299,7 +312,8 @@ void Game::update(Uint32 dt)
 
         // Adiciona novo inimigo se necessário
         m_enemy_redy_time += dt;
-        if(m_enemies.size() < static_cast<size_t>(AppConfig::enemy_max_count_on_map < m_enemy_to_kill ? AppConfig::enemy_max_count_on_map : m_enemy_to_kill) && m_enemy_redy_time > AppConfig::enemy_redy_time)
+        int limit = std::min(enemyLimit(), m_enemy_to_kill);
+        if(static_cast<int>(m_enemies.size()) < limit && m_enemy_redy_time > enemySpawnDelay())
         {
             m_enemy_redy_time = 0;
             generateEnemy();
@@ -873,6 +887,9 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
         bullet->destroy();
     }
     //========================colisão com as bases========================
+    // Projétil que parou num bloco neste mesmo quadro não chega à base: se ele encosta ao
+    // mesmo tempo na pedra da frente e na águia (metade em cada), a pedra protege
+    if(bullet->collide) return;
     for(Eagle* base : bases())
     {
         if(base->type != ST_EAGLE) continue; // base já destruída
@@ -1116,27 +1133,43 @@ void Game::nextLevel()
     Controllers::setPlayerCount(m_player_count);
 }
 
+int Game::enemyLimit() const
+{
+    return AppConfig::enemy_max_count_on_map;
+}
+
+Uint32 Game::enemySpawnDelay() const
+{
+    return AppConfig::enemy_redy_time;
+}
+
 // Gera um novo inimigo no mapa
 void Game::generateEnemy()
 {
-    float p = static_cast<float>(rand()) / RAND_MAX;
-    SpriteType type = static_cast<SpriteType>(p < (0.00735 * m_current_level + 0.09265) ? ST_TANK_D : rand() % (ST_TANK_C - ST_TANK_A + 1) + ST_TANK_A);
-    Enemy* e = new Enemy(AppConfig::enemy_starting_point.at(m_enemy_respown_position).x, AppConfig::enemy_starting_point.at(m_enemy_respown_position).y, type);
+    SDL_Point point = AppConfig::enemy_starting_point.at(m_enemy_respown_position);
     m_enemy_respown_position++;
     if(m_enemy_respown_position >= static_cast<int>(AppConfig::enemy_starting_point.size())) m_enemy_respown_position = 0;
+    m_enemies.push_back(createEnemy(point, m_current_level));
+}
+
+Enemy* Game::createEnemy(SDL_Point point, int level)
+{
+    float p = static_cast<float>(rand()) / RAND_MAX;
+    SpriteType type = static_cast<SpriteType>(p < (0.00735 * level + 0.09265) ? ST_TANK_D : rand() % (ST_TANK_C - ST_TANK_A + 1) + ST_TANK_A);
+    Enemy* e = new Enemy(point.x, point.y, type);
 
     double a, b, c;
-    if(m_current_level <= 17)
+    if(level <= 17)
     {
-        a = -0.040625 * m_current_level + 0.940625;
-        b = -0.028125 * m_current_level + 0.978125;
-        c = -0.014375 * m_current_level + 0.994375;
+        a = -0.040625 * level + 0.940625;
+        b = -0.028125 * level + 0.978125;
+        c = -0.014375 * level + 0.994375;
     }
     else
     {
-        a = -0.012778 * m_current_level + 0.467222;
-        b = -0.025000 * m_current_level + 0.925000;
-        c = -0.036111 * m_current_level + 1.363889;
+        a = -0.012778 * level + 0.467222;
+        b = -0.025000 * level + 0.925000;
+        c = -0.036111 * level + 1.363889;
     }
 
     p = static_cast<float>(rand()) / RAND_MAX;
@@ -1147,8 +1180,7 @@ void Game::generateEnemy()
 
     p = static_cast<float>(rand()) / RAND_MAX;
     if(p < 0.12) e->setFlag(TSF_BONUS);
-
-    m_enemies.push_back(e);
+    return e;
 }
 
 // Gera um bônus aleatório no mapa, evitando sobreposição com a águia

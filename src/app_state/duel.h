@@ -84,7 +84,11 @@ struct DuelStats
  * @li só jogadores humanos (1v1, 2v2 ou divisões como 2v1 e 3v1);
  * @li vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos;
  * @li vence a partida quem ganhar AppConfig::duel_rounds_to_win rodadas;
- * @li projéteis não ferem aliados nem a própria base (nem os tijolos em volta dela);
+ * @li projéteis não ferem aliados; o tiro de um jogador destrói a própria base e os
+ *     tijolos em volta dela (como no original), o do bot de reforço não;
+ * @li a base tem laterais de pedra e só dois tijolos na frente, protegidos por um pilar
+ *     de pedra: para destruí-la é preciso entrar no pátio entre o pilar e a base
+ *     (DuelLayout), que é também por onde o defensor cruza de um lado para o outro;
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
  * @li a cor é da equipe (companheiros têm a mesma cor); cada bônus surge na cor de uma
@@ -196,6 +200,12 @@ private:
         Uint32 still_time = 0;      ///< tempo querendo andar sem sair do lugar (ms)
         Uint32 unstick_time = 0;    ///< tempo restante andando numa direção qualquer para destravar
         Direction unstick_dir = D_UP;
+        Uint32 aim_time = 0;        ///< há quanto tempo segura a mira num alvo (ms)
+        Uint32 aim_cooldown = 0;    ///< tempo até poder virar de novo para atirar de lado (ms)
+        Tank* chasing = nullptr;    ///< inimigo que o atacante está caçando (histerese da decisão)
+        Uint32 align_pause = 0;     ///< alinhamento ao chegar bloqueado: espera antes de tentar de novo (ms)
+        Direction move_dir = D_UP;  ///< direção em que andou por último
+        Uint32 move_time = 0;       ///< há quanto tempo anda nessa direção (ms)
     };
 
     /** Tanque controlado pela IA: bot de reforço ou jogador do computador. */
@@ -234,6 +244,12 @@ private:
     /** Atirar na direção @a d acerta algum inimigo, a base inimiga ou um projétil que vem vindo. */
     bool worthFiring(Tank* shooter, Direction d, int range);
 
+    /**
+     * O tiro na direção @a d passaria pela muralha ou pela águia da própria equipe
+     * (a IA não atira assim: o tiro de jogador destrói a própria base).
+     */
+    bool firesAtOwnBase(Tank* tank, Direction d) const;
+
     /** Há tijolo (ou pedra, com tiro forte) colado na frente do tanque. */
     bool breakableAhead(Tank* tank, Direction d) const;
 
@@ -264,7 +280,7 @@ private:
     /** Aplica o efeito do bônus para o jogador e a sua equipe. */
     void applyBonus(Player* player, Bonus* bonus);
 
-    /** Coloca tijolos ou pedras em volta da base da equipe. */
+    /** Monta a base da equipe: frente do material @a wall, laterais e pilar de pedra. */
     void setBaseWalls(int team, SpriteType wall);
 
     /** Controla a duração da pá (base reforçada com pedra) de cada equipe. */

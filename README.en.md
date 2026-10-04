@@ -179,6 +179,7 @@ when run — see the Windows section above.
 - ✅ **Sound and visual effects**
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
+- ✅ **Extra modes**: team duel (10 maps) and wave survival (1 to 4 players)
 
 ## ⚔️ Duel Mode (Extra Modes)
 
@@ -191,13 +192,13 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 | Map | Style |
 |-----|-------|
 | **Arena** | Balanced: bricks, side rivers (the boat helps) and ice in the middle |
-| **Fortress** | Defensive: stone wall in front of the bases; you have to enter the yard to attack |
+| **Fortress** | Defensive: stone pillars and a stone band across the middle |
 | **River** | A river cuts through the middle, with three bridges |
 | **Maze** | Brick maze: you can shoot your way through |
 | **Open Field** | Open and fast: bushes for ambushes, and ice |
 | **Crossroads** | Wide avenues crossing between brick and bush blocks |
 | **Archipelago** | Water islands linked by ice bridges; the boat opens shortcuts |
-| **Bunkers** | Stone bunkers around the bases; attacks come from the front |
+| **Bunkers** | Scattered stone bunkers, with narrow corridors to the bases |
 | **Frozen Lake** | An ice lake in the middle, ringed with bushes: hard to stop and aim |
 | **Gauntlet** | A central stone gate: whoever goes through meets the opponent |
 | **Random** | A random map each round |
@@ -208,11 +209,24 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 2. Add an `file;Name` line to `resources/duel_levels/maps.txt`. The name is what the menu shows.
 3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem.
 
-What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows) and the **base walls**, which don't need to be in the file; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and the map's stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
+**The base** is built by the game, the same on every map (it doesn't need to be in the file):
 
-What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; and have a path **2 tiles wide** (a tank's width) from every spawn to the enemy base and to every power-up spot. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
+```
+.....@@.....   stone pillar (2x2): blocks long shots down the middle of the map
+............   yard (2 rows): where the defender crosses from one side of the
+............   base to the other, and where the attacker has to go to shoot
+....@##@....   front: 2 bricks, the only attack point
+....@EE@....   stone sides and corners (E = eagle)
+....@EE@....
+```
 
-**Balance** (not checked by `check-maps`): since maps are mirrored, if the shortest path to the enemy base runs along a side corridor, each team attacks down its own side, they never cross paths, and the round turns into a race. Prefer paths that cross in the middle (or stone beside the eagle, on columns 10 and 15, which removes the flank shot) and check with `duel_sim`: rounds lasting a few seconds with 100% base wins point to this problem.
+So the base can only fall from one place: lined up with the eagle, inside the yard, right in front of it and next to where the defender respawns. Shooting from across the map, or from the flanks, does nothing.
+
+What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows), the base above; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
+
+What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; have a path **2 tiles wide** (a tank's width) from every spawn to the **enemy base's yard** and to every power-up spot; and from every spawn to **its own base's yard** in at most 20 steps, so the defender can cross from one side of the base to the other. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
+
+**Balance** (not checked by `check-maps`): since maps are mirrored, when nobody defends each team attacks down its own side, they never cross paths, and the round turns into a race. Check with `duel_sim`: in a 2 vs 2 (one attacks, one defends, `--teams ABAB`), short rounds with nearly 100% base wins point to a path that's too easy to the enemy yard.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -230,13 +244,13 @@ What the map must follow, checked by `check-maps`: be mirrored horizontally and 
   - **in one team's color** (with an **A** or **B** above it, ~65% of the time): only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1;
   - **gray**, with the game's original icon (~35%): **any player** can pick it up. It appears at a symmetric spot in the middle of the map (same distance from both bases) or, if a team is far behind on lives, on that team's side.
 - **Reinforcement:** the tank power-up brings an **allied bot** in the team's color, with one life. The first reinforcement guards the base and the second one attacks.
-- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and, if it gets stuck (another tank in the way), sidesteps and plans again.
-- **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
+- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and **holds its aim** while the target stays in line (it used to turn back and forth several times a second); it doesn't do a U-turn right after turning; it chases enemies with hysteresis (starts at 10 tiles, gives up at 14); defenders guard the yard, each at its own post, without blocking whoever spawns behind them; and, if it gets stuck, it sidesteps and plans again. The AI never fires toward its own base.
+- **Friendly fire:** bullets don't hurt teammates. A **player's** shot destroys **your own base** (the round goes to the opponent) and breaks the bricks around it, as in the original: you can open a firing angle, but mind your aim. Reinforcement bots' shots don't hurt their own base.
 - **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
-- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
-- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. Stone protecting a base, whether from the map (Fortress, River) or from the shovel, stays up.
+- Duel effects: **grenade** blows up the enemy tanks on the field, even with a shield or a boat (it's an explosion, not a shot; teammates are safe); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
+- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. The base's stone (sides, corners, pillar and the front when fortified by the shovel) stays up.
 - **Fire rate:** in duel mode each player fires at most **3 shots per second** (`AppConfig::duel_max_shots_per_second`), so a barrage can't take down the enemy base with no chance to defend.
-- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
+- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone front on its base too (then the only way to win is eliminating its players).
 
 **Balance simulation:** `make duel-sim` builds `build/bin/duel_sim`, which plays whole matches with no window, every player driven by the AI, and reports how many rounds each team wins on each map, how much each power-up helps whoever picks it up (split by whether they were behind, even or ahead on lives) and how long bots spend stuck. The balance settings (`AppConfig::duel_*`) can be tried without recompiling:
 
@@ -249,6 +263,18 @@ cd build/bin
 
 The AI doesn't play like a person, so the numbers show trends (a power-up that decides the round on its own, a map that favors one side), not the exact result between players.
 - Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
+
+## 🛡️ Survival Mode (Extra Modes)
+
+**Extra Modes → Survival**: 1 to 4 players, together, defending the eagle against **endless waves of enemies**. Pick the number of players (← →) and **Start**. Each player has their own color (P1 yellow, P2 green, P3 blue, P4 red), and the side panel shows the wave, the enemies left and everyone's lives.
+
+- The map is a random campaign stage, which wears down from wave to wave.
+- Each wave has more enemies (6, 8, 10... up to 40), more of them on the map at once (4 on the first wave, +1 per extra player and +1 every 3 waves, up to 10) and tougher ones (wave N uses the difficulty of campaign stage 2N + 1, up to 35).
+- Between waves there's a pause with a **WAVE N** banner (players can already get into position) and the eagle's brick wall is rebuilt.
+- Every **5 waves**, everyone gets an extra life and anyone who had fallen **comes back**.
+- Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle).
+- It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the mode's screen, ready to play again.
+- The numbers live in `AppConfig::survival_*`.
 
 ## 🎯 Power-ups
 
@@ -390,6 +416,8 @@ Tank-1990/
 │   │   ├── duel.h/cpp    # Duel (team) mode
 │   │   ├── duel_layout.h/cpp # Duel geometry and map validation
 │   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
+│   │   ├── survival.h/cpp # Survival mode (waves)
+│   │   ├── message_box.h/cpp # Message box for the extra modes
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen
 │   ├── engine/           # Game engine

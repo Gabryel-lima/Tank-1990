@@ -62,6 +62,12 @@ public:
      * Equipe do tanque que disparou (modo duelo). -1 fora do duelo.
      */
     int team;
+
+    /**
+     * Disparado por um jogador (humano ou do computador). No duelo, só o tiro de jogador
+     * fere a própria base e a muralha dela; o dos bots de reforço não.
+     */
+    bool from_player = false;
 };
 
 #endif // BULLET_H

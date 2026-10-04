@@ -163,5 +163,18 @@ double AppConfig::duel_max_shots_per_second = 3.0;
 // Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
 unsigned AppConfig::duel_freeze_time = 4000;
 
+// Modo sobrevivência: ondas cada vez maiores, com inimigos mais blindados (a dificuldade
+// segue a escala das fases da campanha: onda N ~ fase 2N + 1, até a 35)
+int AppConfig::survival_first_wave_enemies = 6;
+int AppConfig::survival_wave_enemy_step = 2;
+int AppConfig::survival_max_wave_enemies = 40;
+int AppConfig::survival_first_on_map = 4;
+int AppConfig::survival_on_map_every_waves = 3;
+int AppConfig::survival_max_on_map = 10;
+unsigned AppConfig::survival_first_spawn_delay = 1500;
+unsigned AppConfig::survival_min_spawn_delay = 500;
+unsigned AppConfig::survival_wave_intro_time = 3000;
+int AppConfig::survival_life_every_waves = 5;
+
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;

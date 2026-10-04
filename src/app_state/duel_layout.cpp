@@ -5,6 +5,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <set>
 
 namespace DuelLayout
@@ -45,6 +46,38 @@ std::vector<Tile> baseWallTiles(int team)
     tiles.push_back({front, BASE_COLUMN});
     tiles.push_back({front, BASE_COLUMN + 1});
     return tiles;
+}
+
+std::vector<Tile> baseFrontTiles(int team)
+{
+    int front = (team == 0) ? baseRow(team) - 1 : baseRow(team) + 2;
+    return {{front, BASE_COLUMN}, {front, BASE_COLUMN + 1}};
+}
+
+std::vector<Tile> pillarTiles(int team)
+{
+    // Duas linhas de pátio entre a frente da muralha e o pilar
+    int front = (team == 0) ? baseRow(team) - 1 : baseRow(team) + 2;
+    int first = (team == 0) ? front - 4 : front + 3;
+    std::vector<Tile> tiles;
+    for(int r = first; r < first + 2; r++)
+        for(int c = BASE_COLUMN; c < BASE_COLUMN + 2; c++) tiles.push_back({r, c});
+    return tiles;
+}
+
+std::vector<Tile> attackPositions(int team)
+{
+    // Tanque nas duas linhas do pátio, alinhado com a águia (colunas 12-13). Uma coluna para
+    // o lado, o tiro (8 px no centro do tanque) encosta no canto de pedra e para ali
+    int row = (team == 0) ? baseRow(team) - 3 : baseRow(team) + 3;
+    return {{row, BASE_COLUMN}};
+}
+
+bool isBaseFront(int team, int row, int column)
+{
+    for(const Tile& t : baseFrontTiles(team))
+        if(t.row == row && t.column == column) return true;
+    return false;
 }
 
 bool isBaseWall(int team, int row, int column)
@@ -90,8 +123,9 @@ std::vector<SDL_Point> midBonusSpots()
 std::vector<SDL_Point> halfBonusSpots(int team)
 {
     int t = tile();
-    if(team == 0) return {{4 * t, 16 * t}, {(TILES - 6) * t, 16 * t}, {BASE_COLUMN * t, 18 * t}};
-    return {{4 * t, 8 * t}, {(TILES - 6) * t, 8 * t}, {BASE_COLUMN * t, 6 * t}};
+    // O central fica logo atrás do pilar da base
+    if(team == 0) return {{4 * t, 16 * t}, {(TILES - 6) * t, 16 * t}, {BASE_COLUMN * t, 17 * t}};
+    return {{4 * t, 8 * t}, {(TILES - 6) * t, 8 * t}, {BASE_COLUMN * t, 7 * t}};
 }
 
 std::vector<std::string> readMap(const std::string& path)
@@ -125,11 +159,14 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
     }
     if(!problems.empty()) return problems;
 
-    // O mapa como o jogo o monta: espaço das águias vazio e muralhas de tijolo
+    // O mapa como o jogo o monta: espaço das águias vazio, muralha de pedra com a frente de
+    // tijolo e o pilar de pedra
     std::vector<std::string> grid = original;
     for(int team = 0; team < 2; team++)
     {
-        for(const Tile& t : baseWallTiles(team)) grid[t.row][t.column] = '#';
+        for(const Tile& t : baseWallTiles(team)) grid[t.row][t.column] = '@';
+        for(const Tile& t : baseFrontTiles(team)) grid[t.row][t.column] = '#';
+        for(const Tile& t : pillarTiles(team)) grid[t.row][t.column] = '@';
         for(int r = baseRow(team); r < baseRow(team) + 2; r++)
             for(int c = BASE_COLUMN; c < BASE_COLUMN + 2; c++) grid[r][c] = 'E';
     }
@@ -152,8 +189,9 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 if(!passable(grid[r + i][c + j])) return false;
         return true;
     };
+    // Posições alcançáveis e a distância (em passos de 1 tile) até cada uma
     auto reach = [&](int r0, int c0) {
-        std::set<std::pair<int, int>> seen = {{r0, c0}};
+        std::map<std::pair<int, int>, int> seen = {{{r0, c0}, 0}};
         std::deque<std::pair<int, int>> queue = {{r0, c0}};
         while(!queue.empty())
         {
@@ -165,20 +203,23 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 std::pair<int, int> next = {r + dr[k], c + dc[k]};
                 if(!seen.count(next) && fits(next.first, next.second))
                 {
-                    seen.insert(next);
+                    seen[next] = seen[{r, c}] + 1;
                     queue.push_back(next);
                 }
             }
         }
         return seen;
     };
-    // Um tanque na posição encosta na muralha da equipe (bloco vizinho ao seu 2x2)
-    auto touchesWall = [&](int team, int r, int c) {
-        for(const Tile& t : baseWallTiles(team))
-            for(int i = 0; i < 2; i++)
-                for(int j = 0; j < 2; j++)
-                    if(std::abs(r + i - t.row) + std::abs(c + j - t.column) == 1) return true;
-        return false;
+    // Menor distância das posições alcançadas até um ponto de ataque no pátio da equipe
+    // (-1 se nenhum é alcançado)
+    auto yardDistance = [&](const std::map<std::pair<int, int>, int>& seen, int team) {
+        int best = -1;
+        for(const Tile& t : attackPositions(team))
+        {
+            auto it = seen.find({t.row, t.column});
+            if(it != seen.end() && (best < 0 || it->second < best)) best = it->second;
+        }
+        return best;
     };
 
     std::vector<std::pair<int, int>> bonus;
@@ -200,11 +241,14 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 continue;
             }
             auto seen = reach(r, c);
-            bool reaches_enemy = false;
-            for(auto& p : seen)
-                if(touchesWall(1 - team, p.first, p.second)) reaches_enemy = true;
-            if(!reaches_enemy)
-                problems.push_back(name + ": não há caminho da largura de um tanque até a base inimiga");
+            if(yardDistance(seen, 1 - team) < 0)
+                problems.push_back(name + ": não há caminho da largura de um tanque até o pátio da base inimiga");
+            int home = yardDistance(seen, team);
+            if(home < 0)
+                problems.push_back(name + ": não alcança o pátio da própria base (o defensor não cruza para o outro lado)");
+            else if(home > DEFENDER_REACH)
+                problems.push_back(name + ": pátio da própria base a " + std::to_string(home) + " passos (máximo " +
+                                   std::to_string(DEFENDER_REACH) + "): o defensor demora para cruzar para o outro lado");
             for(auto& b : bonus)
                 if(fits(b.first, b.second) && !seen.count(b))
                     problems.push_back(name + ": não alcança o ponto de bônus da " + where(b.first, b.second));
