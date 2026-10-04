@@ -84,7 +84,10 @@ struct DuelStats
  * @li só jogadores humanos (1v1, 2v2 ou divisões como 2v1 e 3v1);
  * @li vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos;
  * @li vence a partida quem ganhar AppConfig::duel_rounds_to_win rodadas;
- * @li projéteis não ferem aliados nem a própria base (nem os tijolos em volta dela);
+ * @li projéteis não ferem aliados; o tiro de um jogador destrói a própria base e os
+ *     tijolos em volta dela (como no original), o do bot de reforço não;
+ * @li a frente de cada águia é de pedra e as laterais de tijolo: a base cai pelos flancos,
+ *     e o pátio à frente dela deixa o defensor contornar a águia para o lado atacado;
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
  * @li a cor é da equipe (companheiros têm a mesma cor); cada bônus surge na cor de uma
@@ -120,6 +123,9 @@ public:
      */
     static SDL_Color teamColor(int team);
 
+    /** Tom da pedra da zona da base da equipe: a cor dela clareada. */
+    static SDL_Color stoneTint(int team);
+
     /** O que aconteceu na partida até agora (usado pela simulação). */
     const DuelStats& stats() const { return m_stats; }
 
@@ -128,6 +134,13 @@ protected:
     void onBaseHit(Eagle* base, Bullet* bullet) override;
     bool bulletCanDamage(Bullet* bullet, int row, int column) override;
     bool powerAppliesAt(Bullet* bullet, int row, int column) override;
+
+    /**
+     * Além do canhão (Game), a pedra da zona da própria base (a pintada com a cor da
+     * equipe) cai com qualquer tiro de jogador da equipe: o defensor abre o caminho que
+     * quiser em casa. Para o adversário ela é inquebrável, menos para o tiro demolidor.
+     */
+    bool breaksBlock(Bullet* bullet, int row, int column) override;
 
 private:
     enum Phase
@@ -149,6 +162,9 @@ private:
 
     /** Monta o mapa e os tanques de uma nova rodada. */
     void startRound();
+
+    /** Cria o jogador @a index da partida (equipe, cor, ponto de nascimento) com @a lives vidas. */
+    Player* createPlayer(int index, int lives);
 
     /** Remove tudo da rodada atual (mapa, tanques, bônus e as duas bases). */
     void clearRound();
@@ -196,12 +212,24 @@ private:
         Uint32 still_time = 0;      ///< tempo querendo andar sem sair do lugar (ms)
         Uint32 unstick_time = 0;    ///< tempo restante andando numa direção qualquer para destravar
         Direction unstick_dir = D_UP;
+        Uint32 aim_time = 0;        ///< há quanto tempo segura a mira num alvo (ms)
+        Uint32 aim_cooldown = 0;    ///< tempo até poder virar de novo para atirar de lado (ms)
+        Tank* chasing = nullptr;    ///< inimigo que o atacante está caçando (histerese da decisão)
+        Uint32 align_pause = 0;     ///< alinhamento ao chegar bloqueado: espera antes de tentar de novo (ms)
+        Direction move_dir = D_UP;  ///< direção em que andou por último
+        Uint32 move_time = 0;       ///< há quanto tempo anda nessa direção (ms)
     };
 
     /** Tanque controlado pela IA: bot de reforço ou jogador do computador. */
     bool isAI(Tank* tank) const;
 
-    /** Papel do tanque da IA (o jogador do computador ataca; o segundo da equipe defende). */
+    /** Papel fixo do tanque da IA (o jogador do computador ataca; o segundo da equipe defende). */
+    Bot::Role baseRole(Tank* tank) const;
+
+    /**
+     * Papel do tanque da IA agora: o fixo, menos quando ninguém em campo ataca; aí o jogador
+     * do computador que defendia sai para atacar (evita a rodada sem fim).
+     */
     Bot::Role roleOf(Tank* tank) const;
 
     /** O que o tanque consegue atravessar (barco, tiro forte). */
@@ -234,6 +262,12 @@ private:
     /** Atirar na direção @a d acerta algum inimigo, a base inimiga ou um projétil que vem vindo. */
     bool worthFiring(Tank* shooter, Direction d, int range);
 
+    /**
+     * O tiro na direção @a d passaria pela muralha ou pela águia da própria equipe
+     * (a IA não atira assim: o tiro de jogador destrói a própria base).
+     */
+    bool firesAtOwnBase(Tank* tank, Direction d) const;
+
     /** Há tijolo (ou pedra, com tiro forte) colado na frente do tanque. */
     bool breakableAhead(Tank* tank, Direction d) const;
 
@@ -261,10 +295,21 @@ private:
     /** Sorteia um bônus em um dos pontos simétricos do mapa. */
     void spawnBonus();
 
-    /** Aplica o efeito do bônus para o jogador e a sua equipe. */
+    /** Aplica o efeito do bônus para o jogador e a sua equipe (ou guarda o poder). */
     void applyBonus(Player* player, Bonus* bonus);
 
-    /** Coloca tijolos ou pedras em volta da base da equipe. */
+    /** Reviver: um companheiro que caiu volta com uma vida; sem ninguém caído, vida extra. */
+    void revive(Player* player);
+
+    /** Usa o poder guardado do jogador. @return false se não deu (sem espaço, ponto ocupado) */
+    bool usePower(Player* player);
+
+    /** Botão de poder, torretas e minas (a cada quadro). */
+    void updatePowers(Uint32 dt);
+
+    bool reservedTile(int row, int column) override;
+
+    /** Monta a base da equipe: frente de pedra, laterais e cantos do material @a wall. */
     void setBaseWalls(int team, SpriteType wall);
 
     /** Controla a duração da pá (base reforçada com pedra) de cada equipe. */
@@ -290,6 +335,7 @@ private:
     int m_kills[4];            ///< eliminações de cada jogador humano na partida
     int m_map;                 ///< mapa da rodada atual (índice em AppConfig::duel_maps)
     std::vector<int> m_player_columns; ///< colunas (x) de nascimento usadas pelos jogadores
+    std::vector<SDL_Point> m_spawns;   ///< ponto de nascimento de cada jogador na rodada
 
     NavGrid m_nav[2];                  ///< grade de navegação de cada equipe (muralha própria bloqueia)
     std::map<Tank*, AIState> m_ai;     ///< memória da IA de cada tanque

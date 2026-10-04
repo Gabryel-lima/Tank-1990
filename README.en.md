@@ -95,6 +95,7 @@ make run          # Builds and runs the game
 make clean        # Removes build files
 make info         # Shows system information
 make doc          # Generates documentation (Doxygen)
+make sprites      # Paints the pixel art from tools/sprites/ into resources/png/texture.png
 make install-deps # Installs dependencies (apk, apt, dnf or brew)
 make help         # Lists every available command
 ```
@@ -179,6 +180,7 @@ when run — see the Windows section above.
 - ✅ **Sound and visual effects**
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
+- ✅ **Extra modes**: team duel (10 maps) and wave survival (1 to 4 players)
 
 ## ⚔️ Duel Mode (Extra Modes)
 
@@ -186,26 +188,45 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 
 **Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (see [Controls](#-controls)), there is no 3 vs 3 or 4 vs 4.
 
-**Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map:
+**Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map. If the list doesn't fit on the screen, it scrolls with the selection (arrows on the right show there are more items above or below):
 
 | Map | Style |
 |-----|-------|
 | **Arena** | Balanced: bricks, side rivers (the boat helps) and ice in the middle |
-| **Fortress** | Defensive: stone wall in front of the bases; you have to enter the yard to attack |
+| **Fortress** | Defensive: stone columns and a stone band across the middle |
 | **River** | A river cuts through the middle, with three bridges |
 | **Maze** | Brick maze: you can shoot your way through |
 | **Open Field** | Open and fast: bushes for ambushes, and ice |
+| **Crossroads** | Wide avenues crossing between brick and bush blocks |
+| **Archipelago** | Water islands linked by ice bridges; the boat opens shortcuts |
+| **Bunkers** | Scattered stone bunkers, with narrow corridors to the bases |
+| **Frozen Lake** | An ice lake in the middle, ringed with bushes: hard to stop and aim |
+| **Gauntlet** | A central stone gate: whoever goes through meets the opponent |
 | **Random** | A random map each round |
 
 **Adding a new map** (no code changes):
 
 1. Save a **26×26** grid in `resources/duel_levels/` using the level symbols: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty.
 2. Add an `file;Name` line to `resources/duel_levels/maps.txt`. The name is what the menu shows.
-3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem.
+3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem (it also checks the survival maps).
 
-What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows) and the **base walls**, which don't need to be in the file; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and the map's stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
+**The base** is built by the game, the same on every map (it doesn't need to be in the file):
 
-What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; and have a path **2 tiles wide** (a tank's width) from every spawn to the enemy base and to every power-up spot. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
+```
+............   yard (2 free rows): where the defender goes around the eagle
+............   to reach whichever flank the enemy comes from
+....#@@#....   armored front: 2 stone blocks
+....#EE#....   brick sides and corners (E = eagle): the base falls from the flanks
+....#EE#....
+```
+
+Shooting at the front, up close or from across the map, does nothing (not even with the gun). Attacks come from either flank, and the defender can always cross from one side to the other through the yard, so there's no single entrance for someone to camp.
+
+What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows), the base above; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
+
+What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; have a path **2 tiles wide** (a tank's width) from every spawn to a **flank of the enemy base** and to every power-up spot; and from every spawn to **both flanks of its own base** in at most 20 steps, so the defender can go around the eagle to the side under attack; and have no stone crossing the edge of the **base zone** (columns 9-16, on the 7 rows on each eagle's side): end the wall with a gap or brick. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
+
+**Balance** (not checked by `check-maps`): since maps are mirrored, when nobody defends each team attacks down its own side, they never cross paths, and the round turns into a race. Check with `duel_sim`: in a 2 vs 2 (one attacks, one defends, `--teams ABAB`), short rounds with nearly 100% base wins point to a path that's too easy to the enemy flanks.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -223,13 +244,14 @@ What the map must follow, checked by `check-maps`: be mirrored horizontally and 
   - **in one team's color** (with an **A** or **B** above it, ~65% of the time): only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1;
   - **gray**, with the game's original icon (~35%): **any player** can pick it up. It appears at a symmetric spot in the middle of the map (same distance from both bases) or, if a team is far behind on lives, on that team's side.
 - **Reinforcement:** the tank power-up brings an **allied bot** in the team's color, with one life. The first reinforcement guards the base and the second one attacks.
-- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and, if it gets stuck (another tank in the way), sidesteps and plans again.
-- **No friendly fire:** bullets don't hurt teammates, your own base or the wall around it.
+- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and **holds its aim** while the target stays in line (it used to turn back and forth several times a second); it doesn't do a U-turn right after turning; it chases enemies with hysteresis (starts at 10 tiles, gives up at 14); defenders guard the base (one in the yard, the same distance from both flanks), each at its own post, without blocking whoever spawns behind them; and, if it gets stuck, it sidesteps and plans again. The AI never fires toward its own base.
+- **Friendly fire:** bullets don't hurt teammates. A **player's** shot destroys **your own base** (the round goes to the opponent) and breaks the bricks around it, as in the original, as well as the painted stone of your own zone (see below): you can open a firing angle, but mind your aim. Reinforcement bots' shots don't hurt their own base.
 - **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
-- Duel effects: **grenade** destroys the enemy tanks on the field (shields protect); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
-- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. Stone protecting a base, whether from the map (Fortress, River) or from the shovel, stays up.
+- Duel effects: **grenade** blows up the enemy tanks on the field, even with a shield or a boat (it's an explosion, not a shot; teammates are safe); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
+- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. All stone inside a zone is **painted in the owning team's color** (gold at the bottom, green at the top): the opponent can't break it (not even with the gun, only with the demolisher shot), but **any shot from a player of the owning team breaks it**, like the bricks of your own wall. The defender can open whatever path they want at home, for instance to flush out an attacker hiding behind a stone; reinforcement bots' and turrets' shots don't break it. That's why no map may have stone crossing the zone's edge (`check-maps` rejects it): half of the wall would be painted and half ordinary.
+- **Demolisher shot (the tank's second stage):** picking up the **gun while already holding a star** (in the same life) gives the demolisher shot. It breaks the **enemy base's stone** (the front, the shovel's stone and the all-stone base of 1 vs 3), but **only when fired from inside that base's zone**: it opens an attack over the top for whoever gets close, with no long-range shots from one base to the other. A demolisher tank gives a quick white glint every second and shows the gun icon in the side panel; **the threatened base's painted stone flashes along with it**, at the same pace, warning the defender. Dying loses it. The stars required are in `AppConfig::duel_demolisher_stars` (default 1).
 - **Fire rate:** in duel mode each player fires at most **3 shots per second** (`AppConfig::duel_max_shots_per_second`), so a barrage can't take down the enemy base with no chance to defend.
-- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone wall around its base.
+- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, an all-stone base (then the only way to win is eliminating its players).
 
 **Balance simulation:** `make duel-sim` builds `build/bin/duel_sim`, which plays whole matches with no window, every player driven by the AI, and reports how many rounds each team wins on each map, how much each power-up helps whoever picks it up (split by whether they were behind, even or ahead on lives) and how long bots spend stuck. The balance settings (`AppConfig::duel_*`) can be tried without recompiling:
 
@@ -242,6 +264,73 @@ cd build/bin
 
 The AI doesn't play like a person, so the numbers show trends (a power-up that decides the round on its own, a map that favors one side), not the exact result between players.
 - Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
+
+## 🛡️ Survival Mode (Extra Modes)
+
+**Extra Modes → Survival**: 1 to 4 players, together, defending the eagle against **endless waves of enemies**. Pick the number of players (← →; the screen shows each player's device, as in the duel), **Next** and the map (with a thumbnail, or **Random**). Each player has their own color (P1 yellow, P2 green, P3 blue, P4 red), and the side panel shows the wave, the enemies left and everyone's lives.
+
+**Maps** (`resources/survival_levels/`, separate from the campaign and the duel):
+
+| Map | Style |
+|-----|-------|
+| **Classic** | A campaign-style map: bushes, bricks and stone |
+| **Trenches** | Brick trenches across the map, with gaps |
+| **Canyon** | Water bands with bridges; the boat opens shortcuts |
+| **Forest** | Thick woods: enemies show up close |
+| **Ice Rink** | An ice rink in the middle: hard to stop and aim |
+| **Citadel** | Stone walls with gates around the base |
+| **Labyrinth** | Brick maze: you can shoot your way through |
+| **Islands** | Water islands with bushes |
+| **Crossfire** | Brick crosses and stone pillars, lots of firing angles |
+| **Last Stand** | Layers of brick shielding the base, open top |
+| **Random** | A random map |
+
+Adding a map works like in the duel: a **26×26** grid using the level symbols in `resources/survival_levels/`, a `file;Name` line in that folder's `maps.txt`, and `make check-maps`. The game builds the eagle and its brick wall; the map must keep clear the spots where enemies appear (at the top) and where players spawn, and connect all of them and the eagle's wall with tank-wide paths. Maps that fail are rejected when the game starts, with the reason printed in the terminal.
+
+- The map wears down from wave to wave.
+- Each wave has more enemies (6, 8, 10... up to 40), more of them on the map at once (4 on the first wave, +1 per extra player and +1 every 3 waves, up to 10) and tougher ones (wave N uses the difficulty of campaign stage 2N + 1, up to 35).
+- Between waves there's a pause with a **WAVE N** banner (players can already get into position) and the eagle's brick wall is rebuilt.
+- Every **5 waves**, everyone gets an extra life and anyone who had fallen **comes back**.
+- Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle). Players have different colors but are **one team**: every power-up is **gray**, with the original icon, and any player can pick it up (team-colored power-ups are duel-only).
+- It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
+- The numbers live in `AppConfig::survival_*`.
+
+## 🧨 New powers (duel and survival)
+
+On top of the 8 original bonuses, the extra modes have 9 new powers, with their own pixel art in the style of the NES icons. They come in two kinds:
+
+- **Storable:** they go into the player's **power slot** and are used whenever the player wants, with the **power button**. While holding a power, the player **can't pick up any other bonus**: bonuses keep appearing (and stay on the map), but can only be picked up after using the held one. **Dying loses the held power**, just like stars: holding it is a risk.
+- **Immediate:** they take effect at once, like the original bonuses.
+
+| Power | Kind | Effect |
+|-------|------|--------|
+| **Mine** | storable | Drops a mine where the tank stands. It blows up the first **enemy** tank that drives over it (it respects shield and boat, so it can't be used to kill a tank that just spawned). Any shot sets it off early. Lasts 30 s; in the last quarter, a white haze pulses over it. In survival it destroys even armored enemies. |
+| **Barricade** | storable | Raises a 2×2 brick block right ahead. It can't be placed on a tank, base, scenery, bush or spawn point; with no room, the power stays held. |
+| **Turret** | storable | Sets up a fixed cannon ahead, in the owner's color, facing where the tank faces. It turns and fires on its own at enemies lined up within 12 tiles, **never towards its own base**. One shot destroys it. It ends with whichever comes first: **10 shots or 20 s**. When it is running out (last 3 shots or last quarter of its time), a white haze pulses over it, faster near the end. |
+| **Recall** | storable | Teleports the tank to its spawn point, next to its base (if taken, to another one of the team). Keeps the boat and stars. The answer to an invasion when you are far from home. |
+| **Turbo** | storable | Speed ×1.5 for 8 s. |
+| **Revive** | immediate | A fallen teammate comes back with one life; if nobody fell, an extra life for the teammate with the fewest. |
+| **Repair** | immediate | Rebuilds your own base wall. |
+| **Team shield** | immediate | Shield for every player of the team at once. |
+| **Truce** | immediate, **survival only** | For 10 s, no new enemy enters the map (**TRUCE** shows at the top). Nothing spawns in the duel, so it would do nothing there: it is left out of the draw. |
+
+**Why these are storable and the others aren't:** storing only makes sense when a power's value depends on **where** and **when** it is used. A mine, a barricade or a turret is worth a lot at the entrance of your base and almost nothing where the bonus happened to appear; recall only helps when the base is under attack; turbo, when fleeing or invading. Star, helmet, revive, repair and shield are worth the same at any time (or more if used right away), so storing them would only delay the effect.
+
+**Power button:**
+
+| Device | Button |
+|--------|--------|
+| Controller | **LB** (left shoulder; L1 on PlayStation, L on Switch) |
+| `WASD` keyboard | **Left Shift** |
+| `ARROWS` keyboard | **Right Shift** |
+
+**In the side panel**, below each player's lives, the held power is shown (an empty square when there is none). In the duel, from 1 vs 1 up to 4 players, each team's panel grows to show one line per player; in survival, the icon sits next to the lives.
+
+**In survival** the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
+
+**Draw:** in the duel, the new powers share the draw with the originals; the strongest ones (turret, revive and team shield) are as rare as the grenade and the gun (in 1 vs 1, revive is just an extra life). The odds are in `Powers::duelTable()` and `Powers::survivalTable()` (`src/app_state/powers.cpp`); durations and ranges in `AppConfig::power_*`.
+
+**The art** is kept as text in `tools/sprites/powers.txt` (one character per pixel, using the original icons' palette), and `make sprites` paints it into `resources/png/texture.png`. To tweak an icon, edit the drawing and run `make sprites` again.
 
 ## 🎯 Power-ups
 
@@ -286,12 +375,14 @@ automatically backs up anyone without one. There is nothing to configure.
 
 - **Move**: D-pad or left stick
 - **Fire**: any face button (A, B, X or Y)
+- **Use the held power** (duel and survival): LB
 - **Start**: pause · **Back/Select**: back to the menu
 - **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
-**On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`)
-and `ARROWS` (arrow keys + `Right Ctrl`; `Right Alt` on Mac). Each layout
-drives a single player: one player's keys never move or fire another tank.
+**On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`,
+power on `Left Shift`) and `ARROWS` (arrow keys + `Right Ctrl`, `Right Alt` on Mac;
+power on `Right Shift`). Each layout drives a single player: one player's keys
+never move or fire another tank.
 
 ### Which device goes to which player
 
@@ -372,6 +463,8 @@ Tank-1990/
 │   │   ├── player.h/cpp  # Player-controlled tank
 │   │   ├── enemy.h/cpp   # Enemy tanks
 │   │   ├── bot.h/cpp     # Allied bot (reinforcement power-up) in duel mode
+│   │   ├── mine.h/cpp    # Mine (extra-mode power)
+│   │   ├── turret.h/cpp  # Fixed turret (extra-mode power)
 │   │   ├── tank.h/cpp    # Tank base class
 │   │   ├── bullet.h/cpp  # Bullets
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -383,6 +476,10 @@ Tank-1990/
 │   │   ├── duel.h/cpp    # Duel (team) mode
 │   │   ├── duel_layout.h/cpp # Duel geometry and map validation
 │   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
+│   │   ├── survival.h/cpp # Survival mode (waves)
+│   │   ├── powers.h/cpp  # New powers: storable vs immediate, and draw odds
+│   │   ├── survival_layout.h/cpp # Survival map geometry and validation
+│   │   ├── message_box.h/cpp # Message box for the extra modes
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen
 │   ├── engine/           # Game engine
@@ -399,9 +496,12 @@ Tank-1990/
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
 │   ├── levels/           # The 36 level files
-│   └── duel_levels/      # Duel mode maps (Arena, Fortress, River, Maze, Open Field)
+│   ├── duel_levels/      # Duel mode maps (listed in maps.txt)
+│   └── survival_levels/  # Survival mode maps (listed in maps.txt)
 ├── tools/                # WSL install/uninstall scripts and the duel simulation
 │   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)
+│   ├── paint_sprites.cpp # Paints text pixel art into the texture (make sprites)
+│   ├── sprites/powers.txt # Pixel art of the new powers
 │   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows
@@ -434,6 +534,9 @@ least one life and the eagle is intact.
 - **Inheritance**: base classes (`Object`, `Tank`) with specializations (`Player`, `Enemy`)
 - **Singleton**: `SoundManager` and `Renderer`
 - **Central configuration**: `AppConfig` holds every game constant
+
+### Extra-mode rules
+Every extra mode, existing or new, follows the rules in **[MODOS_EXTRAS.md](MODOS_EXTRAS.md)** (in Portuguese): for instance, a non-competitive mode works with a single player; setup shows each player's device; the end of a match goes back to map selection; the power button is the same; anything running out gets the white haze. The file also has the checklist for a new mode and the intentional differences between modes.
 
 ### Colors
 Each player gets a unique color applied with `SDL_SetTextureColorMod()`, so

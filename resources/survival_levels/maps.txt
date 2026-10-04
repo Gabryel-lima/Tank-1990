@@ -1,0 +1,14 @@
+# Mapas do modo sobrevivência: um por linha, "arquivo;Nome" (o nome aparece no menu).
+# Para adicionar um mapa, crie o arquivo nesta pasta e acrescente uma linha aqui.
+# Mapas que não passam na validação são recusados ao iniciar o jogo (o motivo aparece
+# no terminal); "make check-maps" verifica todos antes disso.
+1;Classic
+2;Trenches
+3;Canyon
+4;Forest
+5;Ice Rink
+6;Citadel
+7;Labyrinth
+8;Islands
+9;Crossfire
+10;Last Stand

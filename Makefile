@@ -118,7 +118,7 @@ ifeq ($(OS),Windows_NT)
     LIBS   = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf
 
     # Recursos individuais copiados para o lado do executável
-    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
+    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels survival_levels
     RESOURCES     = $(APP_RESOURCES) copy_dlls
 else
     # -------------------------- LINUX / MACOS --------------------------
@@ -145,7 +145,7 @@ else
     LFLAGS = -O
     CFLAGS = -c -Wall -std=c++17 -MMD -MP
     LIBS   = -lSDL2main -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf
-    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
+    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels survival_levels
     RESOURCES     = $(APP_RESOURCES)
     SDL_FOUND     = yes
 endif
@@ -311,7 +311,7 @@ $(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
 
 -include $(BUILD)/tools/duel_sim.d
 
-# Verifica os mapas do duelo listados em resources/duel_levels/maps.txt
+# Verifica os mapas do duelo e da sobrevivência listados em resources/duel_levels/maps.txt e resources/survival_levels/maps.txt
 check-maps: $(BUILD_DIRS) copy_resources $(RESOURCES) $(CHECK_MAPS_EXE)
 	cd $(BIN) && ./check_duel_maps$(EXE_EXT)
 
@@ -323,6 +323,15 @@ $(BUILD)/tools/check_duel_maps.o: tools/check_duel_maps.cpp Makefile
 	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
 
 -include $(BUILD)/tools/check_duel_maps.d
+
+# Desenha a pixel art dos poderes dos modos extras (tools/sprites/powers.txt) em
+# resources/png/texture.png. Só é preciso rodar ao mudar a arte; a textura vai no git
+SPRITES_EXE = $(BIN)/paint_sprites$(EXE_EXT)
+sprites: $(BUILD_DIRS) $(SPRITES_EXE)
+	$(SPRITES_EXE) tools/sprites/powers.txt $(RESOURCES_DIR)/png/texture.png
+
+$(SPRITES_EXE): tools/paint_sprites.cpp
+	$(CC) $(INCLUDEPATH) $< $(LIBSPATH) $(LIBS) -o $@
 
 # Copia arquivos/diretórios específicos listados em APP_RESOURCES
 $(APP_RESOURCES): | $(BIN)
@@ -366,7 +375,8 @@ help:
 	@echo "  make info        - Mostra informações do sistema"
 	@echo "  make doc         - Gera documentação (Doxygen)"
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
-	@echo "  make check-maps  - Verifica os mapas do duelo (mesmas regras do jogo)"
+	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
+	@echo "  make sprites     - Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""
@@ -390,7 +400,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps sprites
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

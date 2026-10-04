@@ -1,5 +1,7 @@
 #include "duel.h"
 #include "duel_layout.h"
+#include "message_box.h"
+#include "powers.h"
 #include "menu.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
@@ -24,47 +26,7 @@ namespace
     const SDL_Color WHITE = {255, 255, 255, 255};
     const SDL_Color LIGHT_GRAY = {200, 200, 200, 255};
     const SDL_Color GRAY = {150, 150, 150, 255};
-    const SDL_Color PAUSE_RED = {255, 70, 70, 255};   // 6,2:1 sobre preto (o vermelho antigo dava 3,5:1)
 
-    struct MessageLine
-    {
-        std::string text;
-        SDL_Color color;
-        int size;
-        int gap;              ///< espaço até a próxima linha (px)
-        bool visible = true;  ///< linha invisível ainda ocupa espaço (a caixa não muda de tamanho)
-    };
-
-    // Caixa preta com borda, do tamanho do texto, centralizada no mapa. Assim a mensagem
-    // fica legível em qualquer mapa (texto branco direto sobre gelo ou pedra dava ~1,7:1)
-    void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border)
-    {
-        const int PAD_X = 18, PAD_Y = 14;
-        int width = 0, height = 0;
-        for(const MessageLine& line : lines)
-        {
-            SDL_Point size = r->textSize(line.text, line.size);
-            width = std::max(width, size.x);
-            height += size.y + line.gap;
-        }
-        if(!lines.empty()) height -= lines.back().gap;
-
-        SDL_Rect box = {AppConfig::map_rect.x + (AppConfig::map_rect.w - width - 2 * PAD_X) / 2,
-                        AppConfig::map_rect.y + (AppConfig::map_rect.h - height - 2 * PAD_Y) / 2,
-                        width + 2 * PAD_X, height + 2 * PAD_Y};
-        r->drawRect(&box, BLACK, true);
-        r->drawRect(&box, border, false);
-        SDL_Rect inner = {box.x + 1, box.y + 1, box.w - 2, box.h - 2};
-        r->drawRect(&inner, border, false);
-
-        int center_x = box.x + box.w / 2;
-        int y = box.y + PAD_Y;
-        for(const MessageLine& line : lines)
-        {
-            if(line.visible) r->drawTextCentered(center_x, y, line.text, line.color, line.size);
-            y += r->textSize(line.text, line.size).y + line.gap;
-        }
-    }
     const char* TEAM_NAME[2] = {"TEAM A", "TEAM B"};
 
     // Tempos das telas entre rodadas (ms)
@@ -169,25 +131,28 @@ void Duel::startRound()
 
     // Jogadores humanos: sprite amarelo na equipe A, verde na B (como P1 e P2 no original)
     Controllers::setPlayerCount(m_config.humans);
-    std::vector<SDL_Point> spawns = assignSpawns();
+    m_spawns = assignSpawns();
     for(int i = 0; i < m_config.humans; i++)
-    {
-        int team = m_config.human_team[i];
-        Player* p = new Player(i);
-        // A cor é da equipe: companheiros têm a mesma cor (e o mesmo sprite)
-        p->team = team;
-        p->cpu = m_config.cpu[i];
-        p->star_armor = AppConfig::duel_star_armor;
-        p->type = static_cast<SpriteType>(ST_PLAYER_1 + team);
-        p->setPlayerColor(teamColor(team));
-        p->spawn_point = spawns.at(i);
-        p->lives_count = livesPerTank(team) + 1; // respawn() gasta uma ao entrar no mapa
-        p->setReloadTime(static_cast<Uint32>(1000.0 / AppConfig::duel_max_shots_per_second));
-        p->respawn();
-        m_players.push_back(p);
-    }
+        m_players.push_back(createPlayer(i, livesPerTank(m_config.human_team[i])));
 
     SoundManager::getInstance().playSound("level_starting");
+}
+
+Player* Duel::createPlayer(int index, int lives)
+{
+    int team = m_config.human_team[index];
+    Player* p = new Player(index);
+    // A cor é da equipe: companheiros têm a mesma cor (e o mesmo sprite)
+    p->team = team;
+    p->cpu = m_config.cpu[index];
+    p->star_armor = AppConfig::duel_star_armor;
+    p->type = static_cast<SpriteType>(ST_PLAYER_1 + team);
+    p->setPlayerColor(teamColor(team));
+    p->spawn_point = m_spawns.at(index);
+    p->lives_count = lives + 1; // respawn() gasta uma ao entrar no mapa
+    p->setReloadTime(static_cast<Uint32>(1000.0 / AppConfig::duel_max_shots_per_second));
+    p->respawn();
+    return p;
 }
 
 void Duel::endRound(int winner)
@@ -234,8 +199,10 @@ void Duel::onBaseHit(Eagle* base, Bullet* bullet)
 {
     int owner = (base == m_eagle ? 0 : 1);
     bullet->destroy();
-    // Fogo amigo não destrói a própria base
-    if(bullet->team == owner || m_phase != PHASE_PLAY) return;
+    if(m_phase != PHASE_PLAY) return;
+    // Fogo amigo: o tiro de um jogador destrói a própria base (como no original), e a
+    // rodada vai para o adversário. O do bot de reforço não (ele não erra de propósito)
+    if(bullet->team == owner && !bullet->from_player) return;
 
     base->destroy();
     SoundManager::getInstance().playSound("fexplosion");
@@ -254,20 +221,35 @@ bool Duel::isInBaseZone(int row, int column) const
     return DuelLayout::inBaseZone(row, column);
 }
 
-bool Duel::powerAppliesAt(Bullet*, int row, int column)
+bool Duel::powerAppliesAt(Bullet* bullet, int row, int column)
 {
     // Perto das bases, o canhão (3 estrelas) não vale: o projétil age como um comum,
     // desgasta tijolo e para na pedra. Assim a pedra que protege a base (do mapa ou da pá)
-    // continua indestrutível e a base não cai em menos de um segundo. Longe das bases,
-    // o tanque potente continua destruindo pedra do cenário
-    return !isInBaseZone(row, column);
+    // não cai de longe e a base não cai em menos de um segundo. Longe das bases, o tanque
+    // potente continua destruindo pedra do cenário
+    if(!isInBaseZone(row, column)) return true;
+
+    // Tiro demolidor: derruba a pedra da base INIMIGA, mas só disparado de dentro da zona
+    // dela. Abre um terceiro ângulo (a frente) para quem chega perto, sem tiro de longe,
+    // de uma base para a outra
+    int zone = DuelLayout::zoneTeam(row, column);
+    int from = DuelLayout::zoneTeam(bullet->origin.y / AppConfig::tile_rect.h, bullet->origin.x / AppConfig::tile_rect.w);
+    return bullet->demolisher && zone != bullet->team && from == zone;
+}
+
+bool Duel::breaksBlock(Bullet* bullet, int row, int column)
+{
+    if(Game::breaksBlock(bullet, row, column)) return true;
+    Object* o = m_level.at(row).at(column);
+    return bullet->from_player && o != nullptr && o->type == ST_STONE_WALL &&
+           bullet->team >= 0 && DuelLayout::zoneTeam(row, column) == bullet->team;
 }
 
 bool Duel::bulletCanDamage(Bullet* bullet, int row, int column)
 {
-    // Uma equipe não derruba a muralha da própria base (evita que bots e
-    // jogadores abram a defesa sem querer)
-    return !(bullet->team >= 0 && isBaseWall(bullet->team, row, column));
+    // O jogador derruba os tijolos da própria muralha (abrir uma passagem ou um ângulo de
+    // tiro faz parte da estratégia); o bot de reforço não, para não abrir a defesa sem querer
+    return !(bullet->team >= 0 && !bullet->from_player && isBaseWall(bullet->team, row, column));
 }
 
 int Duel::livesPerTank(int team) const
@@ -294,6 +276,7 @@ std::vector<Tank*> Duel::allTanks()
 {
     std::vector<Tank*> v(m_players.begin(), m_players.end());
     v.insert(v.end(), m_enemies.begin(), m_enemies.end());
+    v.insert(v.end(), m_turrets.begin(), m_turrets.end());
     return v;
 }
 
@@ -393,7 +376,7 @@ void Duel::hitTank(Tank* target, Tank* shooter)
     target->destroy(); // Player e Bot ignoram o tiro se estiverem com escudo
     if(!target->testFlag(TSF_DESTROYED)) return;
 
-    Player* shooter_player = dynamic_cast<Player*>(shooter);
+    Player* shooter_player = shooter != nullptr ? dynamic_cast<Player*>(shooter) : nullptr;
     if(shooter_player != nullptr) m_kills[shooter_player->playerIndex()]++;
 }
 
@@ -414,6 +397,14 @@ void Duel::checkBulletsAgainstTank(Tank* shooter, Tank* target)
 }
 
 // ======================== Bônus ========================
+
+SDL_Color Duel::stoneTint(int team)
+{
+    // Meio caminho entre a cor da equipe e o branco: a pedra continua com cara de pedra
+    // (o verde puro a confundia com o arbusto)
+    SDL_Color c = teamColor(team);
+    return {static_cast<Uint8>((c.r + 255) / 2), static_cast<Uint8>((c.g + 255) / 2), static_cast<Uint8>((c.b + 255) / 2), 255};
+}
 
 SDL_Color Duel::teamColor(int team)
 {
@@ -459,20 +450,8 @@ int Duel::chooseBonusTeam()
 
 void Duel::spawnBonus()
 {
-    // Pesos de cada bônus: os que decidem a rodada sozinhos (granada e arma) são raros
-    static const struct { SpriteType type; int weight; } table[] = {
-        {ST_BONUS_STAR, 20}, {ST_BONUS_HELMET, 16}, {ST_BONUS_SHOVEL, 14}, {ST_BONUS_CLOCK, 12},
-        {ST_BONUS_TANK, 12}, {ST_BONUS_BOAT, 10}, {ST_BONUS_GRENADE, 8}, {ST_BONUS_GUN, 8},
-    };
-    int total = 0;
-    for(auto& entry : table) total += entry.weight;
-    int roll = rand() % total;
-    SpriteType type = ST_BONUS_STAR;
-    for(auto& entry : table)
-    {
-        if(roll < entry.weight) { type = entry.type; break; }
-        roll -= entry.weight;
-    }
+    // Pesos de cada bônus em Powers::duelTable: os que decidem a rodada sozinhos são raros
+    SpriteType type = Powers::draw(Powers::duelTable());
 
     // Bônus da equipe (colorido): só jogadores daquela cor coletam, e ele surge com mais
     // frequência na metade do adversário (é preciso invadir para buscar) do que na própria
@@ -517,14 +496,28 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
     int half = center_y == middle ? -1 : (center_y > middle ? 0 : 1); // A embaixo, B em cima
     int side = half < 0 ? -1 : (half == team ? 0 : 1);
     m_stats.pickups.push_back({m_round, team, bonus->type, bonus->owner_team < 0, side, teamLead(team)});
+    bonus->to_erase = true;
+
+    // Poder de lugar e momento: fica guardado até o jogador usar (botão de poder)
+    if(Powers::storable(bonus->type))
+    {
+        player->held_power = bonus->type;
+        return;
+    }
 
     switch(bonus->type)
     {
     case ST_BONUS_GRENADE:
-        // Destrói os inimigos em campo (escudo, barco e 3 estrelas protegem como num tiro)
+        // Explode os inimigos em campo. Diferente de um tiro, escudo (o do capacete e os
+        // 5 s depois de renascer) e barco não seguram a explosão: antes seguravam, e a
+        // granada pega logo depois de uma morte quase nunca matava ninguém
         for(Tank* t : allTanks())
             if(t->team == enemy_team && !t->to_erase && t->testFlag(TSF_LIFE))
+            {
+                t->clearFlag(TSF_SHIELD);
+                t->clearFlag(TSF_BOAT);
                 hitTank(t, player);
+            }
         break;
     case ST_BONUS_HELMET:
         player->shield(AppConfig::duel_helmet_time);
@@ -549,19 +542,146 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
         player->changeStarCountBy(1);
         break;
     case ST_BONUS_GUN:
-        player->changeStarCountBy(3);
+        // Segundo estágio: o canhão pego por quem já evoluiu o tanque (estrelas) vira tiro
+        // demolidor
+        {
+            bool evolved = player->stars() >= AppConfig::duel_demolisher_stars;
+            player->changeStarCountBy(3);
+            if(evolved) player->setDemolisher(true);
+        }
         break;
     case ST_BONUS_BOAT:
         player->setFlag(TSF_BOAT);
         break;
+    case ST_BONUS_REVIVE:
+        revive(player);
+        break;
+    case ST_BONUS_REPAIR:
+        // A muralha volta inteira, no material atual (pedra se a pá estiver valendo)
+        setBaseWalls(team, m_base_wall[team]);
+        break;
+    case ST_BONUS_TEAM_SHIELD:
+        for(auto p : m_players)
+            if(p->team == team && !p->to_erase) p->shield(AppConfig::duel_helmet_time);
+        break;
     default:
         break;
     }
-    bonus->to_erase = true;
+}
+
+void Duel::revive(Player* player)
+{
+    int team = player->team;
+    // Um companheiro que já caiu volta com uma vida
+    for(int i = 0; i < m_config.humans; i++)
+    {
+        if(m_config.human_team[i] != team) continue;
+        bool present = false;
+        for(auto p : m_players)
+            if(p->playerIndex() == i) present = true;
+        if(present) continue;
+        m_players.push_back(createPlayer(i, 1));
+        SoundManager::getInstance().playSound("life");
+        return;
+    }
+    // Ninguém caiu: vida extra para quem da equipe tem menos
+    Player* weakest = player;
+    for(auto p : m_players)
+        if(p->team == team && !p->to_erase && p->lives_count < weakest->lives_count) weakest = p;
+    weakest->addLife();
+}
+
+bool Duel::usePower(Player* player)
+{
+    switch(player->held_power)
+    {
+    case ST_BONUS_MINE:
+        placeMine(player);
+        return true;
+    case ST_BONUS_BARRICADE:
+        return placeBarricade(player);
+    case ST_BONUS_TURRET:
+        return placeTurret(player);
+    case ST_BONUS_TURBO:
+        player->boost(AppConfig::power_turbo_time);
+        SoundManager::getInstance().playSound("bonus");
+        return true;
+    case ST_BONUS_RECALL:
+    {
+        // O próprio ponto de nascimento, ao lado da base; ocupado, outro da equipe
+        std::vector<SDL_Point> points = {player->spawn_point};
+        for(SDL_Point p : spawnOrder(player->team)) points.push_back(p);
+        return recall(player, points);
+    }
+    default:
+        return false;
+    }
+}
+
+bool Duel::reservedTile(int row, int column)
+{
+    // Nada de barricada ou torreta em cima de um ponto de nascimento (prenderia quem nasce)
+    for(int team = 0; team < 2; team++)
+        for(SDL_Point s : spawnOrder(team))
+        {
+            int r = s.y / AppConfig::tile_rect.h, c = s.x / AppConfig::tile_rect.w;
+            if(row >= r && row < r + 2 && column >= c && column < c + 2) return true;
+        }
+    return false;
+}
+
+void Duel::updatePowers(Uint32 dt)
+{
+    // Botão de poder: usa o poder guardado (se não couber, por exemplo a barricada sem
+    // espaço na frente, o poder continua guardado)
+    for(auto player : m_players)
+        if(player->takePowerPress() && player->held_power != ST_NONE && player->testFlag(TSF_LIFE) && usePower(player))
+            player->held_power = ST_NONE;
+
+    // Torretas: atiram em quem estiver na linha, nunca na direção da própria base
+    for(auto turret : m_turrets)
+        turret->think([&](Direction d) {
+            return worthFiring(turret, d, AppConfig::power_turret_range) && !firesAtOwnBase(turret, d);
+        });
+
+    // Minas: o tanque da outra equipe que passar por cima leva o "tiro" da mina (escudo e
+    // barco seguram, como num tiro: assim uma mina no ponto de nascimento não mata quem nasce)
+    std::vector<Tank*> tanks = allTanks();
+    auto overlap = [](SDL_Rect a, SDL_Rect b, int min) {
+        SDL_Rect r = intersectRect(&a, &b);
+        return r.w >= min && r.h >= min;
+    };
+    for(auto mine : m_mines)
+    {
+        if(mine->to_erase) continue;
+        for(Tank* t : tanks)
+        {
+            if(t->team == mine->team || t->to_erase || !t->testFlag(TSF_LIFE) || dynamic_cast<Turret*>(t) != nullptr) continue;
+            if(!overlap(mine->collision_rect, t->collision_rect, 6)) continue;
+            Player* owner = nullptr;
+            for(auto p : m_players)
+                if(p->playerIndex() == mine->owner) owner = p;
+            hitTank(t, owner != nullptr ? static_cast<Tank*>(owner) : nullptr);
+            mine->detonate();
+            break;
+        }
+        // Qualquer tiro acerta a mina e ela some (dá para limpar o caminho)
+        for(Tank* t : tanks)
+            for(auto bullet : t->bullets)
+                if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(mine->collision_rect, bullet->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    mine->detonate();
+                }
+    }
+    for(auto mine : m_mines) mine->update(dt);
+    for(auto turret : m_turrets) turret->update(dt);
 }
 
 void Duel::setBaseWalls(int team, SpriteType wall)
 {
+    // A frente da águia é sempre de pedra; laterais e cantos são do material pedido: tijolo,
+    // ou pedra com a pá / para a equipe menor
     std::vector<Tank*> tanks = allTanks();
     for(const DuelLayout::Tile& wall_tile : DuelLayout::baseWallTiles(team))
     {
@@ -575,7 +695,7 @@ void Duel::setBaseWalls(int team, SpriteType wall)
         if(occupied) continue;
 
         delete m_level.at(row).at(column);
-        if(wall == ST_STONE_WALL)
+        if(wall == ST_STONE_WALL || DuelLayout::isBaseFront(team, row, column))
             m_level.at(row).at(column) = new Object(tile.x, tile.y, ST_STONE_WALL);
         else
             m_level.at(row).at(column) = new Brick(tile.x, tile.y);
@@ -669,10 +789,10 @@ void Duel::update(Uint32 dt)
                         checkCollisionTwoBullets(b1, b2);
 
     // Bônus: só jogadores humanos coletam; o da equipe, só jogadores daquela cor
-    // (os adversários passam por cima)
+    // (os adversários passam por cima); quem guarda um poder só pega outro depois de usá-lo
     for(auto player : m_players)
         for(auto bonus : m_bonuses)
-            if(!player->to_erase && !bonus->to_erase && player->testFlag(TSF_LIFE) &&
+            if(!player->to_erase && !bonus->to_erase && player->testFlag(TSF_LIFE) && player->held_power == ST_NONE &&
                (bonus->owner_team < 0 || bonus->owner_team == player->team) &&
                intersects(player->collision_rect, bonus->collision_rect))
                 applyBonus(player, bonus);
@@ -686,6 +806,7 @@ void Duel::update(Uint32 dt)
     for(Tank* t : tanks) tryCornerSlide(t, dt);
 
     updateAI(dt);
+    updatePowers(dt);
 
     for(auto enemy : m_enemies) enemy->update(dt);
     for(auto player : m_players) player->update(dt);
@@ -706,6 +827,8 @@ void Duel::update(Uint32 dt)
     erase(m_players);
     erase(m_bonuses);
     erase(m_bushes);
+    erase(m_turrets);
+    erase(m_mines);
 
     updateFortify(dt);
 
@@ -733,11 +856,29 @@ void Duel::draw()
     renderer->clear();
 
     renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 255}, true);
-    for(auto row : m_level)
-        for(auto item : row)
-            if(item != nullptr) item->draw();
+    // Quem tem o tiro demolidor em cada equipe: a pedra da base adversária pisca junto
+    // com o brilho dele, avisando que ela não segura esse tanque
+    Player* demolisher[2] = {nullptr, nullptr};
+    for(auto player : m_players)
+        if(!player->to_erase && player->demolisher() && demolisher[player->team] == nullptr)
+            demolisher[player->team] = player;
+    for(size_t r = 0; r < m_level.size(); r++)
+        for(size_t c = 0; c < m_level[r].size(); c++)
+        {
+            Object* item = m_level[r][c];
+            if(item == nullptr) continue;
+            int team = item->type == ST_STONE_WALL ? DuelLayout::zoneTeam(static_cast<int>(r), static_cast<int>(c)) : -1;
+            if(team < 0) { item->draw(); continue; }
+            // Pedra da zona de uma base: na cor da equipe (só ela a derruba)
+            renderer->drawObjectWithColor(&item->src_rect, &item->dest_rect, stoneTint(team));
+            Player* threat = demolisher[1 - team];
+            if(threat != nullptr && Player::demolisherGlint(threat->effectTime()))
+                renderer->drawWhite(&item->src_rect, &item->dest_rect, Player::DEMOLISHER_GLINT_ALPHA);
+        }
+    for(auto mine : m_mines) mine->draw();
     for(auto player : m_players) player->draw();
     for(auto enemy : m_enemies) enemy->draw();
+    for(auto turret : m_turrets) turret->draw();
     for(auto bush : m_bushes) bush->draw();
     for(auto bonus : m_bonuses) bonus->draw();
     for(Eagle* base : bases()) base->draw();
@@ -774,7 +915,10 @@ void Duel::draw()
         std::vector<Player*> members;
         for(auto player : m_players)
             if(player->team == team && !player->to_erase) members.push_back(player);
-        int height = 4 + 16 + static_cast<int>(members.size()) * 13 + 3;
+        std::sort(members.begin(), members.end(), [](Player* a, Player* b) { return a->playerIndex() < b->playerIndex(); });
+        // Cada jogador: "P1  3" e, embaixo, o espaço do poder guardado (até 3 por equipe)
+        const int MEMBER_HEIGHT = 31;
+        int height = 4 + 16 + static_cast<int>(members.size()) * MEMBER_HEIGHT + 1;
         int y = (team == 1 ? 6 : AppConfig::map_rect.h - 6 - height);
         SDL_Rect block = {block_x, y, block_w, height};
         renderer->drawRect(&block, teamColor(team), true);
@@ -787,13 +931,24 @@ void Duel::draw()
             SDL_Rect dst = {block_x + 18 + w * 12, y + 4, 12, 12};
             renderer->drawObject(&flag_src, &dst);
         }
-        // Jogadores da equipe e as vidas de cada um ("P1  3")
+        // Jogadores da equipe, as vidas de cada um ("P1  3") e o poder guardado: o ícone do
+        // poder, ou uma moldura vazia; e, ao lado, o canhão de quem tem o tiro demolidor
         for(size_t row = 0; row < members.size(); row++)
         {
-            p = {block_x + 4, y + 21 + static_cast<int>(row) * 13};
+            int row_y = y + 21 + static_cast<int>(row) * MEMBER_HEIGHT;
+            p = {block_x + 4, row_y};
             renderer->drawText(&p, "P" + Engine::intToString(members[row]->playerIndex() + 1), BLACK, 3);
-            p = {block_x + 30, p.y};
+            p = {block_x + 30, row_y};
             renderer->drawText(&p, Engine::intToString(members[row]->lives_count), BLACK, 3);
+            drawPowerSlot(members[row], {block_x + 4, row_y + 12, 16, 16});
+            // Ao lado, o canhão de quem tem o tiro demolidor (a pedra da base adversária não o
+            // segura de perto)
+            if(members[row]->demolisher())
+            {
+                SDL_Rect gun = engine.getSpriteConfig()->getSpriteData(ST_BONUS_GUN)->rect;
+                SDL_Rect mark = {block_x + 24, row_y + 12, 16, 16};
+                renderer->drawObject(&gun, &mark);
+            }
         }
     }
     // Rodada atual no meio do painel, em branco sobre preto
@@ -813,12 +968,7 @@ void Duel::draw()
         }, GRAY);
     }
     else if(m_phase == PHASE_PLAY && m_pause)
-    {
-        drawMessageBox(renderer, {
-            {"PAUSE", PAUSE_RED, 1, 8},
-            {"ENTER / START", GRAY, 3, 0},
-        }, PAUSE_RED);
-    }
+        drawPauseBox();
     else if(m_phase == PHASE_ROUND_END)
     {
         if(m_round_winner < 0)
@@ -863,33 +1013,7 @@ void Duel::draw()
 void Duel::eventProcess(SDL_Event* ev)
 {
     bool match_over = (m_phase == PHASE_MATCH_END && m_phase_time > MATCH_END_INPUT_DELAY);
-
-    if(ev->type == SDL_KEYDOWN)
-    {
-        SDL_Scancode key = ev->key.keysym.scancode;
-        if(ev->key.keysym.sym == SDLK_ESCAPE)
-            m_finished = true;
-        else if(match_over)
-        {
-            // Qualquer tecla de tiro ou Enter volta ao menu
-            bool fire = (ev->key.keysym.sym == SDLK_RETURN);
-            for(auto& keys : AppConfig::keyboard_layouts)
-                if(key == keys.fire) fire = true;
-            if(fire) m_finished = true;
-        }
-        else if(ev->key.keysym.sym == SDLK_RETURN && m_phase == PHASE_PLAY)
-            m_pause = !m_pause;
-    }
-    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
-    {
-        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
-            m_finished = true;
-        else if(match_over && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
-                               ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
-            m_finished = true;
-        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_START && m_phase == PHASE_PLAY)
-            m_pause = !m_pause;
-    }
+    extraModeInput(ev, match_over, m_phase == PHASE_PLAY);
 }
 
 AppState* Duel::nextState()

@@ -58,6 +58,7 @@ int NavGrid::cellCost(int row, int column, const Abilities& abilities) const
                 if(!abilities.boat) return UNREACHABLE;
                 break;
             case TILE_BLOCKED:
+            case TILE_ZONE_STONE:
                 return UNREACHABLE;
             }
     return must_break ? MOVE_COST + BREAK_COST : MOVE_COST;

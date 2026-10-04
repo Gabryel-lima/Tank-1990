@@ -5,6 +5,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <set>
 
 namespace DuelLayout
@@ -47,6 +48,39 @@ std::vector<Tile> baseWallTiles(int team)
     return tiles;
 }
 
+std::vector<Tile> baseFrontTiles(int team)
+{
+    int front = (team == 0) ? baseRow(team) - 1 : baseRow(team) + 2;
+    return {{front, BASE_COLUMN}, {front, BASE_COLUMN + 1}};
+}
+
+Tile yardCenter(int team)
+{
+    int row = (team == 0) ? baseRow(team) - 3 : baseRow(team) + 3;
+    return {row, BASE_COLUMN};
+}
+
+int flankSide(const std::vector<std::string>& grid, int team, int row, int column)
+{
+    if(row != baseRow(team)) return 0;
+    int wall_left = BASE_COLUMN - 1, wall_right = BASE_COLUMN + 2;
+    int from, to, side;
+    if(column + 1 < wall_left) { from = column + 2; to = wall_left - 1; side = -1; }
+    else if(column > wall_right) { from = wall_right + 1; to = column - 1; side = 1; }
+    else return 0;
+    for(int r = row; r < row + 2; r++)
+        for(int c = from; c <= to; c++)
+            if(grid[r][c] == '@') return 0;
+    return side;
+}
+
+bool isBaseFront(int team, int row, int column)
+{
+    for(const Tile& t : baseFrontTiles(team))
+        if(t.row == row && t.column == column) return true;
+    return false;
+}
+
 bool isBaseWall(int team, int row, int column)
 {
     for(const Tile& t : baseWallTiles(team))
@@ -66,6 +100,16 @@ bool inBaseZone(int row, int column)
 {
     if(column < BASE_COLUMN - ZONE_SIDE || column > BASE_COLUMN + 1 + ZONE_SIDE) return false;
     return row < ZONE_DEPTH || row >= TILES - ZONE_DEPTH;
+}
+
+int zoneTeam(int row, int column)
+{
+    if(!inBaseZone(row, column)) return -1;
+    // A zona fica do lado da águia: a da equipe cuja base está na mesma metade do mapa
+    bool top = row < TILES / 2;
+    for(int team = 0; team < 2; team++)
+        if((baseRow(team) < TILES / 2) == top) return team;
+    return -1;
 }
 
 std::vector<SDL_Point> spawnOrder(int team)
@@ -90,8 +134,9 @@ std::vector<SDL_Point> midBonusSpots()
 std::vector<SDL_Point> halfBonusSpots(int team)
 {
     int t = tile();
-    if(team == 0) return {{4 * t, 16 * t}, {(TILES - 6) * t, 16 * t}, {BASE_COLUMN * t, 18 * t}};
-    return {{4 * t, 8 * t}, {(TILES - 6) * t, 8 * t}, {BASE_COLUMN * t, 6 * t}};
+    // O central fica logo à frente do pátio da base
+    if(team == 0) return {{4 * t, 16 * t}, {(TILES - 6) * t, 16 * t}, {BASE_COLUMN * t, 17 * t}};
+    return {{4 * t, 8 * t}, {(TILES - 6) * t, 8 * t}, {BASE_COLUMN * t, 7 * t}};
 }
 
 std::vector<std::string> readMap(const std::string& path)
@@ -125,11 +170,12 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
     }
     if(!problems.empty()) return problems;
 
-    // O mapa como o jogo o monta: espaço das águias vazio e muralhas de tijolo
+    // O mapa como o jogo o monta: espaço das águias vazio, muralha de tijolo e a frente de pedra
     std::vector<std::string> grid = original;
     for(int team = 0; team < 2; team++)
     {
         for(const Tile& t : baseWallTiles(team)) grid[t.row][t.column] = '#';
+        for(const Tile& t : baseFrontTiles(team)) grid[t.row][t.column] = '@';
         for(int r = baseRow(team); r < baseRow(team) + 2; r++)
             for(int c = BASE_COLUMN; c < BASE_COLUMN + 2; c++) grid[r][c] = 'E';
     }
@@ -144,6 +190,25 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                     problems.push_back("não é espelhado na horizontal e na vertical (primeira diferença na " + where(r, c) + ")");
             }
 
+    // Pedra na borda da zona de uma base: a pedra de dentro da zona é da equipe (colorida,
+    // o adversário não derruba) e a de fora é comum (o canhão quebra). Uma fileira de pedra
+    // que cruza a borda ficaria metade de cada jeito, sem nada no mapa que explique a
+    // diferença; a zona precisa terminar num espaço, tijolo ou outro bloco que não seja pedra
+    for(int r = 0; r < TILES; r++)
+        for(int c = 0; c < TILES; c++)
+        {
+            if(grid[r][c] != '@' || !inBaseZone(r, c)) continue;
+            const int dr[] = {1, -1, 0, 0}, dc[] = {0, 0, 1, -1};
+            for(int k = 0; k < 4; k++)
+            {
+                int nr = r + dr[k], nc = c + dc[k];
+                if(nr < 0 || nc < 0 || nr >= TILES || nc >= TILES) continue;
+                if(grid[nr][nc] == '@' && !inBaseZone(nr, nc))
+                    problems.push_back("pedra cruza a borda da zona da base entre a " + where(r, c) + " e a " + where(nr, nc) +
+                                       " (a de dentro fica colorida e a de fora não): separe com espaço ou tijolo");
+            }
+        }
+
     // Posição (canto superior esquerdo, em tiles) de um tanque 2x2 que cabe ali
     auto fits = [&](int r, int c) {
         if(r < 0 || c < 0 || r + 1 >= TILES || c + 1 >= TILES) return false;
@@ -152,8 +217,9 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 if(!passable(grid[r + i][c + j])) return false;
         return true;
     };
+    // Posições alcançáveis e a distância (em passos de 1 tile) até cada uma
     auto reach = [&](int r0, int c0) {
-        std::set<std::pair<int, int>> seen = {{r0, c0}};
+        std::map<std::pair<int, int>, int> seen = {{{r0, c0}, 0}};
         std::deque<std::pair<int, int>> queue = {{r0, c0}};
         while(!queue.empty())
         {
@@ -165,20 +231,24 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 std::pair<int, int> next = {r + dr[k], c + dc[k]};
                 if(!seen.count(next) && fits(next.first, next.second))
                 {
-                    seen.insert(next);
+                    seen[next] = seen[{r, c}] + 1;
                     queue.push_back(next);
                 }
             }
         }
         return seen;
     };
-    // Um tanque na posição encosta na muralha da equipe (bloco vizinho ao seu 2x2)
-    auto touchesWall = [&](int team, int r, int c) {
-        for(const Tile& t : baseWallTiles(team))
-            for(int i = 0; i < 2; i++)
-                for(int j = 0; j < 2; j++)
-                    if(std::abs(r + i - t.row) + std::abs(c + j - t.column) == 1) return true;
-        return false;
+    // Menor distância das posições alcançadas até um ponto de tiro no flanco @a side
+    // (-1 esquerdo, +1 direito, 0 qualquer um) da base da equipe; -1 se nenhum é alcançado
+    auto flankDistance = [&](const std::map<std::pair<int, int>, int>& seen, int team, int side) {
+        int best = -1;
+        for(auto& p : seen)
+        {
+            int s = flankSide(grid, team, p.first.first, p.first.second);
+            if(s == 0 || (side != 0 && s != side)) continue;
+            if(best < 0 || p.second < best) best = p.second;
+        }
+        return best;
     };
 
     std::vector<std::pair<int, int>> bonus;
@@ -200,11 +270,19 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 continue;
             }
             auto seen = reach(r, c);
-            bool reaches_enemy = false;
-            for(auto& p : seen)
-                if(touchesWall(1 - team, p.first, p.second)) reaches_enemy = true;
-            if(!reaches_enemy)
-                problems.push_back(name + ": não há caminho da largura de um tanque até a base inimiga");
+            if(flankDistance(seen, 1 - team, 0) < 0)
+                problems.push_back(name + ": não há caminho da largura de um tanque até um flanco da base inimiga");
+            // O defensor precisa chegar aos dois flancos da própria base (contornando a águia)
+            for(int side : {-1, 1})
+            {
+                std::string flank = side < 0 ? "esquerdo" : "direito";
+                int home = flankDistance(seen, team, side);
+                if(home < 0)
+                    problems.push_back(name + ": não alcança o flanco " + flank + " da própria base (o defensor não contorna a águia)");
+                else if(home > DEFENDER_REACH)
+                    problems.push_back(name + ": flanco " + flank + " da própria base a " + std::to_string(home) + " passos (máximo " +
+                                       std::to_string(DEFENDER_REACH) + "): o defensor demora para contornar a águia");
+            }
             for(auto& b : bonus)
                 if(fits(b.first, b.second) && !seen.count(b))
                     problems.push_back(name + ": não alcança o ponto de bônus da " + where(b.first, b.second));

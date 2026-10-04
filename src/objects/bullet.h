@@ -62,6 +62,21 @@ public:
      * Equipe do tanque que disparou (modo duelo). -1 fora do duelo.
      */
     int team;
+
+    /**
+     * Disparado por um jogador (humano ou do computador). No duelo, só o tiro de jogador
+     * fere a própria base e a muralha dela; o dos bots de reforço não.
+     */
+    bool from_player = false;
+
+    /**
+     * Tiro demolidor (duelo): derruba a pedra da base inimiga quando disparado de dentro
+     * da zona dela (ver Duel::powerAppliesAt).
+     */
+    bool demolisher = false;
+
+    /** Centro do tanque no momento do disparo (pixels): de onde o tiro saiu. */
+    SDL_Point origin = {0, 0};
 };
 
 #endif // BULLET_H

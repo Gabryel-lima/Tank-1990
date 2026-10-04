@@ -103,6 +103,22 @@ public:
 
 protected:
     /**
+     * Névoa branca pulsando por cima do sprite: avisa que o objeto está acabando (tempo
+     * ou munição). @a level vai de 0 (nada) a 1 (no fim): quanto mais perto do fim, mais
+     * forte e mais rápido o pulso.
+     */
+    void drawHaze(double level);
+
+public:
+    /** Relógio dos efeitos visuais (ms), para sincronizar outro desenho com este objeto. */
+    Uint32 effectTime() const { return m_effect_time; }
+
+protected:
+
+    /** Relógio dos efeitos visuais (ms): avança com o jogo, para na pausa. */
+    Uint32 m_effect_time = 0;
+
+    /**
      * Retorna um retângulo deslocado a partir de rect, útil para animação de sprites.
      * @param rect - retângulo base
      * @param x - deslocamento horizontal (em múltiplos do tamanho do frame)

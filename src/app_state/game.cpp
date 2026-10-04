@@ -5,6 +5,7 @@
 #include "../controllers.h"
 #include "menu.h"
 #include "scores.h"
+#include "message_box.h"
 
 #include <SDL2/SDL.h>
 #include <stdlib.h>
@@ -122,8 +123,10 @@ void Game::draw()
             for(auto item : row)
                 if(item != nullptr) item->draw();
 
+        for(auto mine : m_mines) mine->draw();
         for(auto player : m_players) player->draw();
         for(auto enemy : m_enemies) enemy->draw();
+        for(auto turret : m_turrets) turret->draw();
         for(auto bush : m_bushes) bush->draw();
         for(auto bonus : m_bonuses) bonus->draw();
         m_eagle->draw();
@@ -137,47 +140,52 @@ void Game::draw()
             renderer->drawTextOutlined(pos, AppConfig::game_over_text, {255, 10, 10, 255}, 1);
         }
 
-        //===========Status do jogo===========
-        SDL_Rect src = engine.getSpriteConfig()->getSpriteData(ST_LEFT_ENEMY)->rect;
-        SDL_Rect dst;
-        SDL_Point p_dst;
-        // inimigos restantes para eliminar
-        for(int i = 0; i < m_enemy_to_kill; i++)
-        {
-            dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
-            renderer->drawObject(&src, &dst);
-        }
-        // vidas dos jogadores: ícone fixo do tanque, na cor do jogador (o quadro atual do
-        // sprite virava estrela durante o nascimento, e sem a cor P3/P4 pareciam P2/P1)
-        int i = 0;
-        for(auto player : m_players)
-        {
-            dst = {AppConfig::status_rect.x + 5, i * 18 + 180, 16, 16};
-            p_dst = {dst.x + dst.w + 2, dst.y + 3};
-            i++;
-            SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->type)->rect;
-            renderer->drawObjectWithColor(&icon, &dst, player->color);
-            renderer->drawText(&p_dst, Engine::intToString(player->lives_count), {0, 0, 0, 255}, 3);
-        }
-        // número do mapa/nível
-        src = engine.getSpriteConfig()->getSpriteData(ST_STAGE_STATUS)->rect;
-        dst = {AppConfig::status_rect.x + 8, static_cast<int>(185 + (m_players.size() + m_killed_players.size()) * 18), src.w, src.h};
-        p_dst = {dst.x + 10, dst.y + 26};
-        renderer->drawObject(&src, &dst);
-        renderer->drawText(&p_dst, Engine::intToString(m_current_level), {0, 0, 0, 255}, 2);
+        drawStatus();
 
-        // "PAUSE" piscando no centro do mapa, como no original; contorno para não sumir
-        // sobre os tijolos (o vermelho direto sobre tijolo vermelho desaparecia)
-        if(m_pause && (SDL_GetTicks() / AppConfig::pause_blink_time) % 2 == 0)
-        {
-            SDL_Point size = renderer->textSize("PAUSE", 1);
-            SDL_Point pos = {AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2,
-                             AppConfig::map_rect.y + (AppConfig::map_rect.h - size.y) / 2};
-            renderer->drawTextOutlined(pos, "PAUSE", {255, 70, 70, 255}, 1);
-        }
+        if(m_pause) drawPause();
+        drawOverlay();
     }
 
     renderer->flush();
+}
+
+void Game::drawOverlay()
+{
+}
+
+// Painel lateral da campanha
+void Game::drawStatus()
+{
+    Engine& engine = Engine::getEngine();
+    Renderer* renderer = engine.getRenderer();
+    //===========Status do jogo===========
+    SDL_Rect src = engine.getSpriteConfig()->getSpriteData(ST_LEFT_ENEMY)->rect;
+    SDL_Rect dst;
+    SDL_Point p_dst;
+    // inimigos restantes para eliminar
+    for(int i = 0; i < m_enemy_to_kill; i++)
+    {
+        dst = {AppConfig::status_rect.x + 8 + src.w * (i % 2), 5 + src.h * (i / 2), src.w, src.h};
+        renderer->drawObject(&src, &dst);
+    }
+    // vidas dos jogadores: ícone fixo do tanque, na cor do jogador (o quadro atual do
+    // sprite virava estrela durante o nascimento, e sem a cor P3/P4 pareciam P2/P1)
+    int i = 0;
+    for(auto player : m_players)
+    {
+        dst = {AppConfig::status_rect.x + 5, i * 18 + 180, 16, 16};
+        p_dst = {dst.x + dst.w + 2, dst.y + 3};
+        i++;
+        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->type)->rect;
+        renderer->drawObjectWithColor(&icon, &dst, player->color);
+        renderer->drawText(&p_dst, Engine::intToString(player->lives_count), {0, 0, 0, 255}, 3);
+    }
+    // número do mapa/nível
+    src = engine.getSpriteConfig()->getSpriteData(ST_STAGE_STATUS)->rect;
+    dst = {AppConfig::status_rect.x + 8, static_cast<int>(185 + (m_players.size() + m_killed_players.size()) * 18), src.w, src.h};
+    p_dst = {dst.x + 10, dst.y + 26};
+    renderer->drawObject(&src, &dst);
+    renderer->drawText(&p_dst, Engine::intToString(m_current_level), {0, 0, 0, 255}, 2);
 }
 
 // Atualiza o estado do jogo
@@ -241,6 +249,9 @@ void Game::update(Uint32 dt)
             for(auto player : m_players)
                     checkCollisionEnemyBulletsWithPlayer(enemy, player);
 
+        // Minas e torretas dos jogadores (modos extras; a campanha não tem)
+        updateFriendlyPowers(dt);
+
         // Colisão entre jogadores e bônus
         for(auto player : m_players)
             for(auto bonus : m_bonuses)
@@ -299,7 +310,8 @@ void Game::update(Uint32 dt)
 
         // Adiciona novo inimigo se necessário
         m_enemy_redy_time += dt;
-        if(m_enemies.size() < static_cast<size_t>(AppConfig::enemy_max_count_on_map < m_enemy_to_kill ? AppConfig::enemy_max_count_on_map : m_enemy_to_kill) && m_enemy_redy_time > AppConfig::enemy_redy_time)
+        int limit = std::min(enemyLimit(), m_enemy_to_kill);
+        if(static_cast<int>(m_enemies.size()) < limit && m_enemy_redy_time > enemySpawnDelay())
         {
             m_enemy_redy_time = 0;
             generateEnemy();
@@ -546,6 +558,11 @@ void Game::clearLevel()
     for(auto bonus : m_bonuses) delete bonus;
     m_bonuses.clear();
 
+    for(auto mine : m_mines) delete mine;
+    m_mines.clear();
+    for(auto turret : m_turrets) delete turret;
+    m_turrets.clear();
+
     for(auto row : m_level)
     {
         for(auto item : row) if(item != nullptr) delete item;
@@ -734,6 +751,7 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
     };
     for(auto player : m_players) if(blocked_by(player)) return false;
     for(auto enemy : m_enemies) if(blocked_by(enemy)) return false;
+    for(auto turret : m_turrets) if(blocked_by(turret)) return false;
 
     return true;
 }
@@ -848,7 +866,7 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
                 {
                     // bloco protegido: o projétil some sem causar dano
                 }
-                else if(bullet->increased_damage && powerAppliesAt(bullet, i, j))
+                else if(breaksBlock(bullet, i, j))
                 {
                     delete o;
                     m_level.at(i).at(j) = nullptr;
@@ -873,6 +891,9 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
         bullet->destroy();
     }
     //========================colisão com as bases========================
+    // Projétil que parou num bloco neste mesmo quadro não chega à base: se ele encosta ao
+    // mesmo tempo na pedra da frente e na águia (metade em cada), a pedra protege
+    if(bullet->collide) return;
     for(Eagle* base : bases())
     {
         if(base->type != ST_EAGLE) continue; // base já destruída
@@ -910,6 +931,74 @@ bool Game::powerAppliesAt(Bullet*, int, int)
     return true;
 }
 
+void Game::drawPause()
+{
+    // "PAUSE" piscando no centro do mapa, como no original; contorno para não sumir
+    // sobre os tijolos (o vermelho direto sobre tijolo vermelho desaparecia)
+    if((SDL_GetTicks() / AppConfig::pause_blink_time) % 2 != 0) return;
+    Renderer* renderer = Engine::getEngine().getRenderer();
+    SDL_Point size = renderer->textSize("PAUSE", 1);
+    SDL_Point pos = {AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2,
+                     AppConfig::map_rect.y + (AppConfig::map_rect.h - size.y) / 2};
+    renderer->drawTextOutlined(pos, "PAUSE", {255, 70, 70, 255}, 1);
+}
+
+void Game::drawPauseBox()
+{
+    const SDL_Color pause_red = {255, 70, 70, 255};   // 6,2:1 sobre preto
+    drawMessageBox(Engine::getEngine().getRenderer(), {
+        {"PAUSE", pause_red, 1, 8},
+        {"ENTER / START", {150, 150, 150, 255}, 3, 0},
+    }, pause_red);
+}
+
+void Game::extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause)
+{
+    if(ev->type == SDL_KEYDOWN)
+    {
+        SDL_Keycode key = ev->key.keysym.sym;
+        if(key == SDLK_ESCAPE)
+            m_finished = true;
+        else if(results_ready)
+        {
+            // Qualquer tecla de tiro ou Enter volta ao menu
+            bool fire = (key == SDLK_RETURN);
+            for(auto& keys : AppConfig::keyboard_layouts)
+                if(ev->key.keysym.scancode == keys.fire) fire = true;
+            if(fire) m_finished = true;
+        }
+        else if(key == SDLK_RETURN && can_pause)
+            m_pause = !m_pause;
+    }
+    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
+    {
+        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
+            m_finished = true;
+        else if(results_ready && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
+                                  ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
+            m_finished = true;
+        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_START && can_pause)
+            m_pause = !m_pause;
+    }
+}
+
+void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
+{
+    Engine& engine = Engine::getEngine();
+    if(player != nullptr && player->held_power != ST_NONE)
+    {
+        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
+        engine.getRenderer()->drawObject(&icon, &slot);
+    }
+    else
+        engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);
+}
+
+bool Game::breaksBlock(Bullet* bullet, int row, int column)
+{
+    return bullet->increased_damage && powerAppliesAt(bullet, row, column);
+}
+
 // Verifica colisão da bala com arbustos (só se for bala forte)
 void Game::checkCollisionBulletWithBush(Bullet *bullet)
 {
@@ -936,25 +1025,32 @@ void Game::checkCollisionBulletWithBush(Bullet *bullet)
 }
 
 // Verifica colisão das balas do jogador com o inimigo
-void Game::checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy)
+void Game::checkCollisionPlayerBulletsWithEnemy(Tank *shooter, Enemy *enemy)
 {
-    if(player->to_erase || enemy->to_erase) return;
+    if(shooter->to_erase || enemy->to_erase) return;
+    Player* player = dynamic_cast<Player*>(shooter); // os pontos vão para o jogador (torreta não pontua)
     if(enemy->testFlag(TSF_DESTROYED)) return;
     SDL_Rect intersect_rect;
 
-    for(auto bullet : player->bullets)
+    for(auto bullet : shooter->bullets)
     {
         if(!bullet->to_erase && !bullet->collide)
         {
             intersect_rect = intersectRect(&bullet->collision_rect, &enemy->collision_rect);
             if(intersect_rect.w > 0 && intersect_rect.h > 0)
             {
-                if(enemy->testFlag(TSF_BONUS)) generateBonus();
+                // Como no original: o tanque vermelho solta o bônus no primeiro acerto e deixa
+                // de carregá-lo (antes, um tanque blindado soltava um bônus a cada tiro)
+                if(enemy->testFlag(TSF_BONUS))
+                {
+                    generateBonus();
+                    enemy->clearFlag(TSF_BONUS);
+                }
 
                 bullet->destroy();
                 enemy->destroy();
                 if(enemy->lives_count <= 0) m_enemy_to_kill--;
-                player->score += enemy->scoreForHit();
+                if(player != nullptr) player->score += enemy->scoreForHit();
             }
         }
     }
@@ -1110,27 +1206,43 @@ void Game::nextLevel()
     Controllers::setPlayerCount(m_player_count);
 }
 
+int Game::enemyLimit() const
+{
+    return AppConfig::enemy_max_count_on_map;
+}
+
+Uint32 Game::enemySpawnDelay() const
+{
+    return AppConfig::enemy_redy_time;
+}
+
 // Gera um novo inimigo no mapa
 void Game::generateEnemy()
 {
-    float p = static_cast<float>(rand()) / RAND_MAX;
-    SpriteType type = static_cast<SpriteType>(p < (0.00735 * m_current_level + 0.09265) ? ST_TANK_D : rand() % (ST_TANK_C - ST_TANK_A + 1) + ST_TANK_A);
-    Enemy* e = new Enemy(AppConfig::enemy_starting_point.at(m_enemy_respown_position).x, AppConfig::enemy_starting_point.at(m_enemy_respown_position).y, type);
+    SDL_Point point = AppConfig::enemy_starting_point.at(m_enemy_respown_position);
     m_enemy_respown_position++;
     if(m_enemy_respown_position >= static_cast<int>(AppConfig::enemy_starting_point.size())) m_enemy_respown_position = 0;
+    m_enemies.push_back(createEnemy(point, m_current_level));
+}
+
+Enemy* Game::createEnemy(SDL_Point point, int level)
+{
+    float p = static_cast<float>(rand()) / RAND_MAX;
+    SpriteType type = static_cast<SpriteType>(p < (0.00735 * level + 0.09265) ? ST_TANK_D : rand() % (ST_TANK_C - ST_TANK_A + 1) + ST_TANK_A);
+    Enemy* e = new Enemy(point.x, point.y, type);
 
     double a, b, c;
-    if(m_current_level <= 17)
+    if(level <= 17)
     {
-        a = -0.040625 * m_current_level + 0.940625;
-        b = -0.028125 * m_current_level + 0.978125;
-        c = -0.014375 * m_current_level + 0.994375;
+        a = -0.040625 * level + 0.940625;
+        b = -0.028125 * level + 0.978125;
+        c = -0.014375 * level + 0.994375;
     }
     else
     {
-        a = -0.012778 * m_current_level + 0.467222;
-        b = -0.025000 * m_current_level + 0.925000;
-        c = -0.036111 * m_current_level + 1.363889;
+        a = -0.012778 * level + 0.467222;
+        b = -0.025000 * level + 0.925000;
+        c = -0.036111 * level + 1.363889;
     }
 
     p = static_cast<float>(rand()) / RAND_MAX;
@@ -1141,14 +1253,17 @@ void Game::generateEnemy()
 
     p = static_cast<float>(rand()) / RAND_MAX;
     if(p < 0.12) e->setFlag(TSF_BONUS);
-
-    m_enemies.push_back(e);
+    return e;
 }
 
 // Gera um bônus aleatório no mapa, evitando sobreposição com a águia
 void Game::generateBonus()
 {
-    Bonus* b = new Bonus(0, 0, static_cast<SpriteType>(rand() % (ST_BONUS_BOAT - ST_BONUS_GRENADE + 1) + ST_BONUS_GRENADE));
+    // Como no original, só um bônus fica no mapa: o novo substitui o anterior
+    for(auto bonus : m_bonuses) delete bonus;
+    m_bonuses.clear();
+
+    Bonus* b = new Bonus(0, 0, randomBonusType());
     SDL_Rect intersect_rect;
     do
     {
@@ -1159,4 +1274,194 @@ void Game::generateBonus()
     }while(intersect_rect.w > 0 && intersect_rect.h > 0);
 
     m_bonuses.push_back(b);
+}
+
+// Campanha: um dos 8 bônus originais, com a mesma chance
+SpriteType Game::randomBonusType()
+{
+    return static_cast<SpriteType>(rand() % (ST_BONUS_BOAT - ST_BONUS_GRENADE + 1) + ST_BONUS_GRENADE);
+}
+
+// ======================== Poderes dos modos extras ========================
+
+bool Game::reservedTile(int, int)
+{
+    return false;
+}
+
+bool Game::areaFree(int row, int column, int rows, int columns)
+{
+    const int t = AppConfig::tile_rect.w;
+    if(row < 0 || column < 0 || row + rows > m_level_rows_count || column + columns > m_level_columns_count) return false;
+    for(int r = row; r < row + rows; r++)
+        for(int c = column; c < column + columns; c++)
+            if(m_level.at(r).at(c) != nullptr || reservedTile(r, c)) return false;
+
+    SDL_Rect area = {column * t, row * t, columns * t, rows * t};
+    auto overlaps = [&](SDL_Rect r) {
+        SDL_Rect i = intersectRect(&r, &area);
+        return i.w > 0 && i.h > 0;
+    };
+    for(Eagle* base : bases())
+        if(overlaps(base->collision_rect)) return false;
+    // nada de parede ou torreta escondida debaixo do mato
+    for(auto bush : m_bushes)
+        if(overlaps(bush->collision_rect)) return false;
+    for(auto player : m_players)
+        if(!player->to_erase && (overlaps(player->dest_rect) || overlaps(player->collision_rect))) return false;
+    for(auto enemy : m_enemies)
+        if(!enemy->to_erase && (overlaps(enemy->dest_rect) || overlaps(enemy->collision_rect))) return false;
+    for(auto turret : m_turrets)
+        if(!turret->to_erase && overlaps(turret->dest_rect)) return false;
+    return true;
+}
+
+void Game::frontCell(Tank* tank, int* row, int* column) const
+{
+    const double t = AppConfig::tile_rect.w;
+    int r = static_cast<int>(std::lround(tank->pos_y / t));
+    int c = static_cast<int>(std::lround(tank->pos_x / t));
+    switch(tank->direction)
+    {
+    case D_UP: r -= 2; break;
+    case D_DOWN: r += 2; break;
+    case D_LEFT: c -= 2; break;
+    default: c += 2; break;
+    }
+    *row = r;
+    *column = c;
+}
+
+bool Game::placeBarricade(Tank* tank)
+{
+    int row, column;
+    frontCell(tank, &row, &column);
+    if(!areaFree(row, column, 2, 2)) return false;
+    const int t = AppConfig::tile_rect.w;
+    for(int r = row; r < row + 2; r++)
+        for(int c = column; c < column + 2; c++)
+            m_level.at(r).at(c) = new Brick(c * t, r * t);
+    SoundManager::getInstance().playSound("bonus");
+    return true;
+}
+
+bool Game::placeTurret(Player* player)
+{
+    int row, column;
+    frontCell(player, &row, &column);
+    if(!areaFree(row, column, 2, 2)) return false;
+    const int t = AppConfig::tile_rect.w;
+    Turret* turret = new Turret(column * t, row * t, player->team, player->playerIndex(), player->color);
+    turret->direction = player->direction;
+    m_turrets.push_back(turret);
+    SoundManager::getInstance().playSound("bonus");
+    return true;
+}
+
+void Game::placeMine(Player* player)
+{
+    SDL_Point center = {static_cast<int>(player->pos_x) + player->dest_rect.w / 2, static_cast<int>(player->pos_y) + player->dest_rect.h / 2};
+    m_mines.push_back(new Mine(center, player->team, player->playerIndex(), player->color));
+    SoundManager::getInstance().playSound("bonus");
+}
+
+bool Game::recall(Player* player, const std::vector<SDL_Point>& points)
+{
+    const int t = AppConfig::tile_rect.w;
+    for(SDL_Point p : points)
+    {
+        SDL_Rect area = {p.x, p.y, 2 * t, 2 * t};
+        bool occupied = false;
+        auto check = [&](Tank* other) {
+            if(other == player || other->to_erase) return;
+            SDL_Rect a = intersectRect(&other->dest_rect, &area), b = intersectRect(&other->collision_rect, &area);
+            if((a.w > 0 && a.h > 0) || (b.w > 0 && b.h > 0)) occupied = true;
+        };
+        for(auto other : m_players) check(other);
+        for(auto other : m_enemies) check(other);
+        for(auto other : m_turrets) check(other);
+        if(occupied) continue;
+        player->teleport(p.x, p.y);
+        return true;
+    }
+    return false;
+}
+
+void Game::killEnemy(Enemy* enemy, Player* by)
+{
+    if(enemy->to_erase || !enemy->testFlag(TSF_LIFE)) return;
+    if(enemy->testFlag(TSF_BONUS))
+    {
+        generateBonus();
+        enemy->clearFlag(TSF_BONUS);
+    }
+    if(by != nullptr) by->score += enemy->scoreForHit();
+    while(enemy->lives_count > 0) enemy->destroy();
+    m_enemy_to_kill--;
+}
+
+void Game::updateFriendlyPowers(Uint32 dt)
+{
+    if(m_mines.empty() && m_turrets.empty()) return;
+    auto overlap = [](const SDL_Rect& a, const SDL_Rect& b, int min) {
+        SDL_Rect r = intersectRect(const_cast<SDL_Rect*>(&a), const_cast<SDL_Rect*>(&b));
+        return r.w >= min && r.h >= min;
+    };
+    auto playerByIndex = [&](int index) -> Player* {
+        for(auto p : m_players) if(p->playerIndex() == index) return p;
+        return nullptr;
+    };
+
+    // Torretas: colidem com os tanques, atiram nos inimigos e levam tiro deles
+    for(auto turret : m_turrets)
+    {
+        if(turret->to_erase) continue;
+        for(auto player : m_players) checkCollisionTwoTanks(player, turret, dt);
+        for(auto enemy : m_enemies)
+        {
+            checkCollisionTwoTanks(enemy, turret, dt);
+            checkCollisionPlayerBulletsWithEnemy(turret, enemy);
+            for(auto b1 : turret->bullets)
+                for(auto b2 : enemy->bullets)
+                    checkCollisionTwoBullets(b1, b2);
+            for(auto bullet : enemy->bullets)
+                if(!bullet->to_erase && !bullet->collide && turret->testFlag(TSF_LIFE) &&
+                   overlap(bullet->collision_rect, turret->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    turret->destroy();
+                }
+        }
+        for(auto bullet : turret->bullets) checkCollisionBulletWithLevel(bullet);
+    }
+
+    // Minas: explodem o inimigo que passar por cima (de vez, como a granada) e somem com
+    // qualquer tiro (dá para limpar o caminho atirando nelas)
+    for(auto mine : m_mines)
+    {
+        if(mine->to_erase) continue;
+        for(auto enemy : m_enemies)
+            if(enemy->testFlag(TSF_LIFE) && overlap(mine->collision_rect, enemy->collision_rect, 6))
+            {
+                killEnemy(enemy, playerByIndex(mine->owner));
+                mine->detonate();
+                break;
+            }
+        if(mine->to_erase) continue;
+        std::vector<Tank*> shooters(m_players.begin(), m_players.end());
+        shooters.insert(shooters.end(), m_enemies.begin(), m_enemies.end());
+        shooters.insert(shooters.end(), m_turrets.begin(), m_turrets.end());
+        for(Tank* shooter : shooters)
+            for(auto bullet : shooter->bullets)
+                if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(bullet->collision_rect, mine->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    mine->detonate();
+                }
+    }
+
+    for(auto mine : m_mines) mine->update(dt);
+    for(auto turret : m_turrets) turret->update(dt);
+    m_mines.erase(std::remove_if(m_mines.begin(), m_mines.end(), [](Mine* m){ if(m->to_erase) { delete m; return true; } return false; }), m_mines.end());
+    m_turrets.erase(std::remove_if(m_turrets.begin(), m_turrets.end(), [](Turret* t){ if(t->to_erase) { delete t; return true; } return false; }), m_turrets.end());
 }

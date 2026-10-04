@@ -191,6 +191,16 @@ public:
     static vector<pair<string, string>> duel_maps;
 
     /**
+     * Caminho da pasta dos mapas do modo sobrevivência (separados da campanha e do duelo).
+     */
+    static string survival_levels_path;
+
+    /**
+     * Mapas do modo sobrevivência: {arquivo em survival_levels_path, nome mostrado no menu}.
+     */
+    static vector<pair<string, string>> survival_maps;
+
+    /**
      * Colunas (x) de nascimento do duelo para a equipe A, em ordem de preferência
      * (lados alternados). A equipe B usa o espelho em ponto.
      */
@@ -258,6 +268,69 @@ public:
      * Chance (0 a 1) de um bônus de equipe surgir na metade do mapa da equipe adversária.
      */
     static double duel_team_bonus_enemy_side_chance;
+
+    // ======================== Poderes dos modos extras ========================
+
+    /** Duração (ms) da torreta no mapa. */
+    static unsigned power_turret_time;
+    /** Intervalo (ms) entre os tiros da torreta. */
+    static unsigned power_turret_reload;
+    /**
+     * Tiros da torreta. Ela acaba no que vier primeiro: munição ou tempo. O tempo limita
+     * por quanto tempo ela ocupa o lugar (sem ele, uma torreta num corredor vazio ficaria lá
+     * para sempre); a munição limita o estrago num lugar movimentado.
+     */
+    static int power_turret_ammo;
+    /**
+     * Duelo: estrelas que o tanque precisa ter ao pegar o canhão para ganhar o tiro
+     * demolidor (o segundo estágio). Morrer zera as estrelas, então é preciso juntar os
+     * dois bônus na mesma vida.
+     */
+    static int duel_demolisher_stars;
+    /** Alcance da torreta, em tiles. */
+    static int power_turret_range;
+    /** Duração (ms) da mina no mapa, se ninguém passar por cima. */
+    static unsigned power_mine_time;
+    /** Duração (ms) e multiplicador de velocidade do turbo. */
+    static unsigned power_turbo_time;
+    static double power_turbo_factor;
+    /** Duração (ms) da trégua (sobrevivência: os inimigos param de surgir). */
+    static unsigned power_truce_time;
+    /**
+     * Sobrevivência: os poderes de lugar e momento (mina, barricada, torreta, retorno e turbo)
+     * ficam guardados até o jogador usar (true) ou valem na hora em que são pegos (false).
+     */
+    static bool survival_store_powers;
+
+    // ======================== Modo sobrevivência ========================
+
+    /** Inimigos da primeira onda. */
+    static int survival_first_wave_enemies;
+
+    /** Inimigos a mais em cada onda seguinte. */
+    static int survival_wave_enemy_step;
+
+    /** Limite de inimigos numa onda. */
+    static int survival_max_wave_enemies;
+
+    /** Inimigos no mapa ao mesmo tempo na primeira onda (um a mais a cada jogador extra). */
+    static int survival_first_on_map;
+
+    /** A cada quantas ondas cabe mais um inimigo no mapa ao mesmo tempo. */
+    static int survival_on_map_every_waves;
+
+    /** Limite de inimigos no mapa ao mesmo tempo. */
+    static int survival_max_on_map;
+
+    /** Intervalo (ms) entre o surgimento de inimigos na primeira onda e o mínimo nas últimas. */
+    static unsigned survival_first_spawn_delay;
+    static unsigned survival_min_spawn_delay;
+
+    /** Pausa (ms) com o aviso "WAVE N" antes de cada onda. */
+    static unsigned survival_wave_intro_time;
+
+    /** A cada quantas ondas vencidas todos ganham uma vida (e quem caiu volta). */
+    static int survival_life_every_waves;
 
     /**
      * Velocidade padrão dos projéteis disparados.

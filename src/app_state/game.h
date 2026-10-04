@@ -9,6 +9,8 @@
 #include "../objects/brick.h"
 #include "../objects/eagle.h"
 #include "../objects/bonus.h"
+#include "../objects/mine.h"
+#include "../objects/turret.h"
 #include <vector>
 #include <string>
 
@@ -113,6 +115,26 @@ protected:
     virtual bool powerAppliesAt(Bullet* bullet, int row, int column);
 
     /**
+     * O projétil destrói o bloco inteiro (em vez de desgastar tijolo ou parar na pedra).
+     * Na campanha: o projétil reforçado, onde o poder vale (powerAppliesAt).
+     */
+    virtual bool breaksBlock(Bullet* bullet, int row, int column);
+
+    /**
+     * Teclas comuns a todos os modos extras (ver MODOS_EXTRAS.md):
+     * @li Esc / Back - sai para o menu (o modo decide a tela em nextState)
+     * @li na tela final (@a results_ready): tiro, Enter, A ou Start também saem
+     * @li Enter / Start - pausa, quando @a can_pause
+     */
+    void extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause);
+
+    /**
+     * Espaço do poder guardado no painel de um modo extra: o ícone do poder, ou uma
+     * moldura preta vazia (também quando @a player é nulo, por exemplo quem já caiu).
+     */
+    void drawPowerSlot(const Player* player, const SDL_Rect& slot);
+
+    /**
      * Carrega o mapa do nível a partir de um arquivo.
      * @param path - caminho para o arquivo do mapa
      */
@@ -135,12 +157,42 @@ protected:
      * O nível de armadura indica quantos tiros são necessários para destruir o inimigo (de 1 a 4, cada um com cor diferente).
      * O inimigo gerado pode, ao ser destruído, gerar um bônus no mapa.
      */
-    void generateEnemy();
+    virtual void generateEnemy();
+
+    /**
+     * Cria um inimigo no ponto indicado, com tipo, blindagem e chance de carregar bônus
+     * sorteados pela dificuldade @a level (1 a 35, a escala das fases da campanha).
+     */
+    Enemy* createEnemy(SDL_Point point, int level);
+
+    /** Quantos inimigos podem estar no mapa ao mesmo tempo (campanha: 4). */
+    virtual int enemyLimit() const;
+
+    /** Intervalo mínimo (ms) entre o surgimento de dois inimigos. */
+    virtual Uint32 enemySpawnDelay() const;
+
+    /** Painel lateral: inimigos restantes, vidas dos jogadores e número da fase. */
+    virtual void drawStatus();
+
+    /** Desenhado por cima de tudo, antes de apresentar o quadro (mensagens dos modos extras). */
+    virtual void drawOverlay();
+
+    /**
+     * Aviso de pausa. Campanha: "PAUSE" piscando, como no original. Os modos extras usam a
+     * caixa padrão (drawPauseBox).
+     */
+    virtual void drawPause();
+
+    /** Caixa de pausa dos modos extras: "PAUSE" e como continuar (Enter / Start). */
+    void drawPauseBox();
 
     /**
      * Gera um bônus aleatório no mapa e o posiciona em local que não colida com a águia.
      */
     void generateBonus();
+
+    /** Tipo do próximo bônus (campanha: um dos 8 originais, com a mesma chance). */
+    virtual SpriteType randomBonusType();
 
     /**
      * Verifica se o tanque pode se mover livremente para frente; caso contrário, o tanque é parado. Não permite sair do tabuleiro.
@@ -196,7 +248,7 @@ protected:
      * @param player - jogador
      * @param enemy - inimigo
      */
-    void checkCollisionPlayerBulletsWithEnemy(Player* player, Enemy* enemy);
+    void checkCollisionPlayerBulletsWithEnemy(Tank* shooter, Enemy* enemy);
 
     /**
      * Verifica se o inimigo acertou o jogador com um projétil. Se sim, o jogador perde uma vida, a menos que tenha escudo.
@@ -226,7 +278,47 @@ protected:
      * @param player
      * @param bonus
      */
-    void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+    virtual void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+
+    // ======================== Poderes dos modos extras ========================
+    // Comuns ao duelo e à sobrevivência (a campanha nunca cria minas nem torretas)
+
+    /**
+     * A área (em tiles) está livre para um objeto novo: dentro do mapa, sem bloco do cenário,
+     * sem arbusto (nada de parede escondida no mato), sem base e sem tanque, e fora dos
+     * blocos reservados pelo modo (reservedTile).
+     */
+    bool areaFree(int row, int column, int rows, int columns);
+
+    /** Bloco reservado pelo modo (pontos de nascimento...): nada é colocado em cima. */
+    virtual bool reservedTile(int row, int column);
+
+    /** Célula (canto de uma área 2x2, em tiles) logo à frente do tanque, na direção dele. */
+    void frontCell(Tank* tank, int* row, int* column) const;
+
+    /** Barricada: 4 tijolos (2x2) logo à frente do tanque. @return false se não há espaço */
+    bool placeBarricade(Tank* tank);
+
+    /** Torreta logo à frente do jogador, da cor e da equipe dele. @return false se não há espaço */
+    bool placeTurret(Player* player);
+
+    /** Mina embaixo do jogador, da cor e da equipe dele. */
+    void placeMine(Player* player);
+
+    /**
+     * Retorno: leva o jogador ao primeiro dos pontos que estiver livre (sem tanque em cima).
+     * @return false se todos estão ocupados
+     */
+    bool recall(Player* player, const std::vector<SDL_Point>& points);
+
+    /** Destrói o inimigo de vez (mina, granada), dando o bônus que ele carregava e os pontos. */
+    void killEnemy(Enemy* enemy, Player* by);
+
+    /**
+     * Minas e torretas do lado dos jogadores contra os inimigos da campanha (m_enemies):
+     * usado pela sobrevivência dentro de Game::update. O duelo trata as dele por equipe.
+     */
+    void updateFriendlyPowers(Uint32 dt);
 
     // --- Variáveis de estado do jogo ---
 
@@ -269,6 +361,10 @@ protected:
      * Vetor de bônus presentes no mapa.
      */
     std::vector<Bonus*> m_bonuses;
+
+    /** Minas e torretas dos modos extras. */
+    std::vector<Mine*> m_mines;
+    std::vector<Turret*> m_turrets;
 
     /**
      * Ponteiro para o objeto águia.

@@ -63,6 +63,7 @@ void Tank::draw()
 {
     if(to_erase) return;
     Object::draw();
+    drawEffects();
 
     if(testFlag(TSF_SHIELD) && m_shield != nullptr) m_shield->draw();
     if(testFlag(TSF_BOAT) && m_boat != nullptr) m_boat->draw();
@@ -75,6 +76,7 @@ void Tank::draw()
 void Tank::update(Uint32 dt)
 {
     if(to_erase) return;
+    m_effect_time += dt;
     if(testFlag(TSF_LIFE))
     {
         // Atualiza posição do tanque se não estiver parado ou congelado
@@ -218,6 +220,7 @@ Bullet* Tank::fire()
 
         bullet->direction = tmp_d;
         bullet->team = team;
+        bullet->origin = {static_cast<int>(pos_x) + dest_rect.w / 2, static_cast<int>(pos_y) + dest_rect.h / 2};
         // Ajusta a velocidade do projétil dependendo do tipo do tanque
         if(type == ST_TANK_C)
             bullet->speed = AppConfig::bullet_default_speed * 1.3;

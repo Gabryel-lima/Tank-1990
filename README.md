@@ -93,6 +93,7 @@ make run         # Compila e executa o jogo
 make clean       # Remove arquivos de build
 make info        # Mostra informações do sistema
 make doc         # Gera documentação (Doxygen)
+make sprites     # Desenha a pixel art de tools/sprites/ em resources/png/texture.png
 make install-deps # Instala as dependências (apk, apt, dnf ou brew)
 make help        # Mostra todos os comandos disponíveis
 ```
@@ -180,6 +181,7 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 - ✅ **Efeitos sonoros** e visuais
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
+- ✅ **Modos extras**: duelo por equipes (10 mapas) e sobrevivência em ondas (1 a 4 jogadores)
 
 ## ⚔️ Modo Duelo (Extra Modes)
 
@@ -187,26 +189,45 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 
 **Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
 
-**Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado:
+**Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado. Se a lista não cabe na tela, ela rola junto com a seleção (setas à direita indicam que há mais itens acima ou abaixo):
 
 | Mapa | Estilo |
 |------|--------|
 | **Arena** | Equilibrado: tijolos, rio nas laterais (o barco ajuda) e gelo no centro |
-| **Fortress** | Defensivo: muralha de pedra na frente das bases; é preciso entrar no pátio para atacar |
+| **Fortress** | Defensivo: colunas de pedra e uma faixa de pedra no meio do campo |
 | **River** | Um rio corta o meio do mapa, com três pontes |
 | **Maze** | Labirinto de tijolos: dá para abrir caminho atirando |
 | **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
+| **Crossroads** | Avenidas largas em cruz entre quarteirões de tijolo e arbusto |
+| **Archipelago** | Ilhas de água ligadas por pontes de gelo; o barco abre atalhos |
+| **Bunkers** | Casamatas de pedra espalhadas, com corredores estreitos até as bases |
+| **Frozen Lake** | Lago de gelo no centro, cercado de arbustos: difícil parar e mirar |
+| **Gauntlet** | Um portão central de pedra: quem atravessa encontra o adversário |
 | **Random** | Um mapa sorteado a cada rodada |
 
 **Criar um mapa novo** (sem mexer em código):
 
 1. Salve uma grade de **26×26** em `resources/duel_levels/` com os símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio.
 2. Acrescente uma linha `arquivo;Nome` em `resources/duel_levels/maps.txt`. O nome é o que aparece no menu.
-3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema.
+3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema (e verifica também os mapas da sobrevivência).
 
-O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas) e a **muralha das bases**, que não precisa estar no arquivo; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a pedra do mapa fica indestrutível; os pontos de nascimento sem mira; e os pontos de bônus.
+**A base** é montada pelo jogo, igual em todo mapa (não precisa estar no arquivo):
 
-O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e de bônus; e ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até a base inimiga e até cada bônus. Um mapa que não passa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida.
+```
+............   pátio (2 linhas livres): por onde o defensor contorna a águia
+............   e chega ao flanco de onde o inimigo vier
+....#@@#....   frente blindada: 2 blocos de pedra
+....#EE#....   laterais e cantos de tijolo (E = águia): a base cai pelos flancos
+....#EE#....
+```
+
+Atirar de frente, de perto ou de longe pelo meio do mapa, não adianta (nem com o canhão). O ataque é pelos dois flancos, e o defensor sempre consegue ir de um lado para o outro pelo pátio, então não existe uma entrada única para alguém ficar esperando.
+
+O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas), a base acima; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a pedra fica indestrutível; os pontos de nascimento sem mira; e os pontos de bônus.
+
+O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e de bônus; ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até um **flanco da base inimiga** e até cada bônus; e de cada nascimento até os **dois flancos da própria base** em no máximo 20 passos, para o defensor contornar a águia e chegar ao lado atacado; e não ter pedra cruzando a borda da **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia): termine a parede com espaço ou tijolo. Um mapa que não passa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida.
+
+**Equilíbrio** (o `check-maps` não verifica): como o mapa é espelhado, se ninguém defende, cada equipe ataca por um lado, as duas nunca se cruzam e a rodada vira uma corrida de quem chega primeiro. Confira com o `duel_sim`: no 2 contra 2 (um ataca e um defende, `--teams ABAB`), rodadas curtas com quase 100% de vitórias por base indicam um caminho fácil demais até os flancos inimigos.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -224,13 +245,14 @@ O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na hori
   - **na cor de uma equipe** (com a letra **A** ou **B** em cima, ~65% das vezes): só jogadores dela conseguem pegar; os adversários passam por cima. Aparece **70% das vezes na metade do adversário** (é preciso invadir para buscar) e 30% na própria. A equipe é sorteada 50/50 (ou é a que estiver atrás em vidas), inclusive num 3 contra 1;
   - **cinza**, com o ícone original do jogo (~35%): **qualquer jogador** pega. Surge num ponto simétrico do meio do mapa (à mesma distância das duas bases) ou, se uma equipe estiver bem atrás em vidas, do lado dela.
 - **Reforço:** o bônus de tanque traz um **bot aliado** na cor da equipe, com uma vida. O primeiro reforço guarda a base e o segundo ataca.
-- **IA dos reforços:** o bot calcula um caminho pelo mapa (busca em grade, como num GPS), contornando pedra e água e abrindo caminho a tiro pelos tijolos, então funciona em qualquer mapa, inclusive nos personalizados. Ele atira quando um inimigo ou a base inimiga está na linha de tiro, vira para atirar em quem aparece ao lado e, se ficar preso (outro tanque na frente), desvia e recalcula.
-- **Sem fogo amigo:** tiros não ferem aliados, a própria base nem a muralha em volta dela.
+- **IA dos reforços:** o bot calcula um caminho pelo mapa (busca em grade, como num GPS), contornando pedra e água e abrindo caminho a tiro pelos tijolos, então funciona em qualquer mapa, inclusive nos personalizados. Ele atira quando um inimigo ou a base inimiga está na linha de tiro, vira para atirar em quem aparece ao lado e **segura a mira** enquanto o alvo continua na linha (antes virava e desvirava várias vezes por segundo); não dá meia-volta logo depois de virar; persegue um inimigo com histerese (começa a caçar a 10 blocos e só desiste a 14); os defensores guardam a base (um no pátio, à mesma distância dos dois flancos), cada um no seu posto, sem tapar a saída de quem nasce atrás; e, se ficar preso, desvia e recalcula. A IA nunca atira na direção da própria base.
+- **Fogo amigo:** tiros não ferem companheiros. O tiro de um **jogador** destrói a **própria base** (a rodada vai para o adversário) e derruba os tijolos em volta dela, como no original, e também a pedra colorida da própria zona (ver abaixo): dá para abrir um ângulo de tiro, mas cuidado com a mira. O tiro do bot de reforço não fere a própria base.
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge o próximo. Só jogadores coletam (reforços não).
-- Efeitos no duelo: **granada** destrói os inimigos em campo (escudo protege); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
-- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. A pedra que protege a base, seja do mapa (Fortress, River) ou da pá, não cai.
+- Efeitos no duelo: **granada** explode os inimigos em campo, inclusive com escudo ou barco (é uma explosão, não um tiro; o companheiro não é atingido); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
+- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. Toda pedra dentro da zona fica **na cor da equipe dona** (dourada embaixo, verde em cima): o adversário não a derruba (nem com o canhão, só com o tiro demolidor), mas **qualquer tiro de jogador da própria equipe a derruba**, como os tijolos da própria muralha. O defensor abre o caminho que quiser em casa, por exemplo para tirar um atacante escondido atrás de uma pedra; o tiro dos bots de reforço e da torreta não derruba. Por isso nenhum mapa pode ter pedra cruzando a borda da zona (o `check-maps` recusa): metade da parede ficaria colorida e metade comum.
+- **Tiro demolidor (segundo estágio do tanque):** quem pega o **canhão já tendo estrela** (na mesma vida) ganha o tiro demolidor. Ele derruba a **pedra da base inimiga** (a frente, a pá e a base toda de pedra do 1 contra 3), mas **só disparado de dentro da zona dela**: abre o ataque por cima para quem chega perto, sem tiro de longe, de uma base para a outra. Quem tem o tiro demolidor dá um brilho branco rápido a cada segundo e aparece com o ícone do canhão no painel; **a pedra colorida da base ameaçada pisca junto com ele**, no mesmo ritmo, avisando o defensor. Morrer faz perdê-lo. Quantas estrelas são exigidas fica em `AppConfig::duel_demolisher_stars` (padrão 1).
 - **Cadência:** no duelo, cada jogador dispara no máximo **3 tiros por segundo** (`AppConfig::duel_max_shots_per_second`), para que uma rajada não derrube a base inimiga sem chance de defesa.
-- **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, base com muralha de pedra.
+- **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, a base inteira de pedra (aí só se vence eliminando os jogadores).
 
 **Simulação de equilíbrio:** `make duel-sim` compila `build/bin/duel_sim`, que joga partidas inteiras sem janela, com todos os jogadores controlados pela IA, e mostra quantas rodadas cada equipe vence em cada mapa, quanto cada bônus ajuda quem o pega (separado por quem estava atrás, parelho ou na frente em vidas) e quanto tempo os bots passam presos. Os ajustes de equilíbrio (`AppConfig::duel_*`) podem ser testados sem recompilar:
 
@@ -243,6 +265,73 @@ cd build/bin
 
 A IA não joga como uma pessoa, então os números indicam tendências (um bônus que decide a rodada sozinho, um mapa que favorece um lado), não o resultado exato entre jogadores.
 - Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
+
+## 🛡️ Modo Sobrevivência (Extra Modes)
+
+**Extra Modes → Survival**: de 1 a 4 jogadores, juntos, defendendo a águia contra **ondas de inimigos sem fim**. Escolha a quantidade de jogadores (← →; a tela mostra o dispositivo de cada um, como no duelo), **Next** e o mapa (com miniatura, ou **Random**). Cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho), e o painel lateral mostra a onda, os inimigos que faltam e as vidas de cada um.
+
+**Mapas** (`resources/survival_levels/`, separados da campanha e do duelo):
+
+| Mapa | Estilo |
+|------|--------|
+| **Classic** | Um mapa no estilo da campanha: arbustos, tijolos e pedra |
+| **Trenches** | Trincheiras de tijolo atravessando o mapa, com passagens |
+| **Canyon** | Faixas de água com pontes; o barco abre atalhos |
+| **Forest** | Mata fechada: os inimigos aparecem de perto |
+| **Ice Rink** | Pista de gelo no meio: difícil parar e mirar |
+| **Citadel** | Muralhas de pedra com portões em volta da base |
+| **Labyrinth** | Labirinto de tijolos: dá para abrir caminho atirando |
+| **Islands** | Ilhas de água com arbustos |
+| **Crossfire** | Cruzes de tijolo e pilares de pedra, muitos ângulos de tiro |
+| **Last Stand** | Camadas de tijolo protegendo a base, topo aberto |
+| **Random** | Um mapa sorteado |
+
+Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os símbolos das fases em `resources/survival_levels/`, uma linha `arquivo;Nome` no `maps.txt` da pasta e `make check-maps`. O jogo monta a águia e a muralha de tijolos dela; o mapa precisa deixar livres os pontos onde os inimigos surgem (no topo) e onde os jogadores nascem, e ligar todos eles e a muralha da águia por caminhos da largura de um tanque. Mapas que não passam são recusados ao iniciar o jogo, com o motivo no terminal.
+
+- O mapa vai se desgastando de onda em onda.
+- Cada onda tem mais inimigos (6, 8, 10... até 40), mais deles no mapa ao mesmo tempo (4 na primeira onda, +1 por jogador extra e +1 a cada 3 ondas, até 10) e mais blindados (a onda N usa a dificuldade da fase 2N + 1 da campanha, até a 35).
+- Entre as ondas há uma pausa com o aviso **WAVE N** (os jogadores já podem se posicionar) e a muralha de tijolos da águia é refeita.
+- A cada **5 ondas**, todos ganham uma vida e quem já tinha caído **volta ao jogo**.
+- Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia). Os jogadores têm cores diferentes, mas são **uma equipe só**: todo bônus é **cinza**, com o ícone original, e qualquer jogador pega (as cores de equipe nos bônus são só do duelo).
+- Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só.
+- Os números ficam em `AppConfig::survival_*`.
+
+## 🧨 Poderes novos (duelo e sobrevivência)
+
+Além dos 8 bônus originais, os modos extras têm 9 poderes novos, com pixel art própria no estilo dos ícones do NES. Eles se dividem em dois tipos:
+
+- **Guardáveis:** vão para o **espaço de poder** do jogador e são usados quando ele quiser, com o **botão de poder**. Enquanto guarda um poder, o jogador **não pega outro bônus**: os bônus continuam surgindo (e ficam no mapa), mas só dá para pegá-los depois de usar o que está guardado. **Morrer faz perder o poder guardado**, como as estrelas: guardar tem risco.
+- **Imediatos:** fazem efeito na hora, como os bônus originais.
+
+| Poder | Tipo | Efeito |
+|-------|------|--------|
+| **Mina** | guardável | Deixa uma mina onde o tanque está. Explode o primeiro tanque **adversário** que passar por cima (respeita escudo e barco, para não virar arma contra quem acabou de nascer). Qualquer tiro a detona antes. Dura 30 s; no último quarto, uma névoa branca pulsa sobre ela. Na sobrevivência, destrói até inimigo blindado. |
+| **Barricada** | guardável | Levanta um bloco de tijolos 2×2 logo à frente. Não pode ser colocada em cima de tanque, base, cenário, arbusto ou ponto de nascimento; sem espaço, o poder continua guardado. |
+| **Torreta** | guardável | Instala à frente um canhão fixo, na cor do dono, virado para onde o tanque olha. Ela gira e atira sozinha nos inimigos alinhados a até 12 tiles, **nunca na direção da própria base**. Um tiro a destrói. Acaba no que vier primeiro: **10 tiros ou 20 s**. Quando está acabando (últimos 3 tiros ou último quarto do tempo), uma névoa branca pulsa sobre ela, mais rápida perto do fim. |
+| **Retorno** | guardável | Teleporta o tanque para o seu ponto de nascimento, ao lado da base (se estiver ocupado, para outro da equipe). Mantém o barco e as estrelas. É a resposta a uma invasão quando se está longe de casa. |
+| **Turbo** | guardável | Velocidade ×1,5 por 8 s. |
+| **Reviver** | imediato | Um companheiro que caiu volta com uma vida; se ninguém caiu, uma vida extra para quem da equipe tem menos. |
+| **Reparo** | imediato | Refaz a muralha da própria base. |
+| **Escudo de equipe** | imediato | Escudo para todos os jogadores da equipe ao mesmo tempo. |
+| **Trégua** | imediato, **só na sobrevivência** | Por 10 s, nenhum inimigo novo entra no mapa (aviso **TRUCE** no topo). No duelo nada surge, então não teria efeito: fica fora do sorteio. |
+
+**Por que esses são guardáveis e os outros não:** guardar só faz sentido quando o valor do poder depende de **onde** e **quando** ele é usado. Uma mina, uma barricada ou uma torreta valem muito na entrada da base e quase nada no lugar onde o bônus apareceu por acaso; o retorno só serve quando a base está sob ataque; o turbo, na hora de fugir ou de invadir. Já estrela, capacete, reviver, reparo e escudo valem o mesmo a qualquer hora (ou valem mais se usados logo), então guardá-los só atrasaria o efeito.
+
+**Botão de poder:**
+
+| Dispositivo | Botão |
+|-------------|-------|
+| Controle | **LB** (ombro esquerdo; L1 no PlayStation, L no Switch) |
+| Teclado `WASD` | **Shift esquerdo** |
+| Teclado `ARROWS` | **Shift direito** |
+
+**No painel lateral**, abaixo das vidas de cada jogador, aparece o poder guardado (um quadrado vazio quando não há nenhum). No duelo, de 1 contra 1 até 4 jogadores, o painel de cada equipe cresce para mostrar uma linha por jogador; na sobrevivência, o ícone fica ao lado das vidas.
+
+**Na sobrevivência** os mesmos 5 poderes também são guardáveis (`AppConfig::survival_store_powers = true`). Os bônus surgem em lugares aleatórios do mapa, então uma mina ou uma torreta usada na hora quase sempre cairia num canto sem inimigos; guardada, vira defesa da águia. Com `survival_store_powers = false`, todo poder é usado na hora em que é pego.
+
+**Sorteio:** no duelo, os poderes novos dividem o sorteio com os originais; os mais fortes (torreta, reviver e escudo de equipe) são raros como a granada e o canhão (em 1 contra 1 o reviver vira só uma vida extra). As chances ficam em `Powers::duelTable()` e `Powers::survivalTable()` (`src/app_state/powers.cpp`); os tempos e alcances, em `AppConfig::power_*`.
+
+**A arte** fica em texto, em `tools/sprites/powers.txt` (um caractere por pixel, com a paleta dos ícones originais), e `make sprites` a desenha em `resources/png/texture.png`. Para ajustar um ícone, edite o desenho e rode `make sprites` de novo.
 
 ## 🎯 Power-ups e Bônus
 
@@ -286,12 +375,14 @@ como reserva de quem não tiver controle. Não há nada para configurar.
 
 - **Mover**: D-pad ou analógico esquerdo
 - **Atirar**: qualquer botão frontal (A, B, X ou Y)
+- **Usar o poder guardado** (duelo e sobrevivência): LB
 - **Start**: pausa · **Back/Select**: volta ao menu
 - **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
-**No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`) e
-`ARROWS` (setas + `Ctrl direito`; `Alt direito` no Mac). Cada layout controla
-um único jogador: apertar a tecla de um nunca move ou faz atirar outro.
+**No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`, poder no
+`Shift esquerdo`) e `ARROWS` (setas + `Ctrl direito`, `Alt direito` no Mac; poder no
+`Shift direito`). Cada layout controla um único jogador: apertar a tecla de um nunca
+move ou faz atirar outro.
 
 ### Qual dispositivo fica com qual jogador
 
@@ -374,6 +465,8 @@ Tank-1990/
 │   │   ├── player.h/cpp  # Jogador controlável
 │   │   ├── enemy.h/cpp   # Tanques inimigos
 │   │   ├── bot.h/cpp     # Bot aliado (bônus de reforço) no modo duelo
+│   │   ├── mine.h/cpp    # Mina (poder dos modos extras)
+│   │   ├── turret.h/cpp  # Torreta fixa (poder dos modos extras)
 │   │   ├── tank.h/cpp    # Classe base dos tanques
 │   │   ├── bullet.h/cpp  # Projéteis
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -385,6 +478,10 @@ Tank-1990/
 │   │   ├── duel.h/cpp    # Modo duelo (equipes)
 │   │   ├── duel_layout.h/cpp # Geometria do duelo e validação dos mapas
 │   │   ├── duel_ai.cpp   # IA do duelo (bots de reforço)
+│   │   ├── survival.h/cpp # Modo sobrevivência (ondas)
+│   │   ├── powers.h/cpp  # Poderes novos: guardáveis x imediatos e chances de sorteio
+│   │   ├── survival_layout.h/cpp # Geometria e validação dos mapas da sobrevivência
+│   │   ├── message_box.h/cpp # Caixa de mensagem dos modos extras
 │   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
 │   │   └── scores.h/cpp  # Tela de pontuação
 │   ├── engine/           # Motor do jogo
@@ -401,9 +498,12 @@ Tank-1990/
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
 │   ├── levels/           # Arquivos dos 36 níveis
-│   └── duel_levels/      # Mapas do modo duelo (Arena, Fortress, River, Maze, Open Field)
+│   ├── duel_levels/      # Mapas do modo duelo (lista em maps.txt)
+│   └── survival_levels/  # Mapas do modo sobrevivência (lista em maps.txt)
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
+│   ├── paint_sprites.cpp # Desenha a pixel art em texto na textura (make sprites)
+│   ├── sprites/powers.txt # Pixel art dos poderes novos
 │   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
@@ -438,6 +538,9 @@ Você avança para o próximo nível quando:
 - **Herança**: Sistema de classes base (`Object`, `Tank`) com especializações (`Player`, `Enemy`)
 - **Singleton**: `SoundManager` e `Renderer` usam padrão Singleton
 - **Configuração Centralizada**: `AppConfig` contém todas as constantes do jogo
+
+### Regras dos modos extras
+Todo modo extra, existente ou novo, segue as regras de **[MODOS_EXTRAS.md](MODOS_EXTRAS.md)**: por exemplo, modo não competitivo funciona com 1 jogador; a configuração mostra o dispositivo de cada jogador; o fim volta para a escolha de mapa; o botão de poder é o mesmo; o que está acabando ganha a névoa branca. O arquivo também traz o checklist de um modo novo e as diferenças intencionais entre os modos.
 
 ### Sistema de Cores
 Cada jogador tem uma cor única aplicada via `SDL_SetTextureColorMod()`, permitindo diferenciar visualmente os tanques durante o jogo multiplayer.

@@ -18,6 +18,7 @@ struct TankCommand
     Direction direction = D_UP;
     bool move = false;
     bool fire = false;
+    bool use_power = false; ///< usa o poder guardado (jogador do computador)
 };
 
 /**
@@ -55,6 +56,9 @@ public:
      * Chama o desenho dos projéteis disparados.
      */
     void draw();
+
+    /** Efeitos por cima do sprite do tanque, antes do escudo e dos projéteis. */
+    virtual void drawEffects() {}
 
     /**
      * Atualiza o estado do tanque.

@@ -17,10 +17,11 @@
  *
  * Telas do menu:
  * @li principal: 1 a 4 jogadores, Extra Modes, Exit
- * @li Extra Modes: Duel Mode
+ * @li Extra Modes: Duel Mode, Survival
  * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
  * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
  * @li escolha do mapa do duelo, com miniatura (ou aleatório a cada rodada)
+ * @li sobrevivência: quantidade de jogadores (1 a 4) e escolha do mapa, com miniatura
  */
 class Menu : public AppState
 {
@@ -34,7 +35,9 @@ public:
         SCREEN_EXTRA,
         SCREEN_DUEL_FORMAT,
         SCREEN_DUEL_SETUP,
-        SCREEN_DUEL_MAP
+        SCREEN_DUEL_MAP,
+        SCREEN_SURVIVAL,
+        SCREEN_SURVIVAL_MAP
     };
 
     /**
@@ -91,7 +94,10 @@ private:
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
-        ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i de AppConfig::duel_maps
+        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS,
+        // linhas informativas da sobrevivência: dispositivo de cada jogador (não selecionáveis)
+        ITEM_SURVIVAL_PLAYER_1, ITEM_SURVIVAL_PLAYER_2, ITEM_SURVIVAL_PLAYER_3, ITEM_SURVIVAL_PLAYER_4,
+        ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i da lista da tela (duelo ou sobrevivência)
     };
 
     /**
@@ -99,7 +105,7 @@ private:
      */
     enum Result
     {
-        RESULT_NONE, RESULT_EXIT, RESULT_CAMPAIGN, RESULT_DUEL
+        RESULT_NONE, RESULT_EXIT, RESULT_CAMPAIGN, RESULT_DUEL, RESULT_SURVIVAL
     };
 
     /** Monta a lista de itens da tela atual. */
@@ -126,8 +132,26 @@ private:
     /** Item tem valor ajustável com esquerda/direita. */
     bool isValueItem(Item item) const;
 
-    /** Altura (y) do texto do item na posição i. */
+    /** O cursor para no item (as linhas só informativas ele pula). */
+    bool isSelectable(Item item) const;
+
+    /** Altura (y) do texto na linha @a slot da tela (-1 = título, 0 = primeira linha da lista). */
+    int slotY(int slot) const;
+
+    /** Altura (y) do texto do item i (considera a rolagem da lista). */
     int itemY(int i) const;
+
+    /** Jogadores que a tela atual vai pôr em jogo (para o aviso de controle faltando). */
+    int playersOnScreen() const;
+
+    /** Quantas linhas da lista cabem na tela sem passar da borda inferior. */
+    int visibleRows() const;
+
+    /** Ajusta a rolagem para que o item selecionado fique visível. */
+    void ensureVisible();
+
+    /** Desenha a seta (para cima ou para baixo) que indica mais itens fora da tela. */
+    void drawScrollArrow(int y, bool up);
 
     /** Define um formato de duelo N vs N com os jogadores alternando entre as equipes. */
     void applyDuelFormat(int team_size);
@@ -138,8 +162,18 @@ private:
     /** Desenha a miniatura do mapa (tiles de 5 px) à esquerda da lista. */
     void drawMapPreview(int map_index);
 
-    /** Grades dos mapas do duelo, lidas uma vez para as miniaturas. */
+    /** A tela atual é uma escolha de mapa (duelo ou sobrevivência). */
+    bool isMapScreen() const;
+
+    /** Lista de mapas da tela de escolha atual: {arquivo, nome}. */
+    const std::vector<std::pair<std::string, std::string>>& mapList() const;
+
+    /** Grades dos mapas da tela de escolha atual (para as miniaturas). */
+    const std::vector<std::vector<std::string>>& mapGrids() const;
+
+    /** Grades dos mapas do duelo e da sobrevivência, lidas uma vez para as miniaturas. */
     std::vector<std::vector<std::string>> m_map_grids;
+    std::vector<std::vector<std::string>> m_survival_grids;
 
     Screen m_screen;
     std::vector<Item> m_items;
@@ -149,6 +183,12 @@ private:
      */
     int m_menu_index;
 
+    /**
+     * Primeiro item visível da lista (rolagem). Listas maiores que a tela, como a de
+     * mapas, mostram só as linhas que cabem e rolam junto com a seleção.
+     */
+    int m_scroll = 0;
+
     Result m_result;
     int m_campaign_players;
 
@@ -157,6 +197,12 @@ private:
      */
     static DuelConfig s_duel_config;
     static bool s_duel_custom;
+
+    /** Jogadores do modo sobrevivência (1 a 4), lembrado para jogar de novo. */
+    static int s_survival_players;
+
+    /** Mapa do modo sobrevivência (índice em AppConfig::survival_maps, -1 = aleatório). */
+    static int s_survival_map;
 
     /**
      * Ponteiro para o objeto Player que representa o tanque usado como ponteiro visual no menu.

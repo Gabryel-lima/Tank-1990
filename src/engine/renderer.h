@@ -51,6 +51,12 @@ public:
      * @param color Cor a ser aplicada ao sprite (RGB).
      */
     void drawObjectWithColor(const SDL_Rect *texture_src, const SDL_Rect *window_dest, SDL_Color color);
+    /**
+     * Desenha a silhueta branca do sprite (cada pixel visível do sprite vira branco) com a
+     * transparência @a alpha, por cima do que já foi desenhado: um brilho, ou uma névoa
+     * branca, sobre a cor do objeto, sem mudar o contorno dele.
+     */
+    void drawWhite(const SDL_Rect *texture_src, const SDL_Rect *window_dest, Uint8 alpha);
 
     /**
      * Define o fator de escala do renderizador e centraliza o conteúdo no meio da janela.
@@ -110,6 +116,11 @@ private:
      * Ponteiro para a textura principal contendo todos os elementos visuais do jogo.
      */
     SDL_Texture* m_texture;
+    /**
+     * Cópia da textura principal com todo pixel visível em branco (mesma transparência):
+     * usada por drawWhite.
+     */
+    SDL_Texture* m_white_texture;
 
     /**
      * Ponteiro para a textura auxiliar utilizada na renderização de textos.

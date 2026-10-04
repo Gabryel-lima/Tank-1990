@@ -24,7 +24,9 @@ public:
         TILE_BRICK,   ///< tijolo: atirando, passa
         TILE_STONE,   ///< pedra: só com tiro forte
         TILE_WATER,   ///< água: só com barco
-        TILE_BLOCKED  ///< nunca passa (águia, muralha que a equipe não pode derrubar)
+        TILE_BLOCKED, ///< nunca passa (águia, muralha que a equipe não pode derrubar)
+        TILE_ZONE_STONE ///< pedra da zona da base inimiga: não se passa; só o tiro demolidor,
+                        ///< disparado de dentro da zona, a derruba (ver Duel::powerAppliesAt)
     };
 
     /** O que o tanque consegue atravessar. */
@@ -32,6 +34,7 @@ public:
     {
         bool boat = false;        ///< atravessa água
         bool break_stone = false; ///< tiro forte: pedra vira obstáculo destrutível
+        bool demolish = false;    ///< tiro demolidor: derruba TILE_ZONE_STONE (de perto)
     };
 
     static constexpr int UNREACHABLE = 1 << 29;

@@ -16,6 +16,27 @@ vector<pair<string, string>> AppConfig::duel_maps =
     {"3", "River"},
     {"4", "Maze"},
     {"5", "Open Field"},
+    {"6", "Crossroads"},
+    {"7", "Archipelago"},
+    {"8", "Bunkers"},
+    {"9", "Frozen Lake"},
+    {"10", "Gauntlet"},
+};
+// Caminho da pasta dos mapas do modo sobrevivência e a lista padrão (a real vem de
+// survival_levels/maps.txt, ver SurvivalLayout::loadMapList)
+string AppConfig::survival_levels_path = "survival_levels/";
+vector<pair<string, string>> AppConfig::survival_maps =
+{
+    {"1", "Classic"},
+    {"2", "Trenches"},
+    {"3", "Canyon"},
+    {"4", "Forest"},
+    {"5", "Ice Rink"},
+    {"6", "Citadel"},
+    {"7", "Labyrinth"},
+    {"8", "Islands"},
+    {"9", "Crossfire"},
+    {"10", "Last Stand"},
 };
 // Nome do arquivo de fonte utilizada no jogo
 string AppConfig::font_name = "prstartk.ttf";
@@ -69,10 +90,10 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
 vector<Player::PlayerKeys> AppConfig::keyboard_layouts =
 []{
     vector<Player::PlayerKeys> v;
-    // W, S, A, D + Espaço
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, "WASD"));
-    // Setas + Ctrl direito (Alt direito no Mac)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, "ARROWS"));
+    // W, S, A, D + Espaço (tiro) + Shift esquerdo (poder dos modos extras)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, SDL_SCANCODE_LSHIFT, "WASD"));
+    // Setas + Ctrl direito (Alt direito no Mac) + Shift direito (poder dos modos extras)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, SDL_SCANCODE_RSHIFT, "ARROWS"));
     return v;
 }();
 
@@ -157,6 +178,31 @@ int AppConfig::duel_max_allies = 2;
 double AppConfig::duel_max_shots_per_second = 3.0;
 // Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
 unsigned AppConfig::duel_freeze_time = 4000;
+
+// Poderes dos modos extras (ver Powers)
+unsigned AppConfig::power_turret_time = 20000;
+unsigned AppConfig::power_turret_reload = 700;
+int AppConfig::power_turret_ammo = 10;
+int AppConfig::duel_demolisher_stars = 1;
+int AppConfig::power_turret_range = 12;
+unsigned AppConfig::power_mine_time = 30000;
+unsigned AppConfig::power_turbo_time = 8000;
+double AppConfig::power_turbo_factor = 1.5;
+unsigned AppConfig::power_truce_time = 10000;
+bool AppConfig::survival_store_powers = true;
+
+// Modo sobrevivência: ondas cada vez maiores, com inimigos mais blindados (a dificuldade
+// segue a escala das fases da campanha: onda N ~ fase 2N + 1, até a 35)
+int AppConfig::survival_first_wave_enemies = 6;
+int AppConfig::survival_wave_enemy_step = 2;
+int AppConfig::survival_max_wave_enemies = 40;
+int AppConfig::survival_first_on_map = 4;
+int AppConfig::survival_on_map_every_waves = 3;
+int AppConfig::survival_max_on_map = 10;
+unsigned AppConfig::survival_first_spawn_delay = 1500;
+unsigned AppConfig::survival_min_spawn_delay = 500;
+unsigned AppConfig::survival_wave_intro_time = 3000;
+int AppConfig::survival_life_every_waves = 5;
 
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;
