@@ -124,8 +124,8 @@ void Duel::buildNavGrids()
                 if(t != NavGrid::TILE_FREE && t != NavGrid::TILE_WATER && isBaseWall(team, row, column))
                     t = NavGrid::TILE_BLOCKED;
                 // (o tiro demolidor derruba a da base inimiga, mas só de perto: TILE_ZONE_STONE)
-                if(t == NavGrid::TILE_STONE && isInBaseZone(row, column))
-                    t = DuelLayout::zoneTeam(row, column) == 1 - team ? NavGrid::TILE_ZONE_STONE : NavGrid::TILE_BLOCKED;
+                if(t == NavGrid::TILE_STONE && stoneOwner(row, column) >= 0)
+                    t = stoneOwner(row, column) == 1 - team ? NavGrid::TILE_ZONE_STONE : NavGrid::TILE_BLOCKED;
                 nav.setTile(row, column, t);
             }
 
@@ -295,7 +295,7 @@ bool Duel::firesAtOwnBase(Tank* tank, Direction d) const
             if(o != nullptr && isBaseWall(team, row, column)) return dynamic_cast<Player*>(tank) != nullptr || o->type != ST_STONE_WALL;
             if(o != nullptr && o->type == ST_STONE_WALL)
             {
-                if(dynamic_cast<Player*>(tank) != nullptr && DuelLayout::zoneTeam(row, column) == team) continue;
+                if(dynamic_cast<Player*>(tank) != nullptr && stoneOwner(row, column) == team) continue;
                 return false;
             }
         }

@@ -5,6 +5,7 @@
 #include "app_state/menu.h"
 #include "soundmanager.h"
 #include "controllers.h"
+#include "input/netpad.h"
 #include "app_state/duel_layout.h"
 #include "app_state/survival_layout.h"
 
@@ -47,6 +48,9 @@ void App::run()
 
         // Abre os controles já conectados (os demais chegam por hotplug)
         Controllers::init();
+        // Controles que chegam pela rede (ponte do Windows para o WSL): só se o ambiente
+        // pedir (TANK_NETPAD=porta). Eles viram controles virtuais do SDL (CONTROLES.md)
+        NetPad::startFromEnvironment();
 
         // Lista de mapas do duelo (duel_levels/maps.txt), sem os que não passam na validação
         DuelLayout::loadMapList();
@@ -143,6 +147,7 @@ void App::cleanup()
 
     SoundManager::getInstance().cleanup();
     Controllers::shutdown();
+    NetPad::stop();
 
     TTF_Quit();
     IMG_Quit();
@@ -152,6 +157,10 @@ void App::cleanup()
 // Processa todos os eventos SDL (teclado, mouse, janela, etc)
 void App::eventProces()
 {
+    // Estado que a ponte de controles mandou: atualiza os controles virtuais antes de ler os
+    // eventos, que é quando o SDL os transforma em eventos de controle
+    NetPad::poll();
+
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {

@@ -30,13 +30,18 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 
 ## 3. Mapas
 
+O mapa é de quem o desenha: o validador **só recusa o que impede o modo de funcionar ou de
+ser justo**. Conselho de desenho vira **aviso** (o mapa é aceito) e, onde o jogo consegue se
+adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
+
 | # | Regra | Onde |
 |---|-------|------|
 | P1 | Pasta própria `resources/<modo>_levels/`, com `maps.txt` (`arquivo;Nome`, um por linha) e mapas de 26×26 com os símbolos das fases. A pasta entra em `APP_RESOURCES` no `Makefile`. | `Makefile`, `AppConfig::<modo>_maps` |
-| P2 | Uma classe `<Modo>Layout` valida cada mapa e diz o motivo (com linha e coluna). Mapa inválido é **recusado ao iniciar**, com o motivo no terminal, em vez de quebrar uma partida. | `DuelLayout`, `SurvivalLayout` |
-| P3 | `make check-maps` verifica as pastas de todos os modos. | `tools/check_duel_maps.cpp` |
-| P4 | Pontos de nascimento e os lugares que importam (base, bônus, surgimento de inimigos) ligados por caminho da **largura de um tanque** (2 tiles). | `<Modo>Layout` |
-| P5 | Se o modo tem área com dono, pintada (C3), **a pedra não cruza a borda dela**: a área termina num espaço, tijolo ou outro bloco que não seja pedra. Uma parede que cruzasse a borda ficaria metade colorida e metade comum, sem nada no mapa que explique a diferença. | `DuelLayout::validate` |
+| P2 | Uma classe `<Modo>Layout` separa **erros** (`validate`: o mapa é **recusado ao iniciar**, com o motivo no terminal, em vez de quebrar uma partida) de **avisos** (`advise`: o mapa funciona, vale rever). Os dois dizem linha e coluna. | `DuelLayout`, `SurvivalLayout` |
+| P3 | `make check-maps` verifica as pastas de todos os modos e mostra os erros e os avisos. Só erro reprova. | `tools/check_duel_maps.cpp` |
+| P4 | **Erro** só para o indispensável: formato (26×26, símbolos conhecidos), ponto de nascimento livre, caminho da **largura de um tanque** (2 tiles) até o objetivo (o flanco da base inimiga; na sobrevivência, a muralha da águia) e, no competitivo, **justiça**: o terreno de uma equipe é o da outra pela mesma transformação que leva as bases e os nascimentos de uma às da outra (no duelo, girar 180°; espelho não é exigido). | `<Modo>Layout::validate` |
+| P5 | **O jogo se adapta** em vez de proibir: monta a base e a muralha; o dono da pedra é decidido pela **parede inteira** (dentro da área com dono, é da equipe; cruzando a borda, é comum), então a parede nunca fica metade colorida; o bônus não surge num ponto coberto (e volta quando o bloco cai). | `DuelLayout::stoneOwners`, `Duel::openSpots` |
+| P6 | **Aviso**, não erro: ponto de bônus coberto ou inalcançável a pé, defensor longe dos flancos da própria base. São escolhas de desenho que o jogo aguenta. | `<Modo>Layout::advise` |
 
 ## 4. Cores
 
@@ -44,7 +49,7 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 |---|-------|------|
 | C1 | A cor do tanque diz **de que lado** o jogador está. Competitivo: a cor é da **equipe** (cores diferentes só entre adversários). Cooperativo: cada jogador tem a sua (P1 amarelo, P2 verde, P3 azul, P4 vermelho). | `Player::getPlayerColor`, `Duel::teamColor` |
 | C2 | Bônus: no cooperativo, **todos cinza** (uma equipe só, qualquer um pega). Cor de equipe nos bônus é coisa de modo competitivo. | `Bonus::owner_team` |
-| C3 | Estrutura **com dono** (competitivo) fica na **cor clareada do dono**. Cor numa estrutura quer dizer uma coisa só: o adversário não a derruba (o dono derruba). | `Duel::stoneTint` |
+| C3 | Estrutura **com dono** (competitivo) fica na **cor clareada do dono**. Cor numa estrutura quer dizer uma coisa só: o adversário não a derruba (o dono derruba). O dono é da parede inteira (P5). | `Duel::stoneTint`, `Duel::stoneOwner` |
 
 ## 5. Poderes
 
@@ -91,7 +96,8 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 - [ ] Tela de configuração com o dispositivo de cada jogador e o Next bloqueado sem dispositivo (J3).
 - [ ] Escolha de mapa com miniatura e Random; o fim volta para ela com o último mapa selecionado (M1, M2).
 - [ ] `eventProcess` chama `extraModeInput`; a pausa usa `drawPauseBox` (M3, M4).
-- [ ] Pasta de mapas, `maps.txt`, `<Modo>Layout` e o modo coberto pelo `make check-maps` (P1 a P4).
+- [ ] Pasta de mapas, `maps.txt`, `<Modo>Layout` e o modo coberto pelo `make check-maps` (P1 a P3).
+- [ ] O validador só recusa o indispensável; o resto é aviso ou o jogo se adapta (P4 a P6).
 - [ ] Cores: de equipe no competitivo, de jogador no cooperativo; bônus cinza no cooperativo (C1, C2).
 - [ ] Tabela de poderes própria, sem poder inútil no modo; painel com `drawPowerSlot` (W2, W4).
 - [ ] `reservedTile` protege os pontos de nascimento (W5).

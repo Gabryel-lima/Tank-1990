@@ -11,8 +11,9 @@
 #   2. instala o SDL2 e o compilador C++
 #   3. compila o jogo
 #   4. compila um SDL2 com suporte a controles Xbox (libusb), uma vez so
-#   5. instala em /opt/tank1990 com o atalho /usr/local/bin/tank1990
-#   6. mantem o compilador para recompilar (ou o remove, com --slim)
+#   5. compila a ponte de controles Bluetooth (padbridge.exe, para o Windows)
+#   6. instala em /opt/tank1990 com o atalho /usr/local/bin/tank1990
+#   7. mantem o compilador para recompilar (ou o remove, com --slim)
 #
 # Uso:
 #   sh tools/wsl-setup.sh          # instala e mantem o compilador (padrao)
@@ -174,7 +175,7 @@ SRC_DIR="$(pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK" "$TMP_PROG"' EXIT
 
-cp -r "$SRC_DIR/src" "$SRC_DIR/resources" "$SRC_DIR/Makefile" "$WORK/"
+cp -r "$SRC_DIR/src" "$SRC_DIR/resources" "$SRC_DIR/tools" "$SRC_DIR/Makefile" "$WORK/"
 cd "$WORK"
 
 # Progresso = arquivos .o gerados + 1 passo de linkagem (o executavel)
@@ -231,11 +232,53 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+say "Ponte de controles Bluetooth (padbridge.exe para o Windows)"
+# ---------------------------------------------------------------------------
+# O WSL nao enxerga os controles Bluetooth (so o Windows os enxerga). A ponte
+# roda no Windows, le os controles com o SDL e manda o estado para o jogo aqui
+# dentro (ver CONTROLES.md). Ela e compilada aqui mesmo, com o MinGW, para nao
+# pedir compilador no Windows. Sem ela, o jogo funciona com teclado e com
+# controles por cabo (gamepads.cmd).
+BRIDGE_SDL_VER="2.32.10"
+BRIDGE_SDL="/opt/tank1990-sdl2-mingw/$BRIDGE_SDL_VER"
+BUILD_PKGS="$BUILD_PKGS mingw-w64-gcc"
+bridge_build() {
+    set -e
+    cd "$WORK"
+    # SDL2 para MinGW (o oficial, ~14 MB), guardado fora de $PREFIX como o outro SDL2
+    if [ ! -d "$BRIDGE_SDL/x86_64-w64-mingw32/include/SDL2" ]; then
+        wget -q "https://github.com/libsdl-org/SDL/releases/download/release-$BRIDGE_SDL_VER/SDL2-devel-$BRIDGE_SDL_VER-mingw.tar.gz"
+        rm -rf /opt/tank1990-sdl2-mingw
+        mkdir -p "$BRIDGE_SDL"
+        tar xzf "SDL2-devel-$BRIDGE_SDL_VER-mingw.tar.gz" -C "$BRIDGE_SDL" --strip-components=1
+    fi
+    make padbridge-win SDL2_MINGW="$BRIDGE_SDL/x86_64-w64-mingw32"
+}
+no_probe() { :; }
+BRIDGE_OK=0
+if apk add --no-cache mingw-w64-gcc >"$TMP_PROG/bridge.log" 2>&1; then
+    ( bridge_build ) >>"$TMP_PROG/bridge.log" 2>&1 &
+    if track $! "compilando a ponte" no_probe; then
+        BRIDGE_OK=1
+        ok "ponte compilada em $LAST_TIME"
+    fi
+fi
+if [ "$BRIDGE_OK" = "0" ]; then
+    tail -n 15 "$TMP_PROG/bridge.log" >&2
+    printf '\033[33m[AVISO]\033[0m %s\n' "A ponte nao compilou; controles Bluetooth nao chegam ao jogo (teclado e cabo USB funcionam)."
+fi
+
+# ---------------------------------------------------------------------------
 say "Instalando em $PREFIX"
 # ---------------------------------------------------------------------------
 rm -rf "$PREFIX"
 mkdir -p "$PREFIX"
 cp -r build/bin/. "$PREFIX/"
+# A ponte vai para o Windows: o install.cmd a copia de $PREFIX/windows
+if [ "$BRIDGE_OK" = "1" ]; then
+    mkdir -p "$PREFIX/windows"
+    cp build/win/padbridge.exe build/win/SDL2.dll "$PREFIX/windows/"
+fi
 if [ -f "$SDL_DIR/lib/libSDL2-2.0.so.0" ]; then
     mkdir -p "$PREFIX/lib"
     cp -P "$SDL_DIR"/lib/libSDL2-2.0.so* "$PREFIX/lib/"

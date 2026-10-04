@@ -94,6 +94,8 @@ make clean       # Remove arquivos de build
 make info        # Mostra informações do sistema
 make doc         # Gera documentação (Doxygen)
 make sprites     # Desenha a pixel art de tools/sprites/ em resources/png/texture.png
+make pad-tools   # Diagnóstico (padprobe) e ponte (padbridge) de controles
+make pad-selftest # Testa a ponte de controles de ponta a ponta
 make install-deps # Instala as dependências (apk, apt, dnf ou brew)
 make help        # Mostra todos os comandos disponíveis
 ```
@@ -185,7 +187,7 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 
 ## ⚔️ Modo Duelo (Extra Modes)
 
-No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, em mapas próprios, separados da campanha (`resources/duel_levels/`), todos espelhados na horizontal e na vertical para que os dois lados tenham o mesmo terreno.
+No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, em mapas próprios, separados da campanha (`resources/duel_levels/`), todos simétricos (girando o mapa 180°, um lado vira o outro) para que as duas equipes tenham o mesmo terreno.
 
 **Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
 
@@ -209,7 +211,7 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 
 1. Salve uma grade de **26×26** em `resources/duel_levels/` com os símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio.
 2. Acrescente uma linha `arquivo;Nome` em `resources/duel_levels/maps.txt`. O nome é o que aparece no menu.
-3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema (e verifica também os mapas da sobrevivência).
+3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada erro (o mapa seria recusado) e de cada aviso (o mapa funciona, vale rever). Também verifica os mapas da sobrevivência.
 
 **A base** é montada pelo jogo, igual em todo mapa (não precisa estar no arquivo):
 
@@ -221,13 +223,13 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 ....#EE#....
 ```
 
-Atirar de frente, de perto ou de longe pelo meio do mapa, não adianta (nem com o canhão). O ataque é pelos dois flancos, e o defensor sempre consegue ir de um lado para o outro pelo pátio, então não existe uma entrada única para alguém ficar esperando.
+Atirar de frente, de perto ou de longe pelo meio do mapa, não adianta (nem com o canhão; só o tiro demolidor, de perto). O ataque é pelos dois flancos, e o defensor sempre consegue ir de um lado para o outro pelo pátio, então não existe uma entrada única para alguém ficar esperando.
 
-O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas), a base acima; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a pedra fica indestrutível; os pontos de nascimento sem mira; e os pontos de bônus.
+O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas), a base acima; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a parede de pedra que fica inteira nela é da equipe; os pontos de nascimento sem mira; e os pontos de bônus (o coberto por um bloco fica de fora até o bloco cair).
 
-O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e de bônus; ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até um **flanco da base inimiga** e até cada bônus; e de cada nascimento até os **dois flancos da própria base** em no máximo 20 passos, para o defensor contornar a águia e chegar ao lado atacado; e não ter pedra cruzando a borda da **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia): termine a parede com espaço ou tijolo. Um mapa que não passa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida.
+O validador limita o mínimo possível quem desenha. **Erro** (o mapa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida) só para o indispensável: ser **simétrico girando 180°** (as duas equipes com o mesmo terreno; espelho na horizontal e na vertical também vale, mas não é exigido: cata-ventos e diagonais servem); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25); e ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até um **flanco da base inimiga**. **Aviso** (o mapa é aceito, o `check-maps` mostra): ponto de bônus coberto (o bônus não surge ali até o bloco cair) ou inalcançável a pé, e defensor a mais de 20 passos de um flanco da própria base. E o jogo se adapta ao resto: monta a base, e uma parede de pedra que cruza a borda da zona da base fica inteira como pedra comum.
 
-**Equilíbrio** (o `check-maps` não verifica): como o mapa é espelhado, se ninguém defende, cada equipe ataca por um lado, as duas nunca se cruzam e a rodada vira uma corrida de quem chega primeiro. Confira com o `duel_sim`: no 2 contra 2 (um ataca e um defende, `--teams ABAB`), rodadas curtas com quase 100% de vitórias por base indicam um caminho fácil demais até os flancos inimigos.
+**Equilíbrio** (o `check-maps` não verifica): num mapa espelhado, se ninguém defende, cada equipe ataca por um lado, as duas nunca se cruzam e a rodada vira uma corrida de quem chega primeiro. Confira com o `duel_sim`: no 2 contra 2 (um ataca e um defende, `--teams ABAB`), rodadas curtas com quase 100% de vitórias por base indicam um caminho fácil demais até os flancos inimigos.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -249,7 +251,7 @@ O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na hori
 - **Fogo amigo:** tiros não ferem companheiros. O tiro de um **jogador** destrói a **própria base** (a rodada vai para o adversário) e derruba os tijolos em volta dela, como no original, e também a pedra colorida da própria zona (ver abaixo): dá para abrir um ângulo de tiro, mas cuidado com a mira. O tiro do bot de reforço não fere a própria base.
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge o próximo. Só jogadores coletam (reforços não).
 - Efeitos no duelo: **granada** explode os inimigos em campo, inclusive com escudo ou barco (é uma explosão, não um tiro; o companheiro não é atingido); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
-- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. Toda pedra dentro da zona fica **na cor da equipe dona** (dourada embaixo, verde em cima): o adversário não a derruba (nem com o canhão, só com o tiro demolidor), mas **qualquer tiro de jogador da própria equipe a derruba**, como os tijolos da própria muralha. O defensor abre o caminho que quiser em casa, por exemplo para tirar um atacante escondido atrás de uma pedra; o tiro dos bots de reforço e da torreta não derruba. Por isso nenhum mapa pode ter pedra cruzando a borda da zona (o `check-maps` recusa): metade da parede ficaria colorida e metade comum.
+- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. A pedra da zona fica **na cor da equipe dona** (dourada embaixo, verde em cima): o adversário não a derruba (nem com o canhão, só com o tiro demolidor), mas **qualquer tiro de jogador da própria equipe a derruba**, como os tijolos da própria muralha. O defensor abre o caminho que quiser em casa, por exemplo para tirar um atacante escondido atrás de uma pedra; o tiro dos bots de reforço e da torreta não derruba. O dono é decidido pela **parede inteira** (blocos de pedra ligados lado com lado): a parede toda dentro da zona é da equipe; a que cruza a borda é pedra comum (cinza, o canhão quebra), então nenhuma parede fica metade de cada jeito. A muralha da águia é sempre da equipe.
 - **Tiro demolidor (segundo estágio do tanque):** quem pega o **canhão já tendo estrela** (na mesma vida) ganha o tiro demolidor. Ele derruba a **pedra da base inimiga** (a frente, a pá e a base toda de pedra do 1 contra 3), mas **só disparado de dentro da zona dela**: abre o ataque por cima para quem chega perto, sem tiro de longe, de uma base para a outra. Quem tem o tiro demolidor dá um brilho branco rápido a cada segundo e aparece com o ícone do canhão no painel; **a pedra colorida da base ameaçada pisca junto com ele**, no mesmo ritmo, avisando o defensor. Morrer faz perdê-lo. Quantas estrelas são exigidas fica em `AppConfig::duel_demolisher_stars` (padrão 1).
 - **Cadência:** no duelo, cada jogador dispara no máximo **3 tiros por segundo** (`AppConfig::duel_max_shots_per_second`), para que uma rajada não derrube a base inimiga sem chance de defesa.
 - **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, a base inteira de pedra (aí só se vence eliminando os jogadores).
@@ -429,10 +431,44 @@ novo. Outros comandos: `gamepads.cmd --list` (mostra os autorizados) e
 |---|---|
 | PlayStation (DualShock 4, DualSense), Switch Pro, 8BitDo, genéricos USB | Sim |
 | Xbox 360 / One / Series (cabo) | Sim, via o SDL2 com libusb que o `install.cmd` compila |
-| Qualquer controle por **Bluetooth** | Não (o usbipd só repassa USB) |
+| Qualquer controle por **Bluetooth** | Sim, pela ponte de controles (abaixo) |
 
 O `gamepads.cmd` só autoriza dispositivos que o Windows identifica como
 gamepad/joystick (ou controle Xbox); teclado e mouse nunca são repassados.
+
+### Controles por Bluetooth
+
+Pareie o controle **no sistema** (Configurações → Bluetooth, no Windows e no macOS;
+`bluetoothctl` ou as configurações da área de trabalho, no Linux) e abra o jogo. O jogo usa o
+SDL2, que recebe o controle já tratado pelo sistema: por cabo ou por Bluetooth, para o jogo é o
+mesmo controle. A investigação completa (protocolos, APIs de cada sistema, WSL2, fatos e
+hipóteses) está em [CONTROLES.md](CONTROLES.md).
+
+| Onde o jogo roda | Controle Bluetooth |
+|---|---|
+| Linux, macOS, Windows nativo (MSYS2) | Direto: pareie e jogue. No macOS, se aparecer o pedido de **Monitoramento de Entrada**, permita. |
+| Windows com o `install.cmd` (WSL) | Pela **ponte de controles**: o `install.cmd` gera o `padbridge.exe`, e o `play.cmd` o abre em segundo plano. Ele lê no Windows os controles que o WSL não enxerga e os manda ao jogo, onde viram controles comuns. |
+
+Sobre a ponte, no Windows:
+
+- Ela leva **qualquer** controle que o Windows enxergue: Bluetooth, e também por cabo, mesmo sem
+  o `gamepads.cmd`.
+- Os controles repassados pelo `gamepads.cmd` saem do Windows, então não chegam em dobro.
+- Se o **Smart App Control** do Windows 11 bloquear o `padbridge.exe` (é um executável compilado
+  na sua máquina), o jogo abre do mesmo jeito, sem os controles Bluetooth. Nesse caso, use o
+  controle por cabo com o `gamepads.cmd`.
+
+**Diagnóstico** (em qualquer sistema):
+
+```bash
+make pad-tools
+build/bin/padprobe          # lista os controles (nome, USB/Bluetooth, VID:PID) e mostra os botões
+build/bin/padprobe --list   # só lista
+make pad-selftest           # testa a ponte de ponta a ponta, sem controle de verdade
+```
+
+No Windows com WSL, o `padbridge.exe --list` (em `%LOCALAPPDATA%\Tank1990\bridge`) mostra o que a
+ponte enxerga.
 
 ## 👾 Tipos de Inimigos
 
@@ -491,6 +527,11 @@ Tank-1990/
 │   ├── app.h/cpp         # Aplicação principal
 │   ├── appconfig.h/cpp   # Configurações globais (inclui os layouts de teclado)
 │   ├── controllers.h/cpp # Gamepads: hotplug e distribuição entre jogadores
+│   ├── input/            # Controles abaixo do jogo (ver CONTROLES.md)
+│   │   ├── netpad.h/cpp  # Controles da ponte (rede) viram controles virtuais do SDL
+│   │   ├── pad_protocol.h # Protocolo da ponte
+│   │   ├── pad_socket.h/cpp # TCP portátil (Winsock / BSD)
+│   │   └── pad_info.h/cpp # Barramento (USB/Bluetooth/virtual) e VID:PID, para diagnóstico
 │   ├── soundmanager.h/cpp # Gerenciador de áudio
 │   └── type.h            # Definições de tipos
 ├── resources/            # Recursos do jogo
@@ -503,6 +544,9 @@ Tank-1990/
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
 │   ├── paint_sprites.cpp # Desenha a pixel art em texto na textura (make sprites)
+│   ├── padprobe.cpp      # Diagnóstico de controles (USB/Bluetooth/virtual, eventos)
+│   ├── padbridge.cpp     # Ponte de controles: lê no Windows, manda ao jogo no WSL
+│   ├── pad-selftest.sh   # Teste de ponta a ponta da ponte (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art dos poderes novos
 │   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)

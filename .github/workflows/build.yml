@@ -1,0 +1,87 @@
+# Compila e testa o jogo nas três plataformas, do jeito que cada uma é instalada:
+#  - Linux e macOS: make, com o SDL2 do gerenciador de pacotes
+#  - Windows nativo: MSYS2 (MinGW-w64), como no Makefile
+#  - Windows com WSL: o próprio tools/wsl-setup.sh num Alpine (é o que o install.cmd roda),
+#    inclusive a ponte de controles Bluetooth (padbridge.exe) compilada com o MinGW
+# Em todas: os mapas (check-maps) e a ponte de controles de ponta a ponta (pad-selftest),
+# com um controle de mentira (não há controle de verdade na CI). Ver CONTROLES.md.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ make libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+      - name: Compila o jogo
+        run: make build -j"$(nproc)"
+      - name: Mapas
+        run: make check-maps
+      - name: Simulação do duelo (compila)
+        run: make duel-sim
+      - name: Ponte de controles de ponta a ponta
+        run: make pad-selftest
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependências
+        run: brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf
+      - name: Compila o jogo
+        run: make build -j"$(sysctl -n hw.ncpu)"
+      - name: Mapas
+        run: make check-maps
+      - name: Ponte de controles de ponta a ponta
+        run: make pad-selftest
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            make
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-SDL2_image
+            mingw-w64-x86_64-SDL2_mixer
+            mingw-w64-x86_64-SDL2_ttf
+      - name: Compila o jogo (Tanks.exe)
+        run: make build -j"$(nproc)"
+      - name: Mapas
+        run: make check-maps
+      - name: Ponte de controles de ponta a ponta
+        run: make pad-selftest
+
+  wsl-setup:
+    # O install.cmd importa um Alpine no WSL e roda tools/wsl-setup.sh dentro dele. Aqui o
+    # mesmo script roda num contêiner Alpine da mesma versão: compila o jogo, o SDL2 com
+    # libusb e o padbridge.exe que o play.cmd abre no Windows
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: tools/wsl-setup.sh num Alpine 3.24
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src alpine:3.24 sh -c '
+            sh tools/wsl-setup.sh &&
+            test -x /opt/tank1990/Tanks &&
+            test -x /usr/local/bin/tank1990 &&
+            test -f /opt/tank1990/windows/padbridge.exe &&
+            test -f /opt/tank1990/windows/SDL2.dll &&
+            echo "instalação do WSL ok, com a ponte de controles"'

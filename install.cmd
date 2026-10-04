@@ -102,6 +102,20 @@ if !errorlevel! neq 0 (
     goto fim_erro
 )
 
+rem  Ponte de controles Bluetooth: o WSL nao enxerga os controles Bluetooth, so o
+rem  Windows. O padbridge.exe (compilado no WSL pelo wsl-setup.sh) roda no Windows
+rem  durante o jogo e manda os controles para dentro do WSL (ver CONTROLES.md).
+set "BRIDGE_DIR=%INSTALL_DIR%\bridge"
+if not exist "%BRIDGE_DIR%" mkdir "%BRIDGE_DIR%"
+taskkill /im padbridge.exe /f >nul 2>&1
+wsl.exe -d %DISTRO% --cd "%BRIDGE_DIR%" -e sh -c "cp /opt/tank1990/windows/padbridge.exe /opt/tank1990/windows/SDL2.dll . 2>/dev/null"
+if exist "%BRIDGE_DIR%\padbridge.exe" (
+    echo        Ponte de controles Bluetooth instalada em %BRIDGE_DIR%
+) else (
+    echo        [AVISO] Ponte de controles nao instalada: controles Bluetooth
+    echo                nao chegam ao jogo ^(teclado e cabo USB funcionam^).
+)
+
 rem ---------------------------------------------------------------------------
 call :duracao %T_TOTAL% DUR
 echo  [5/5] Pronto^^!
@@ -112,6 +126,7 @@ echo  ============================================
 echo.
 echo   Para jogar:       play.cmd
 echo   Controles USB:    gamepads.cmd ^(uma vez, com o controle conectado^)
+echo   Bluetooth:        pareie o controle no Windows; o play.cmd o leva ao jogo
 echo   Para desinstalar: uninstall.cmd
 echo.
 goto fim_ok

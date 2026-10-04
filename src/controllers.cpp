@@ -1,5 +1,6 @@
 #include "controllers.h"
 #include "appconfig.h"
+#include "input/pad_info.h"
 
 #include <algorithm>
 #include <iostream>
@@ -14,6 +15,10 @@ static SDL_GameController* openDevice(int device_index)
     SDL_GameController* c = SDL_GameControllerOpen(device_index);
     if(c == nullptr)
         std::cerr << "Controle " << device_index << ": " << SDL_GetError() << "\n";
+    else
+        // De onde veio (USB, Bluetooth, virtual da ponte): só informação, o jogo não decide
+        // nada por isso (CONTROLES.md)
+        std::cout << "Controle conectado: " << PadInfo::summary(PadInfo::describe(device_index)) << std::endl;
     return c;
 }
 

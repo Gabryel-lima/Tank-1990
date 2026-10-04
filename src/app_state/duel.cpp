@@ -128,6 +128,7 @@ void Duel::startRound()
     // O jogo monta a muralha das duas bases (tijolo, ou pedra para a equipe menor):
     // o arquivo do mapa não precisa trazê-la
     for(int team = 0; team < 2; team++) setBaseWalls(team, defaultWall(team));
+    computeStoneOwners();
 
     // Jogadores humanos: sprite amarelo na equipe A, verde na B (como P1 e P2 no original)
     Controllers::setPlayerCount(m_config.humans);
@@ -221,6 +222,27 @@ bool Duel::isInBaseZone(int row, int column) const
     return DuelLayout::inBaseZone(row, column);
 }
 
+void Duel::computeStoneOwners()
+{
+    std::vector<std::string> grid(m_level_rows_count, std::string(m_level_columns_count, '.'));
+    for(int r = 0; r < m_level_rows_count; r++)
+        for(int c = 0; c < m_level_columns_count; c++)
+        {
+            Object* o = m_level.at(r).at(c);
+            if(o != nullptr && o->type == ST_STONE_WALL) grid[r][c] = '@';
+        }
+    m_stone_owner = DuelLayout::stoneOwners(grid);
+}
+
+int Duel::stoneOwner(int row, int column) const
+{
+    for(int team = 0; team < 2; team++)
+        if(DuelLayout::isBaseWall(team, row, column)) return team;
+    if(row < 0 || row >= static_cast<int>(m_stone_owner.size()) || column < 0 ||
+       column >= static_cast<int>(m_stone_owner[row].size())) return -1;
+    return m_stone_owner[row][column];
+}
+
 bool Duel::powerAppliesAt(Bullet* bullet, int row, int column)
 {
     // Perto das bases, o canhão (3 estrelas) não vale: o projétil age como um comum,
@@ -229,10 +251,15 @@ bool Duel::powerAppliesAt(Bullet* bullet, int row, int column)
     // potente continua destruindo pedra do cenário
     if(!isInBaseZone(row, column)) return true;
 
+    // Pedra comum dentro da zona (parede que cruza a borda): o canhão quebra, como fora
+    Object* o = m_level.at(row).at(column);
+    bool stone = (o != nullptr && o->type == ST_STONE_WALL);
+    if(stone && stoneOwner(row, column) < 0) return true;
+
     // Tiro demolidor: derruba a pedra da base INIMIGA, mas só disparado de dentro da zona
     // dela. Abre um terceiro ângulo (a frente) para quem chega perto, sem tiro de longe,
     // de uma base para a outra
-    int zone = DuelLayout::zoneTeam(row, column);
+    int zone = stone ? stoneOwner(row, column) : DuelLayout::zoneTeam(row, column);
     int from = DuelLayout::zoneTeam(bullet->origin.y / AppConfig::tile_rect.h, bullet->origin.x / AppConfig::tile_rect.w);
     return bullet->demolisher && zone != bullet->team && from == zone;
 }
@@ -242,7 +269,7 @@ bool Duel::breaksBlock(Bullet* bullet, int row, int column)
     if(Game::breaksBlock(bullet, row, column)) return true;
     Object* o = m_level.at(row).at(column);
     return bullet->from_player && o != nullptr && o->type == ST_STONE_WALL &&
-           bullet->team >= 0 && DuelLayout::zoneTeam(row, column) == bullet->team;
+           bullet->team >= 0 && stoneOwner(row, column) == bullet->team;
 }
 
 bool Duel::bulletCanDamage(Bullet* bullet, int row, int column)
@@ -461,7 +488,8 @@ void Duel::spawnBonus()
     {
         double side_roll = static_cast<double>(rand()) / RAND_MAX;
         int side = (side_roll < AppConfig::duel_team_bonus_enemy_side_chance) ? 1 - owner_team : owner_team;
-        std::vector<SDL_Point> spots = halfSpots(side);
+        std::vector<SDL_Point> spots = openSpots(halfSpots(side));
+        if(spots.empty()) return; // todos cobertos: tenta de novo no próximo intervalo
         SDL_Point p = spots.at(rand() % spots.size());
         Bonus* bonus = new Bonus(p.x, p.y, type);
         bonus->owner_team = owner_team;
@@ -482,9 +510,31 @@ void Duel::spawnBonus()
     }
     else
         spots = DuelLayout::midBonusSpots();
+    spots = openSpots(spots);
+    if(spots.empty()) return;
 
     SDL_Point p = spots.at(rand() % spots.size());
     m_bonuses.push_back(new Bonus(p.x, p.y, type));
+}
+
+std::vector<SDL_Point> Duel::openSpots(const std::vector<SDL_Point>& spots) const
+{
+    // O mapa pode cobrir um ponto de bônus (o validador só avisa): o bônus não surge dentro
+    // de um bloco; se o bloco cair, o ponto volta a valer
+    std::vector<SDL_Point> open;
+    int t = AppConfig::tile_rect.w;
+    for(SDL_Point p : spots)
+    {
+        bool free = true;
+        for(int r = p.y / t; r < p.y / t + 2; r++)
+            for(int c = p.x / t; c < p.x / t + 2; c++)
+            {
+                Object* o = (r >= 0 && c >= 0 && r < m_level_rows_count && c < m_level_columns_count) ? m_level.at(r).at(c) : nullptr;
+                if(o != nullptr && o->type != ST_ICE) free = false;
+            }
+        if(free) open.push_back(p);
+    }
+    return open;
 }
 
 void Duel::applyBonus(Player* player, Bonus* bonus)
@@ -867,9 +917,9 @@ void Duel::draw()
         {
             Object* item = m_level[r][c];
             if(item == nullptr) continue;
-            int team = item->type == ST_STONE_WALL ? DuelLayout::zoneTeam(static_cast<int>(r), static_cast<int>(c)) : -1;
+            int team = item->type == ST_STONE_WALL ? stoneOwner(static_cast<int>(r), static_cast<int>(c)) : -1;
             if(team < 0) { item->draw(); continue; }
-            // Pedra da zona de uma base: na cor da equipe (só ela a derruba)
+            // Pedra com dono (muralha da águia e paredes inteiras na zona): na cor da equipe
             renderer->drawObjectWithColor(&item->src_rect, &item->dest_rect, stoneTint(team));
             Player* threat = demolisher[1 - team];
             if(threat != nullptr && Player::demolisherGlint(threat->effectTime()))

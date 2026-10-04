@@ -7,7 +7,8 @@
 //
 // Sem argumentos, verifica todos os mapas listados em duel_levels/maps.txt e em
 // survival_levels/maps.txt e avisa sobre arquivos das pastas que não estão na lista.
-// Sai com código 1 se algum mapa tiver problema.
+// Sai com código 1 se algum mapa tiver erro (o jogo o recusaria). Avisos ("aviso") são
+// conselhos de desenho: o mapa funciona e é aceito.
 
 #include "../src/app_state/duel_layout.h"
 #include "../src/app_state/survival_layout.h"
@@ -31,10 +32,12 @@ static bool check(const std::string& path, const std::string& name, const Valida
     if(problems.empty())
     {
         if(duel)
-            std::printf("ok    %-12s %s  (%d bloco(s) de pedra nas zonas das bases: coloridos, só o dono derruba)\n",
+            std::printf("ok    %-12s %s  (%d bloco(s) de pedra do mapa com dono: coloridos, só o dono derruba)\n",
                         name.c_str(), path.c_str(), DuelLayout::protectedStone(grid));
         else
             std::printf("ok    %-12s %s\n", name.c_str(), path.c_str());
+        if(duel)
+            for(const std::string& w : DuelLayout::advise(grid)) std::printf("        aviso: %s\n", w.c_str());
         return true;
     }
     std::printf("ERRO  %-12s %s\n", name.c_str(), path.c_str());

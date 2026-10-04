@@ -318,6 +318,20 @@ private:
     /** O bloco (linha, coluna) fica na zona de uma das bases, onde o canhão não vale. */
     bool isInBaseZone(int row, int column) const;
 
+    /**
+     * Equipe dona do bloco de pedra: a muralha da águia é sempre da equipe; a pedra do mapa,
+     * se a parede inteira fica na zona da base (DuelLayout::stoneOwners). -1 para pedra comum.
+     */
+    int stoneOwner(int row, int column) const;
+
+    /** Os pontos de bônus de @a spots que nenhum bloco do mapa cobre agora. */
+    std::vector<SDL_Point> openSpots(const std::vector<SDL_Point>& spots) const;
+
+    /** Calcula o dono da pedra do mapa (início da rodada, com o mapa montado). */
+    void computeStoneOwners();
+
+    std::vector<std::vector<int>> m_stone_owner; ///< DuelLayout::stoneOwners do mapa da rodada
+
     /** O bloco (linha, coluna) faz parte da muralha da base da equipe. */
     bool isBaseWall(int team, int row, int column) const;
 

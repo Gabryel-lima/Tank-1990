@@ -95,6 +95,8 @@ if "%TEM_DISTRO%"=="1" (
     )
 )
 
+rem  A ponte de controles (bridge\padbridge.exe) aberta prenderia a pasta
+taskkill /im padbridge.exe /f >nul 2>&1
 if exist "%INSTALL_DIR%" (
     echo  Apagando %INSTALL_DIR%...
     rmdir /s /q "%INSTALL_DIR%" 2>nul
@@ -119,6 +121,7 @@ if "%TEM_DISTRO%"=="1" (
     echo  Removendo a distribuicao "%DISTRO%"...
     wsl.exe --unregister %DISTRO%
 )
+taskkill /im padbridge.exe /f >nul 2>&1
 if exist "%INSTALL_DIR%" rmdir /s /q "%INSTALL_DIR%" 2>nul
 
 echo.

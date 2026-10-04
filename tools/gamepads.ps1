@@ -135,7 +135,7 @@ switch ($Action) {
         if ($pads.Count -eq 0) {
             Write-Host ''
             Write-Host '  Nenhum controle encontrado. Conecte-o por cabo USB e rode de novo.'
-            Write-Host '  (Controles por Bluetooth nao podem ser repassados ao WSL.)'
+            Write-Host '  (Controles por Bluetooth nao precisam disto: o play.cmd os leva ao jogo pela ponte.)'
         }
         foreach ($hw in $pads.Keys) {
             if ($allowed -contains $hw) {
