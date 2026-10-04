@@ -55,7 +55,7 @@ void Scores::draw()
 
     // Tudo alinhado ao centro da janela (a tela inteira é preta, mapa + painel),
     // inclusive a tabela, que antes ficava 7 px fora do eixo do título
-    const int center_x = AppConfig::windows_rect.x + (AppConfig::map_rect.w + AppConfig::status_rect.w) / 2;
+    const int center_x = (AppConfig::map_rect.w + AppConfig::status_rect.w) / 2;
     const int left = center_x - 125, right = center_x + 125;
     const SDL_Color WHITE = {255, 255, 255, 255};
 

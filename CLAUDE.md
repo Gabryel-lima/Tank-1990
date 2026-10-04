@@ -35,5 +35,10 @@ Controles: o jogo só conhece o gamepad padronizado do SDL; o transporte (USB, B
 fica abaixo (ver `CONTROLES.md`). Fonte nova de controles entra como joystick virtual do SDL,
 como o `NetPad`, sem mudar o `Controllers` nem o jogo.
 
+Telas: desenhe sempre em coordenadas lógicas (`map_rect` + `status_rect`, 464x416); o
+`Renderer::setScale` amplia e centraliza na janela. `AppConfig::windows_rect` é a janela real em
+pixels (muda ao redimensionar) e não serve para posicionar nem para medir o que cabe na tela.
+Confira uma tela nova também com a janela redimensionada (larga, alta, maximizada).
+
 Mudança no `Game`, no `Player`, no `Tank`, no `Object` ou no `Renderer`: confirme que as
 telas da campanha continuam idênticas pixel a pixel.
