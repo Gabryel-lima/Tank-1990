@@ -1345,6 +1345,45 @@ bool Game::placeBarricade(Tank* tank)
     return true;
 }
 
+void Game::restoreTerrain(const std::vector<std::string>& grid, const std::vector<SDL_Point>& skip)
+{
+    const int t = AppConfig::tile_rect.w;
+    std::vector<SDL_Rect> busy;
+    for(Player* p : m_players) if(!p->to_erase) busy.push_back(p->collision_rect);
+    for(Enemy* e : m_enemies) if(!e->to_erase) busy.push_back(e->collision_rect);
+    for(Turret* turret : m_turrets) if(!turret->to_erase) busy.push_back(turret->collision_rect);
+    for(Mine* mine : m_mines) if(!mine->to_erase) busy.push_back(mine->collision_rect);
+    for(Bonus* bonus : m_bonuses) if(!bonus->to_erase) busy.push_back(bonus->collision_rect);
+
+    for(int row = 0; row < m_level_rows_count && row < static_cast<int>(grid.size()); row++)
+        for(int column = 0; column < m_level_columns_count && column < static_cast<int>(grid[row].size()); column++)
+        {
+            if(std::any_of(skip.begin(), skip.end(), [&](SDL_Point p) { return p.x == column && p.y == row; }))
+                continue;
+            char symbol = grid[row][column];
+            if(symbol == '%')
+            {
+                // Arbusto não bloqueia ninguém: volta mesmo com alguém em cima
+                bool there = std::any_of(m_bushes.begin(), m_bushes.end(), [&](Object* b) {
+                    return !b->to_erase && b->pos_x == column * t && b->pos_y == row * t; });
+                if(!there) m_bushes.push_back(new Object(column * t, row * t, ST_BUSH));
+                continue;
+            }
+            if(symbol != '#' && symbol != '@') continue; // água e gelo não são destruídos
+
+            Object*& cell = m_level.at(row).at(column);
+            bool brick = (symbol == '#');
+            // Pedra que está lá fica; tijolo é trocado por um inteiro (pode estar rachado)
+            if(cell != nullptr && !cell->to_erase && (!brick || cell->type != ST_BRICK_WALL)) continue;
+            SDL_Rect area = {column * t, row * t, t, t};
+            if(std::any_of(busy.begin(), busy.end(), [&](const SDL_Rect& r) { return SDL_HasIntersection(&r, &area); }))
+                continue;
+            delete cell;
+            cell = brick ? static_cast<Object*>(new Brick(column * t, row * t))
+                         : new Object(column * t, row * t, ST_STONE_WALL);
+        }
+}
+
 bool Game::placeTurret(Player* player)
 {
     int row, column;

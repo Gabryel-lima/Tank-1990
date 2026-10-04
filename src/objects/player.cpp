@@ -3,6 +3,7 @@
 #include "../soundmanager.h"
 #include "../controllers.h"
 
+#include <algorithm>
 #include <iostream>
 #include <SDL2/SDL.h>
 
@@ -187,9 +188,9 @@ void Player::destroy()
         return;
     }
 
-    // Se está no nível máximo de estrela, perde só uma estrela (a menos que o modo
-    // de jogo desligue essa "armadura", como o duelo)
-    if(star_count == 3 && star_armor)
+    // Com estrela, o tiro só rebaixa o tanque um estágio (pesado → médio → leve → básico)
+    // em vez de destruí-lo; o modo de jogo pode desligar essa "armadura" (o duelo desliga)
+    if(star_count > 0 && star_armor)
         changeStarCountBy(-1);
     else
     {
@@ -213,7 +214,7 @@ Bullet* Player::fire()
         b->from_player = true;
         // Se tem pelo menos uma estrela, aumenta a velocidade do tiro
         if(star_count > 0) b->speed = AppConfig::bullet_default_speed * 1.3;
-        // Se está no nível máximo, o tiro causa mais dano
+        // Se está no nível máximo, o tiro quebra pedra
         if(star_count == 3) b->increased_damage = true;
         b->demolisher = m_demolisher;
     }
@@ -229,19 +230,21 @@ void Player::drawEffects()
 
 // Altera o número de estrelas (power-up) do jogador.
 // Ajusta velocidade, quantidade de balas e limita o valor.
+//   0 estrelas: 1 tiro por vez
+//   1 estrela:  tiro e tanque mais rápidos
+//   2 estrelas: 2 tiros por vez
+//   3 estrelas: 3 tiros por vez, e o tiro quebra pedra
 void Player::changeStarCountBy(int c)
 {
-    int before = star_count;
     star_count += c;
     if(star_count > 3) star_count = 3;
     else if(star_count < 0) star_count = 0;
     if(star_count < 3) m_demolisher = false;
 
-    // Se ganhou estrela e chegou a 2 ou mais, aumenta o limite de balas. Só quando o
-    // número de estrelas sobe de fato: antes, cada estrela pega já com 3 somava mais uma
-    // bala, sem limite
-    if(star_count >= 2 && c > 0) { if(star_count > before) m_bullet_max_size++; }
-    else m_bullet_max_size = 2;
+    // O limite de balas sai só do estágio atual, subindo ou descendo: antes ele era somado
+    // e zerado para 2, e o mesmo estágio dava limites diferentes conforme o caminho (quem
+    // morria renascia com 2 balas, o começo da partida tinha 1)
+    m_bullet_max_size = std::max(AppConfig::player_bullet_max_size, static_cast<unsigned>(star_count));
 
     // Se tem pelo menos uma estrela, aumenta a velocidade padrão
     if(star_count > 0) default_speed = AppConfig::tank_default_speed * 1.3;

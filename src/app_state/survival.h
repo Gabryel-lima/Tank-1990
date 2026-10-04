@@ -67,7 +67,7 @@ private:
         PHASE_RESULTS     ///< fim de jogo: onda alcançada e pontos de cada jogador
     };
 
-    /** Começa a onda @a wave: aviso, muralha refeita, vida extra a cada N ondas. */
+    /** Começa a onda @a wave: aviso, mapa regenerado, quem caiu volta, vida extra a cada N ondas. */
     void startWave(int wave);
 
     /** Dificuldade da onda na escala das fases da campanha (1 a 35). */
@@ -76,8 +76,11 @@ private:
     /** Refaz os tijolos em volta da águia (sem cobrir tanques, nem a pedra da pá). */
     void rebuildBaseWalls();
 
-    /** Vida extra para todos; quem tinha caído volta ao mapa. */
-    void rewardLives();
+    /** Tiles da muralha da águia ({coluna, linha}): laterais e frente. */
+    std::vector<SDL_Point> baseWallTiles() const;
+
+    /** O mapa volta ao do arquivo (o que foi destruído), e a muralha da águia é refeita. */
+    void regenerateMap();
 
     /** Um jogador que caiu volta com uma vida. @return false se ninguém caiu */
     bool reviveOne();
@@ -98,6 +101,7 @@ private:
     int m_map;                 ///< mapa em jogo (índice em AppConfig::survival_maps)
     int m_destroyed;           ///< inimigos destruídos na partida
     bool m_life_reward;        ///< o aviso desta onda inclui a vida extra
+    std::vector<int> m_revived; ///< jogadores que voltaram nesta onda (índices), para o aviso
     Uint32 m_truce_time = 0;   ///< tempo restante da trégua (ms): sem inimigos novos
 };
 

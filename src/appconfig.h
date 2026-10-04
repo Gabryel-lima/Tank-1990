@@ -249,8 +249,8 @@ public:
     static unsigned duel_helmet_time;
 
     /**
-     * No duelo, com 3 estrelas um tiro só tira uma estrela (como na campanha)?
-     * Desligado, o canhão quebra pedra mas não vale uma vida extra.
+     * No duelo, com estrela um tiro só rebaixa o tanque um estágio (como na campanha)?
+     * Desligado, o canhão quebra pedra mas não vale vidas extras.
      */
     static bool duel_star_armor;
 
@@ -331,7 +331,7 @@ public:
     /** Pausa (ms) com o aviso "WAVE N" antes de cada onda. */
     static unsigned survival_wave_intro_time;
 
-    /** A cada quantas ondas vencidas todos ganham uma vida (e quem caiu volta). */
+    /** A cada quantas ondas vencidas todos ganham uma vida (quem caiu volta em toda onda). */
     static int survival_life_every_waves;
 
     /**

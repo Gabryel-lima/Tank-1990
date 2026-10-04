@@ -144,8 +144,9 @@ protected:
 public:
 
     /**
-     * Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque (como no original).
-     * O duelo desliga (ver AppConfig::duel_star_armor).
+     * Com estrela, um tiro só tira uma estrela (o tanque volta um estágio) em vez de
+     * destruí-lo; sem estrela, morre. No Battle City original qualquer tiro mata: esta é
+     * uma regra do jogo. O duelo pode desligar (ver AppConfig::duel_star_armor).
      */
     bool star_armor = true;
 

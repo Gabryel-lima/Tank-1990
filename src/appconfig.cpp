@@ -158,9 +158,10 @@ unsigned AppConfig::duel_bonus_interval = 10000;
 // (tools/duel_sim), quem pegava o capacete cinza no 1 contra 1 vencia 78% das rodadas
 // (65% com 6 s)
 unsigned AppConfig::duel_helmet_time = 6000;
-// Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque? No duelo, não:
-// essa "armadura" fazia do canhão uma vida extra que ainda quebra pedra (quem pegava
-// vencia 70-74% das rodadas; sem ela, 49-68%). O barco e o capacete continuam protegendo
+// Com estrela, um tiro só rebaixa o tanque um estágio em vez de destruí-lo (como na campanha
+// e na sobrevivência)? No duelo, não: quando a armadura valia só com 3 estrelas, ela já fazia
+// do canhão uma vida extra que ainda quebra pedra (quem pegava vencia 70-74% das rodadas; sem
+// ela, 49-68%), e agora ela vale em todo estágio. O barco e o capacete continuam protegendo
 bool AppConfig::duel_star_armor = false;
 // A equipe menor ganha base de pedra se a outra tiver pelo menos esta proporção de tanques
 int AppConfig::duel_stone_wall_ratio = 2;
@@ -202,7 +203,8 @@ int AppConfig::survival_max_on_map = 10;
 unsigned AppConfig::survival_first_spawn_delay = 1500;
 unsigned AppConfig::survival_min_spawn_delay = 500;
 unsigned AppConfig::survival_wave_intro_time = 3000;
-int AppConfig::survival_life_every_waves = 5;
+// A cada 3 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
+int AppConfig::survival_life_every_waves = 3;
 
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;

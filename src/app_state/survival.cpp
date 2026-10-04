@@ -99,26 +99,53 @@ void Survival::startWave(int wave)
     m_enemy_redy_time = 0;
     m_level_end_time = 0;
 
-    // Recompensa por sobreviver: a muralha volta inteira e, a cada N ondas, vida extra
-    if(wave > 1) rebuildBaseWalls();
+    // Recompensa por sobreviver a uma onda: o mapa inteiro regenera (a muralha da águia
+    // também), quem tinha caído volta e, a cada N ondas, todos ganham uma vida
+    m_revived.clear();
+    if(wave > 1)
+    {
+        regenerateMap();
+        while(!m_killed_players.empty())
+        {
+            m_revived.push_back(m_killed_players.front()->playerIndex());
+            reviveOne();
+        }
+    }
     m_life_reward = (wave > 1 && (wave - 1) % AppConfig::survival_life_every_waves == 0);
-    if(m_life_reward) rewardLives();
+    if(m_life_reward)
+    {
+        for(Player* player : m_players) player->addLife();
+        SoundManager::getInstance().playSound("life");
+    }
 }
 
-void Survival::rewardLives()
+std::vector<SDL_Point> Survival::baseWallTiles() const
 {
-    for(Player* player : m_players) player->addLife();
-
-    // Quem tinha caído volta (uma vida, renascendo no seu ponto)
-    for(Player* player : m_killed_players)
+    // {coluna, linha}: as laterais (3 de altura) e a frente da muralha da águia
+    int rows = m_level_rows_count;
+    std::vector<SDL_Point> tiles;
+    for(int i = 1; i <= 3; i++)
     {
-        player->to_erase = false;
-        player->lives_count = 2; // respawn() gasta uma ao entrar no mapa
-        player->respawn();
-        m_players.push_back(player);
+        tiles.push_back({11, rows - i});
+        tiles.push_back({14, rows - i});
     }
-    m_killed_players.clear();
-    SoundManager::getInstance().playSound("life");
+    tiles.push_back({12, rows - 3});
+    tiles.push_back({13, rows - 3});
+    return tiles;
+}
+
+void Survival::regenerateMap()
+{
+    // A águia e a muralha dela ficam de fora: a muralha é do jogo, não do arquivo, e com a
+    // pá ativa é de pedra até o tempo acabar
+    std::vector<SDL_Point> skip = baseWallTiles();
+    int rows = m_level_rows_count;
+    for(int column = 12; column <= 13; column++)
+        for(int row = rows - 2; row < rows; row++)
+            skip.push_back({column, row});
+    std::string path = AppConfig::survival_levels_path + AppConfig::survival_maps.at(m_map).first;
+    restoreTerrain(DuelLayout::readMap(path), skip);
+    rebuildBaseWalls();
 }
 
 void Survival::rebuildBaseWalls()
@@ -126,21 +153,12 @@ void Survival::rebuildBaseWalls()
     // Pá ativa: a pedra fica até o tempo dela acabar (Game::update devolve os tijolos)
     if(m_protect_eagle) return;
 
-    int rows = m_level_rows_count, t = AppConfig::tile_rect.w;
-    std::vector<std::pair<int, int>> tiles;
-    for(int i = 1; i <= 3; i++)
-    {
-        tiles.push_back({rows - i, 11});
-        tiles.push_back({rows - i, 14});
-    }
-    tiles.push_back({rows - 3, 12});
-    tiles.push_back({rows - 3, 13});
-
+    int t = AppConfig::tile_rect.w;
     std::vector<Tank*> tanks(m_players.begin(), m_players.end());
     tanks.insert(tanks.end(), m_enemies.begin(), m_enemies.end());
-    for(auto& tile : tiles)
+    for(SDL_Point tile : baseWallTiles())
     {
-        int row = tile.first, column = tile.second;
+        int row = tile.y, column = tile.x;
         if(row < 0 || column >= m_level_columns_count) continue;
         SDL_Rect area = {column * t, row * t, t, t};
         bool occupied = false;
@@ -497,11 +515,12 @@ void Survival::drawOverlay()
             lines.insert(lines.begin(), {AppConfig::survival_maps.at(m_map).second, LIGHT_GRAY, 2, 10});
             lines.insert(lines.begin(), {"SURVIVAL", GOLD, 2, 6});
         }
+        // Quem voltou (na cor de cada um) e a vida extra
+        if(!m_revived.empty() || m_life_reward) lines.back().gap = 8;
+        for(int idx : m_revived)
+            lines.push_back({"P" + Engine::intToString(idx + 1) + " IS BACK", Player::getPlayerColor(idx), 2, 2});
         if(m_life_reward)
-        {
-            lines.back().gap = 8;
             lines.push_back({"+1 LIFE", GOLD, 2, 0});
-        }
         drawMessageBox(renderer, lines, GRAY);
     }
     else if(m_phase == PHASE_RESULTS)

@@ -115,4 +115,5 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | Mina | respeita escudo e barco | destrói qualquer inimigo | W7: escudo é proteção entre jogadores |
 | Trégua | fora do sorteio | existe | W2: no duelo nada surge |
 | Tiro demolidor e pedra colorida | existem | não existem | estrutura com dono só existe com adversário humano (C3) |
+| Tiro em tanque com estrela | destrói (`duel_star_armor`) | rebaixa um estágio, como na campanha | no duelo a armadura virava vidas extras para quem pega o canhão (desequilíbrio medido) |
 | Quando dá para pausar | durante a rodada | durante a onda e o aviso dela (os jogadores já se movem) | M4 |

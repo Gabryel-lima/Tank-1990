@@ -299,6 +299,15 @@ protected:
     /** Barricada: 4 tijolos (2x2) logo à frente do tanque. @return false se não há espaço */
     bool placeBarricade(Tank* tank);
 
+    /**
+     * Regenera o terreno do mapa @a grid (as linhas do arquivo, ver DuelLayout::readMap): o
+     * tijolo destruído ou rachado volta inteiro, e a pedra e o arbusto destruídos voltam.
+     * Só devolve: não tira o que os jogadores puseram (barricadas) e não põe nada em cima de
+     * tanque, torreta, mina ou bônus (ninguém fica preso dentro da parede). Os tiles de
+     * @a skip ({coluna, linha}) ficam como estão: o modo cuida deles (a águia, a muralha).
+     */
+    void restoreTerrain(const std::vector<std::string>& grid, const std::vector<SDL_Point>& skip);
+
     /** Torreta logo à frente do jogador, da cor e da equipe dele. @return false se não há espaço */
     bool placeTurret(Player* player);
 
