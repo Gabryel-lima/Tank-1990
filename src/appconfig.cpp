@@ -90,10 +90,10 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
 vector<Player::PlayerKeys> AppConfig::keyboard_layouts =
 []{
     vector<Player::PlayerKeys> v;
-    // W, S, A, D + Espaço
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, "WASD"));
-    // Setas + Ctrl direito (Alt direito no Mac)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, "ARROWS"));
+    // W, S, A, D + Espaço (tiro) + Shift esquerdo (poder dos modos extras)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, SDL_SCANCODE_LSHIFT, "WASD"));
+    // Setas + Ctrl direito (Alt direito no Mac) + Shift direito (poder dos modos extras)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, SDL_SCANCODE_RSHIFT, "ARROWS"));
     return v;
 }();
 
@@ -178,6 +178,16 @@ int AppConfig::duel_max_allies = 2;
 double AppConfig::duel_max_shots_per_second = 3.0;
 // Duração (ms) do relógio no duelo: só imobiliza, e por menos tempo que na campanha
 unsigned AppConfig::duel_freeze_time = 4000;
+
+// Poderes dos modos extras (ver Powers)
+unsigned AppConfig::power_turret_time = 20000;
+unsigned AppConfig::power_turret_reload = 700;
+int AppConfig::power_turret_range = 12;
+unsigned AppConfig::power_mine_time = 30000;
+unsigned AppConfig::power_turbo_time = 8000;
+double AppConfig::power_turbo_factor = 1.5;
+unsigned AppConfig::power_truce_time = 10000;
+bool AppConfig::survival_store_powers = true;
 
 // Modo sobrevivência: ondas cada vez maiores, com inimigos mais blindados (a dificuldade
 // segue a escala das fases da campanha: onda N ~ fase 2N + 1, até a 35)

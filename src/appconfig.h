@@ -269,6 +269,27 @@ public:
      */
     static double duel_team_bonus_enemy_side_chance;
 
+    // ======================== Poderes dos modos extras ========================
+
+    /** Duração (ms) da torreta no mapa. */
+    static unsigned power_turret_time;
+    /** Intervalo (ms) entre os tiros da torreta. */
+    static unsigned power_turret_reload;
+    /** Alcance da torreta, em tiles. */
+    static int power_turret_range;
+    /** Duração (ms) da mina no mapa, se ninguém passar por cima. */
+    static unsigned power_mine_time;
+    /** Duração (ms) e multiplicador de velocidade do turbo. */
+    static unsigned power_turbo_time;
+    static double power_turbo_factor;
+    /** Duração (ms) da trégua (sobrevivência: os inimigos param de surgir). */
+    static unsigned power_truce_time;
+    /**
+     * Sobrevivência: os poderes de lugar e momento (mina, barricada, torreta, retorno e turbo)
+     * ficam guardados até o jogador usar (true) ou valem na hora em que são pegos (false).
+     */
+    static bool survival_store_powers;
+
     // ======================== Modo sobrevivência ========================
 
     /** Inimigos da primeira onda. */

@@ -9,6 +9,8 @@
 #include "../objects/brick.h"
 #include "../objects/eagle.h"
 #include "../objects/bonus.h"
+#include "../objects/mine.h"
+#include "../objects/turret.h"
 #include <vector>
 #include <string>
 
@@ -160,6 +162,9 @@ protected:
      */
     void generateBonus();
 
+    /** Tipo do próximo bônus (campanha: um dos 8 originais, com a mesma chance). */
+    virtual SpriteType randomBonusType();
+
     /**
      * Verifica se o tanque pode se mover livremente para frente; caso contrário, o tanque é parado. Não permite sair do tabuleiro.
      * Se o tanque entrar no gelo, escorrega. Se possuir o bônus "Barco", pode atravessar água. Tanques não podem passar pela águia.
@@ -214,7 +219,7 @@ protected:
      * @param player - jogador
      * @param enemy - inimigo
      */
-    void checkCollisionPlayerBulletsWithEnemy(Player* player, Enemy* enemy);
+    void checkCollisionPlayerBulletsWithEnemy(Tank* shooter, Enemy* enemy);
 
     /**
      * Verifica se o inimigo acertou o jogador com um projétil. Se sim, o jogador perde uma vida, a menos que tenha escudo.
@@ -244,7 +249,47 @@ protected:
      * @param player
      * @param bonus
      */
-    void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+    virtual void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+
+    // ======================== Poderes dos modos extras ========================
+    // Comuns ao duelo e à sobrevivência (a campanha nunca cria minas nem torretas)
+
+    /**
+     * A área (em tiles) está livre para um objeto novo: dentro do mapa, sem bloco do cenário,
+     * sem arbusto (nada de parede escondida no mato), sem base e sem tanque, e fora dos
+     * blocos reservados pelo modo (reservedTile).
+     */
+    bool areaFree(int row, int column, int rows, int columns);
+
+    /** Bloco reservado pelo modo (pontos de nascimento...): nada é colocado em cima. */
+    virtual bool reservedTile(int row, int column);
+
+    /** Célula (canto de uma área 2x2, em tiles) logo à frente do tanque, na direção dele. */
+    void frontCell(Tank* tank, int* row, int* column) const;
+
+    /** Barricada: 4 tijolos (2x2) logo à frente do tanque. @return false se não há espaço */
+    bool placeBarricade(Tank* tank);
+
+    /** Torreta logo à frente do jogador, da cor e da equipe dele. @return false se não há espaço */
+    bool placeTurret(Player* player);
+
+    /** Mina embaixo do jogador, da cor e da equipe dele. */
+    void placeMine(Player* player);
+
+    /**
+     * Retorno: leva o jogador ao primeiro dos pontos que estiver livre (sem tanque em cima).
+     * @return false se todos estão ocupados
+     */
+    bool recall(Player* player, const std::vector<SDL_Point>& points);
+
+    /** Destrói o inimigo de vez (mina, granada), dando o bônus que ele carregava e os pontos. */
+    void killEnemy(Enemy* enemy, Player* by);
+
+    /**
+     * Minas e torretas do lado dos jogadores contra os inimigos da campanha (m_enemies):
+     * usado pela sobrevivência dentro de Game::update. O duelo trata as dele por equipe.
+     */
+    void updateFriendlyPowers(Uint32 dt);
 
     // --- Variáveis de estado do jogo ---
 
@@ -287,6 +332,10 @@ protected:
      * Vetor de bônus presentes no mapa.
      */
     std::vector<Bonus*> m_bonuses;
+
+    /** Minas e torretas dos modos extras. */
+    std::vector<Mine*> m_mines;
+    std::vector<Turret*> m_turrets;
 
     /**
      * Ponteiro para o objeto águia.

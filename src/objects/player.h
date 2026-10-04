@@ -29,10 +29,11 @@ public:
         SDL_Scancode left;
         SDL_Scancode right;
         SDL_Scancode fire;
+        SDL_Scancode power; ///< usa o poder guardado (modos extras)
         const char* name; ///< nome mostrado na tela (ex.: "WASD")
 
-        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f, const char* n)
-            : up(u), down(d), left(l), right(r), fire(f), name(n) {}
+        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f, SDL_Scancode p, const char* n)
+            : up(u), down(d), left(l), right(r), fire(f), power(p), name(n) {}
     };
 
     /**
@@ -147,7 +148,37 @@ public:
      */
     void setReloadTime(Uint32 ms);
 
+    // ======================== Poderes dos modos extras ========================
+
+    /**
+     * Poder guardado (mina, barricada, torreta, retorno ou turbo), ou ST_NONE. Enquanto
+     * guarda um poder, o jogador não pega outros bônus (ver Powers). Perde-o ao morrer.
+     */
+    SpriteType held_power = ST_NONE;
+
+    /**
+     * O botão de poder foi apertado desde a última chamada (Shift do layout de teclado, LB
+     * do controle ou o comando da IA). Conta uma vez por aperto.
+     */
+    bool takePowerPress();
+
+    /** Turbo: velocidade multiplicada por AppConfig::power_turbo_factor por @a ms. */
+    void boost(Uint32 ms);
+
+    /** Turbo ativo. */
+    bool boosted() const { return m_turbo_time > 0; }
+
+    /**
+     * Retorno: reaparece em (x, y) com a animação de nascimento (sem gastar vida, mantendo
+     * estrelas e barco; durante a animação o tanque não leva tiro).
+     */
+    void teleport(double x, double y);
+
 private:
+    bool m_power_down = false;     ///< botão de poder segurado no quadro anterior
+    bool m_power_pressed = false;  ///< aperto ainda não consumido por takePowerPress
+    Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
+
     /**
      * Índice do jogador (0 = Jogador 1). Guardado à parte porque no duelo
      * o sprite (type) indica a equipe, não o jogador.

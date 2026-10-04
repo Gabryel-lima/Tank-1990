@@ -1,0 +1,173 @@
+# Pixel art dos poderes dos modos extras (duelo e sobrevivência).
+# Desenhe com: make sprites   (ver tools/paint_sprites.cpp)
+#
+# Ícones de bônus: 12 colunas x 11 linhas dentro da moldura padrão dos bônus originais.
+# Cores: . contorno (transparente, aparece preto)  W branco  G cinza  N azul-marinho (fundo)
+#        R vermelho  Y amarelo  K preto
+# Cada "pixel" vira 2x2 na textura, como nos sprites do NES.
+
+# Mina: esfera com espetos
+icon MINE 0 352
+NNNNN..NNNNN
+NN.N.WW.N.NN
+NNN.WWWWG.NN
+NN.WWWWWGG.N
+N.WWWGWWGGG.
+..WWWWWWGGG.
+N.WWWWWGGGG.
+NN.WWWGGGG.N
+NNN.WGGGG.NN
+NN.N.GG.N.NN
+NNNNN..NNNNN
+
+# Barricada: muro de tijolos
+icon BARRICADE 32 352
+NNNNNNNNNNNN
+N..........N
+N.WWWW.WWW.N
+N.GGGG.GGG.N
+N..........N
+N.WW.WWWWW.N
+N.GG.GGGGG.N
+N..........N
+N.WWWW.WWW.N
+N.GGGG.GGG.N
+N..........N
+
+# Torreta: canhão fixo numa base
+icon TURRET 64 352
+NNNNNNNNN..N
+NNNNNNNN.WW.
+NNNNNNN.WW.N
+NNN....WW.NN
+NN.WWWWW.NNN
+N.WWWWWGG.NN
+N.WWWWGGGG.N
+.WWWWWGGGGG.
+............
+.GGGGGGGGGG.
+............
+
+# Retorno: seta em U, de volta para a base
+icon RECALL 96 352
+NNNNNNNNNNNN
+NNN......NNN
+NN.WWWWWW.NN
+N.WW....WW.N
+N.W.NNNN.W.N
+N.W.NNNN.W.N
+...W.NNN.W.N
+.WWWWW.N.W.N
+N.WWW.NN.W.N
+NN.W.NNN.W.N
+NNN.NNNNN.NN
+
+# Turbo: raio
+icon TURBO 128 352
+NNNNNN.....N
+NNNNN.WWWW.N
+NNNN.WWWW.NN
+NNN.WWWW.NNN
+NN.WWWWWWW.N
+N.GGGGGGG.NN
+NNNN.GGG.NNN
+NNN.GGG.NNNN
+NN.GG..NNNNN
+N.G.NNNNNNNN
+N..NNNNNNNNN
+
+# Reviver: coração
+icon REVIVE 160 352
+NNNNNNNNNNNN
+NN..NNNN..NN
+N.WW.NN.WW.N
+.WWWW..WWGG.
+.WWWWWWWWGG.
+.WWWWWWWGGG.
+N.WWWWWGGG.N
+NN.WWWGGG.NN
+NNN.WGGG.NNN
+NNNN.GG.NNNN
+NNNNN..NNNNN
+
+# Reparo: chave inglesa
+icon REPAIR 192 352
+NNNNNNN.NN.N
+NNNNNN.W..W.
+NNNNNN.WWWW.
+NNNNN.WWWW.N
+NNNN.WWG..NN
+NNN.WWG.NNNN
+NN.WWG.NNNNN
+N.WWG.NNNNNN
+.WWG.NNNNNNN
+.WG.NNNNNNNN
+N..NNNNNNNNN
+
+# Trégua: bandeira branca
+icon TRUCE 224 352
+N.NNNNNNNNNN
+.W......NNNN
+.W.WWWWW..NN
+.W.WWWWWWW.N
+.W.WWWWWWG.N
+.W.WWWWGG.NN
+.W.GG...NNNN
+.W..NNNNNNNN
+.W.NNNNNNNNN
+.G.NNNNNNNNN
+...NNNNNNNNN
+
+# Escudo de equipe: escudo dividido em quatro
+icon TEAM_SHIELD 256 352
+N..........N
+N.WWWW.GGG.N
+N.WWWW.GGG.N
+N.WWWW.GGG.N
+N..........N
+N.GGGG.WWW.N
+NN.GGG.WW.NN
+NNN.GG.W.NNN
+NNNN.G..NNNN
+NNNNN..NNNNN
+NNNNNNNNNNNN
+
+# Torreta no mapa (32x32, apontando para cima, nas 4 direções), em tons de cinza para
+# receber a cor da equipe/jogador
+sprite TURRET_MAP 0 384 16 16 rot
+................
+.......GG.......
+.......WG.......
+.......WG.......
+.......WG.......
+....KKKWGKKK....
+...KWWWWGGGGK...
+..KWWKWWWWKGGK..
+..KWWWWKKGGGGK..
+..KWWKWWWWKGGK..
+...KWWWWGGGGK...
+....KKKKKKKK....
+..KGGGGGGGGGGK..
+..KG.G.G.G.GGK..
+..KKKKKKKKKKKK..
+................
+
+# Mina no mapa (16x16): dois quadros, a luz pisca
+sprite MINE_MAP 128 384 8 8
+...WG...
+.WWWWGG.
+.WWGGGG.
+WWGKKGGG
+WGGKKGGG
+.WGGGGG.
+.GGGGGG.
+...GG...
+sprite MINE_MAP_LIT 128 400 8 8
+...WG...
+.WWWWGG.
+.WWGGGG.
+WWGRRGGG
+WGGRRGGG
+.WGGGGG.
+.GGGGGG.
+...GG...

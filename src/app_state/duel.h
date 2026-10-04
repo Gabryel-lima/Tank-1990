@@ -153,6 +153,9 @@ private:
     /** Monta o mapa e os tanques de uma nova rodada. */
     void startRound();
 
+    /** Cria o jogador @a index da partida (equipe, cor, ponto de nascimento) com @a lives vidas. */
+    Player* createPlayer(int index, int lives);
+
     /** Remove tudo da rodada atual (mapa, tanques, bônus e as duas bases). */
     void clearRound();
 
@@ -210,7 +213,13 @@ private:
     /** Tanque controlado pela IA: bot de reforço ou jogador do computador. */
     bool isAI(Tank* tank) const;
 
-    /** Papel do tanque da IA (o jogador do computador ataca; o segundo da equipe defende). */
+    /** Papel fixo do tanque da IA (o jogador do computador ataca; o segundo da equipe defende). */
+    Bot::Role baseRole(Tank* tank) const;
+
+    /**
+     * Papel do tanque da IA agora: o fixo, menos quando ninguém em campo ataca; aí o jogador
+     * do computador que defendia sai para atacar (evita a rodada sem fim).
+     */
     Bot::Role roleOf(Tank* tank) const;
 
     /** O que o tanque consegue atravessar (barco, tiro forte). */
@@ -276,8 +285,19 @@ private:
     /** Sorteia um bônus em um dos pontos simétricos do mapa. */
     void spawnBonus();
 
-    /** Aplica o efeito do bônus para o jogador e a sua equipe. */
+    /** Aplica o efeito do bônus para o jogador e a sua equipe (ou guarda o poder). */
     void applyBonus(Player* player, Bonus* bonus);
+
+    /** Reviver: um companheiro que caiu volta com uma vida; sem ninguém caído, vida extra. */
+    void revive(Player* player);
+
+    /** Usa o poder guardado do jogador. @return false se não deu (sem espaço, ponto ocupado) */
+    bool usePower(Player* player);
+
+    /** Botão de poder, torretas e minas (a cada quadro). */
+    void updatePowers(Uint32 dt);
+
+    bool reservedTile(int row, int column) override;
 
     /** Monta a base da equipe: frente de pedra, laterais e cantos do material @a wall. */
     void setBaseWalls(int team, SpriteType wall);
@@ -305,6 +325,7 @@ private:
     int m_kills[4];            ///< eliminações de cada jogador humano na partida
     int m_map;                 ///< mapa da rodada atual (índice em AppConfig::duel_maps)
     std::vector<int> m_player_columns; ///< colunas (x) de nascimento usadas pelos jogadores
+    std::vector<SDL_Point> m_spawns;   ///< ponto de nascimento de cada jogador na rodada
 
     NavGrid m_nav[2];                  ///< grade de navegação de cada equipe (muralha própria bloqueia)
     std::map<Tank*, AIState> m_ai;     ///< memória da IA de cada tanque

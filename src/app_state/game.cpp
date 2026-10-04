@@ -122,8 +122,10 @@ void Game::draw()
             for(auto item : row)
                 if(item != nullptr) item->draw();
 
+        for(auto mine : m_mines) mine->draw();
         for(auto player : m_players) player->draw();
         for(auto enemy : m_enemies) enemy->draw();
+        for(auto turret : m_turrets) turret->draw();
         for(auto bush : m_bushes) bush->draw();
         for(auto bonus : m_bonuses) bonus->draw();
         m_eagle->draw();
@@ -253,6 +255,9 @@ void Game::update(Uint32 dt)
         for(auto enemy : m_enemies)
             for(auto player : m_players)
                     checkCollisionEnemyBulletsWithPlayer(enemy, player);
+
+        // Minas e torretas dos jogadores (modos extras; a campanha não tem)
+        updateFriendlyPowers(dt);
 
         // Colisão entre jogadores e bônus
         for(auto player : m_players)
@@ -560,6 +565,11 @@ void Game::clearLevel()
     for(auto bonus : m_bonuses) delete bonus;
     m_bonuses.clear();
 
+    for(auto mine : m_mines) delete mine;
+    m_mines.clear();
+    for(auto turret : m_turrets) delete turret;
+    m_turrets.clear();
+
     for(auto row : m_level)
     {
         for(auto item : row) if(item != nullptr) delete item;
@@ -748,6 +758,7 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
     };
     for(auto player : m_players) if(blocked_by(player)) return false;
     for(auto enemy : m_enemies) if(blocked_by(enemy)) return false;
+    for(auto turret : m_turrets) if(blocked_by(turret)) return false;
 
     return true;
 }
@@ -953,13 +964,14 @@ void Game::checkCollisionBulletWithBush(Bullet *bullet)
 }
 
 // Verifica colisão das balas do jogador com o inimigo
-void Game::checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy)
+void Game::checkCollisionPlayerBulletsWithEnemy(Tank *shooter, Enemy *enemy)
 {
-    if(player->to_erase || enemy->to_erase) return;
+    if(shooter->to_erase || enemy->to_erase) return;
+    Player* player = dynamic_cast<Player*>(shooter); // os pontos vão para o jogador (torreta não pontua)
     if(enemy->testFlag(TSF_DESTROYED)) return;
     SDL_Rect intersect_rect;
 
-    for(auto bullet : player->bullets)
+    for(auto bullet : shooter->bullets)
     {
         if(!bullet->to_erase && !bullet->collide)
         {
@@ -977,7 +989,7 @@ void Game::checkCollisionPlayerBulletsWithEnemy(Player *player, Enemy *enemy)
                 bullet->destroy();
                 enemy->destroy();
                 if(enemy->lives_count <= 0) m_enemy_to_kill--;
-                player->score += enemy->scoreForHit();
+                if(player != nullptr) player->score += enemy->scoreForHit();
             }
         }
     }
@@ -1190,7 +1202,7 @@ void Game::generateBonus()
     for(auto bonus : m_bonuses) delete bonus;
     m_bonuses.clear();
 
-    Bonus* b = new Bonus(0, 0, static_cast<SpriteType>(rand() % (ST_BONUS_BOAT - ST_BONUS_GRENADE + 1) + ST_BONUS_GRENADE));
+    Bonus* b = new Bonus(0, 0, randomBonusType());
     SDL_Rect intersect_rect;
     do
     {
@@ -1201,4 +1213,194 @@ void Game::generateBonus()
     }while(intersect_rect.w > 0 && intersect_rect.h > 0);
 
     m_bonuses.push_back(b);
+}
+
+// Campanha: um dos 8 bônus originais, com a mesma chance
+SpriteType Game::randomBonusType()
+{
+    return static_cast<SpriteType>(rand() % (ST_BONUS_BOAT - ST_BONUS_GRENADE + 1) + ST_BONUS_GRENADE);
+}
+
+// ======================== Poderes dos modos extras ========================
+
+bool Game::reservedTile(int, int)
+{
+    return false;
+}
+
+bool Game::areaFree(int row, int column, int rows, int columns)
+{
+    const int t = AppConfig::tile_rect.w;
+    if(row < 0 || column < 0 || row + rows > m_level_rows_count || column + columns > m_level_columns_count) return false;
+    for(int r = row; r < row + rows; r++)
+        for(int c = column; c < column + columns; c++)
+            if(m_level.at(r).at(c) != nullptr || reservedTile(r, c)) return false;
+
+    SDL_Rect area = {column * t, row * t, columns * t, rows * t};
+    auto overlaps = [&](SDL_Rect r) {
+        SDL_Rect i = intersectRect(&r, &area);
+        return i.w > 0 && i.h > 0;
+    };
+    for(Eagle* base : bases())
+        if(overlaps(base->collision_rect)) return false;
+    // nada de parede ou torreta escondida debaixo do mato
+    for(auto bush : m_bushes)
+        if(overlaps(bush->collision_rect)) return false;
+    for(auto player : m_players)
+        if(!player->to_erase && (overlaps(player->dest_rect) || overlaps(player->collision_rect))) return false;
+    for(auto enemy : m_enemies)
+        if(!enemy->to_erase && (overlaps(enemy->dest_rect) || overlaps(enemy->collision_rect))) return false;
+    for(auto turret : m_turrets)
+        if(!turret->to_erase && overlaps(turret->dest_rect)) return false;
+    return true;
+}
+
+void Game::frontCell(Tank* tank, int* row, int* column) const
+{
+    const double t = AppConfig::tile_rect.w;
+    int r = static_cast<int>(std::lround(tank->pos_y / t));
+    int c = static_cast<int>(std::lround(tank->pos_x / t));
+    switch(tank->direction)
+    {
+    case D_UP: r -= 2; break;
+    case D_DOWN: r += 2; break;
+    case D_LEFT: c -= 2; break;
+    default: c += 2; break;
+    }
+    *row = r;
+    *column = c;
+}
+
+bool Game::placeBarricade(Tank* tank)
+{
+    int row, column;
+    frontCell(tank, &row, &column);
+    if(!areaFree(row, column, 2, 2)) return false;
+    const int t = AppConfig::tile_rect.w;
+    for(int r = row; r < row + 2; r++)
+        for(int c = column; c < column + 2; c++)
+            m_level.at(r).at(c) = new Brick(c * t, r * t);
+    SoundManager::getInstance().playSound("bonus");
+    return true;
+}
+
+bool Game::placeTurret(Player* player)
+{
+    int row, column;
+    frontCell(player, &row, &column);
+    if(!areaFree(row, column, 2, 2)) return false;
+    const int t = AppConfig::tile_rect.w;
+    Turret* turret = new Turret(column * t, row * t, player->team, player->playerIndex(), player->color);
+    turret->direction = player->direction;
+    m_turrets.push_back(turret);
+    SoundManager::getInstance().playSound("bonus");
+    return true;
+}
+
+void Game::placeMine(Player* player)
+{
+    SDL_Point center = {static_cast<int>(player->pos_x) + player->dest_rect.w / 2, static_cast<int>(player->pos_y) + player->dest_rect.h / 2};
+    m_mines.push_back(new Mine(center, player->team, player->playerIndex(), player->color));
+    SoundManager::getInstance().playSound("bonus");
+}
+
+bool Game::recall(Player* player, const std::vector<SDL_Point>& points)
+{
+    const int t = AppConfig::tile_rect.w;
+    for(SDL_Point p : points)
+    {
+        SDL_Rect area = {p.x, p.y, 2 * t, 2 * t};
+        bool occupied = false;
+        auto check = [&](Tank* other) {
+            if(other == player || other->to_erase) return;
+            SDL_Rect a = intersectRect(&other->dest_rect, &area), b = intersectRect(&other->collision_rect, &area);
+            if((a.w > 0 && a.h > 0) || (b.w > 0 && b.h > 0)) occupied = true;
+        };
+        for(auto other : m_players) check(other);
+        for(auto other : m_enemies) check(other);
+        for(auto other : m_turrets) check(other);
+        if(occupied) continue;
+        player->teleport(p.x, p.y);
+        return true;
+    }
+    return false;
+}
+
+void Game::killEnemy(Enemy* enemy, Player* by)
+{
+    if(enemy->to_erase || !enemy->testFlag(TSF_LIFE)) return;
+    if(enemy->testFlag(TSF_BONUS))
+    {
+        generateBonus();
+        enemy->clearFlag(TSF_BONUS);
+    }
+    if(by != nullptr) by->score += enemy->scoreForHit();
+    while(enemy->lives_count > 0) enemy->destroy();
+    m_enemy_to_kill--;
+}
+
+void Game::updateFriendlyPowers(Uint32 dt)
+{
+    if(m_mines.empty() && m_turrets.empty()) return;
+    auto overlap = [](const SDL_Rect& a, const SDL_Rect& b, int min) {
+        SDL_Rect r = intersectRect(const_cast<SDL_Rect*>(&a), const_cast<SDL_Rect*>(&b));
+        return r.w >= min && r.h >= min;
+    };
+    auto playerByIndex = [&](int index) -> Player* {
+        for(auto p : m_players) if(p->playerIndex() == index) return p;
+        return nullptr;
+    };
+
+    // Torretas: colidem com os tanques, atiram nos inimigos e levam tiro deles
+    for(auto turret : m_turrets)
+    {
+        if(turret->to_erase) continue;
+        for(auto player : m_players) checkCollisionTwoTanks(player, turret, dt);
+        for(auto enemy : m_enemies)
+        {
+            checkCollisionTwoTanks(enemy, turret, dt);
+            checkCollisionPlayerBulletsWithEnemy(turret, enemy);
+            for(auto b1 : turret->bullets)
+                for(auto b2 : enemy->bullets)
+                    checkCollisionTwoBullets(b1, b2);
+            for(auto bullet : enemy->bullets)
+                if(!bullet->to_erase && !bullet->collide && turret->testFlag(TSF_LIFE) &&
+                   overlap(bullet->collision_rect, turret->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    turret->destroy();
+                }
+        }
+        for(auto bullet : turret->bullets) checkCollisionBulletWithLevel(bullet);
+    }
+
+    // Minas: explodem o inimigo que passar por cima (de vez, como a granada) e somem com
+    // qualquer tiro (dá para limpar o caminho atirando nelas)
+    for(auto mine : m_mines)
+    {
+        if(mine->to_erase) continue;
+        for(auto enemy : m_enemies)
+            if(enemy->testFlag(TSF_LIFE) && overlap(mine->collision_rect, enemy->collision_rect, 6))
+            {
+                killEnemy(enemy, playerByIndex(mine->owner));
+                mine->detonate();
+                break;
+            }
+        if(mine->to_erase) continue;
+        std::vector<Tank*> shooters(m_players.begin(), m_players.end());
+        shooters.insert(shooters.end(), m_enemies.begin(), m_enemies.end());
+        shooters.insert(shooters.end(), m_turrets.begin(), m_turrets.end());
+        for(Tank* shooter : shooters)
+            for(auto bullet : shooter->bullets)
+                if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(bullet->collision_rect, mine->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    mine->detonate();
+                }
+    }
+
+    for(auto mine : m_mines) mine->update(dt);
+    for(auto turret : m_turrets) turret->update(dt);
+    m_mines.erase(std::remove_if(m_mines.begin(), m_mines.end(), [](Mine* m){ if(m->to_erase) { delete m; return true; } return false; }), m_mines.end());
+    m_turrets.erase(std::remove_if(m_turrets.begin(), m_turrets.end(), [](Turret* t){ if(t->to_erase) { delete t; return true; } return false; }), m_turrets.end());
 }

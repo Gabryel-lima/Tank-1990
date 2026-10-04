@@ -1,6 +1,7 @@
 #include "duel.h"
 #include "duel_layout.h"
 #include "message_box.h"
+#include "powers.h"
 #include "menu.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
@@ -131,25 +132,28 @@ void Duel::startRound()
 
     // Jogadores humanos: sprite amarelo na equipe A, verde na B (como P1 e P2 no original)
     Controllers::setPlayerCount(m_config.humans);
-    std::vector<SDL_Point> spawns = assignSpawns();
+    m_spawns = assignSpawns();
     for(int i = 0; i < m_config.humans; i++)
-    {
-        int team = m_config.human_team[i];
-        Player* p = new Player(i);
-        // A cor é da equipe: companheiros têm a mesma cor (e o mesmo sprite)
-        p->team = team;
-        p->cpu = m_config.cpu[i];
-        p->star_armor = AppConfig::duel_star_armor;
-        p->type = static_cast<SpriteType>(ST_PLAYER_1 + team);
-        p->setPlayerColor(teamColor(team));
-        p->spawn_point = spawns.at(i);
-        p->lives_count = livesPerTank(team) + 1; // respawn() gasta uma ao entrar no mapa
-        p->setReloadTime(static_cast<Uint32>(1000.0 / AppConfig::duel_max_shots_per_second));
-        p->respawn();
-        m_players.push_back(p);
-    }
+        m_players.push_back(createPlayer(i, livesPerTank(m_config.human_team[i])));
 
     SoundManager::getInstance().playSound("level_starting");
+}
+
+Player* Duel::createPlayer(int index, int lives)
+{
+    int team = m_config.human_team[index];
+    Player* p = new Player(index);
+    // A cor é da equipe: companheiros têm a mesma cor (e o mesmo sprite)
+    p->team = team;
+    p->cpu = m_config.cpu[index];
+    p->star_armor = AppConfig::duel_star_armor;
+    p->type = static_cast<SpriteType>(ST_PLAYER_1 + team);
+    p->setPlayerColor(teamColor(team));
+    p->spawn_point = m_spawns.at(index);
+    p->lives_count = lives + 1; // respawn() gasta uma ao entrar no mapa
+    p->setReloadTime(static_cast<Uint32>(1000.0 / AppConfig::duel_max_shots_per_second));
+    p->respawn();
+    return p;
 }
 
 void Duel::endRound(int winner)
@@ -258,6 +262,7 @@ std::vector<Tank*> Duel::allTanks()
 {
     std::vector<Tank*> v(m_players.begin(), m_players.end());
     v.insert(v.end(), m_enemies.begin(), m_enemies.end());
+    v.insert(v.end(), m_turrets.begin(), m_turrets.end());
     return v;
 }
 
@@ -357,7 +362,7 @@ void Duel::hitTank(Tank* target, Tank* shooter)
     target->destroy(); // Player e Bot ignoram o tiro se estiverem com escudo
     if(!target->testFlag(TSF_DESTROYED)) return;
 
-    Player* shooter_player = dynamic_cast<Player*>(shooter);
+    Player* shooter_player = shooter != nullptr ? dynamic_cast<Player*>(shooter) : nullptr;
     if(shooter_player != nullptr) m_kills[shooter_player->playerIndex()]++;
 }
 
@@ -423,20 +428,8 @@ int Duel::chooseBonusTeam()
 
 void Duel::spawnBonus()
 {
-    // Pesos de cada bônus: os que decidem a rodada sozinhos (granada e arma) são raros
-    static const struct { SpriteType type; int weight; } table[] = {
-        {ST_BONUS_STAR, 20}, {ST_BONUS_HELMET, 16}, {ST_BONUS_SHOVEL, 14}, {ST_BONUS_CLOCK, 12},
-        {ST_BONUS_TANK, 12}, {ST_BONUS_BOAT, 10}, {ST_BONUS_GRENADE, 8}, {ST_BONUS_GUN, 8},
-    };
-    int total = 0;
-    for(auto& entry : table) total += entry.weight;
-    int roll = rand() % total;
-    SpriteType type = ST_BONUS_STAR;
-    for(auto& entry : table)
-    {
-        if(roll < entry.weight) { type = entry.type; break; }
-        roll -= entry.weight;
-    }
+    // Pesos de cada bônus em Powers::duelTable: os que decidem a rodada sozinhos são raros
+    SpriteType type = Powers::draw(Powers::duelTable());
 
     // Bônus da equipe (colorido): só jogadores daquela cor coletam, e ele surge com mais
     // frequência na metade do adversário (é preciso invadir para buscar) do que na própria
@@ -481,6 +474,14 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
     int half = center_y == middle ? -1 : (center_y > middle ? 0 : 1); // A embaixo, B em cima
     int side = half < 0 ? -1 : (half == team ? 0 : 1);
     m_stats.pickups.push_back({m_round, team, bonus->type, bonus->owner_team < 0, side, teamLead(team)});
+    bonus->to_erase = true;
+
+    // Poder de lugar e momento: fica guardado até o jogador usar (botão de poder)
+    if(Powers::storable(bonus->type))
+    {
+        player->held_power = bonus->type;
+        return;
+    }
 
     switch(bonus->type)
     {
@@ -524,10 +525,129 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
     case ST_BONUS_BOAT:
         player->setFlag(TSF_BOAT);
         break;
+    case ST_BONUS_REVIVE:
+        revive(player);
+        break;
+    case ST_BONUS_REPAIR:
+        // A muralha volta inteira, no material atual (pedra se a pá estiver valendo)
+        setBaseWalls(team, m_base_wall[team]);
+        break;
+    case ST_BONUS_TEAM_SHIELD:
+        for(auto p : m_players)
+            if(p->team == team && !p->to_erase) p->shield(AppConfig::duel_helmet_time);
+        break;
     default:
         break;
     }
-    bonus->to_erase = true;
+}
+
+void Duel::revive(Player* player)
+{
+    int team = player->team;
+    // Um companheiro que já caiu volta com uma vida
+    for(int i = 0; i < m_config.humans; i++)
+    {
+        if(m_config.human_team[i] != team) continue;
+        bool present = false;
+        for(auto p : m_players)
+            if(p->playerIndex() == i) present = true;
+        if(present) continue;
+        m_players.push_back(createPlayer(i, 1));
+        SoundManager::getInstance().playSound("life");
+        return;
+    }
+    // Ninguém caiu: vida extra para quem da equipe tem menos
+    Player* weakest = player;
+    for(auto p : m_players)
+        if(p->team == team && !p->to_erase && p->lives_count < weakest->lives_count) weakest = p;
+    weakest->addLife();
+}
+
+bool Duel::usePower(Player* player)
+{
+    switch(player->held_power)
+    {
+    case ST_BONUS_MINE:
+        placeMine(player);
+        return true;
+    case ST_BONUS_BARRICADE:
+        return placeBarricade(player);
+    case ST_BONUS_TURRET:
+        return placeTurret(player);
+    case ST_BONUS_TURBO:
+        player->boost(AppConfig::power_turbo_time);
+        SoundManager::getInstance().playSound("bonus");
+        return true;
+    case ST_BONUS_RECALL:
+    {
+        // O próprio ponto de nascimento, ao lado da base; ocupado, outro da equipe
+        std::vector<SDL_Point> points = {player->spawn_point};
+        for(SDL_Point p : spawnOrder(player->team)) points.push_back(p);
+        return recall(player, points);
+    }
+    default:
+        return false;
+    }
+}
+
+bool Duel::reservedTile(int row, int column)
+{
+    // Nada de barricada ou torreta em cima de um ponto de nascimento (prenderia quem nasce)
+    for(int team = 0; team < 2; team++)
+        for(SDL_Point s : spawnOrder(team))
+        {
+            int r = s.y / AppConfig::tile_rect.h, c = s.x / AppConfig::tile_rect.w;
+            if(row >= r && row < r + 2 && column >= c && column < c + 2) return true;
+        }
+    return false;
+}
+
+void Duel::updatePowers(Uint32 dt)
+{
+    // Botão de poder: usa o poder guardado (se não couber, por exemplo a barricada sem
+    // espaço na frente, o poder continua guardado)
+    for(auto player : m_players)
+        if(player->takePowerPress() && player->held_power != ST_NONE && player->testFlag(TSF_LIFE) && usePower(player))
+            player->held_power = ST_NONE;
+
+    // Torretas: atiram em quem estiver na linha, nunca na direção da própria base
+    for(auto turret : m_turrets)
+        turret->think([&](Direction d) {
+            return worthFiring(turret, d, AppConfig::power_turret_range) && !firesAtOwnBase(turret, d);
+        });
+
+    // Minas: o tanque da outra equipe que passar por cima leva o "tiro" da mina (escudo e
+    // barco seguram, como num tiro: assim uma mina no ponto de nascimento não mata quem nasce)
+    std::vector<Tank*> tanks = allTanks();
+    auto overlap = [](SDL_Rect a, SDL_Rect b, int min) {
+        SDL_Rect r = intersectRect(&a, &b);
+        return r.w >= min && r.h >= min;
+    };
+    for(auto mine : m_mines)
+    {
+        if(mine->to_erase) continue;
+        for(Tank* t : tanks)
+        {
+            if(t->team == mine->team || t->to_erase || !t->testFlag(TSF_LIFE) || dynamic_cast<Turret*>(t) != nullptr) continue;
+            if(!overlap(mine->collision_rect, t->collision_rect, 6)) continue;
+            Player* owner = nullptr;
+            for(auto p : m_players)
+                if(p->playerIndex() == mine->owner) owner = p;
+            hitTank(t, owner != nullptr ? static_cast<Tank*>(owner) : nullptr);
+            mine->detonate();
+            break;
+        }
+        // Qualquer tiro acerta a mina e ela some (dá para limpar o caminho)
+        for(Tank* t : tanks)
+            for(auto bullet : t->bullets)
+                if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(mine->collision_rect, bullet->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    mine->detonate();
+                }
+    }
+    for(auto mine : m_mines) mine->update(dt);
+    for(auto turret : m_turrets) turret->update(dt);
 }
 
 void Duel::setBaseWalls(int team, SpriteType wall)
@@ -641,10 +761,10 @@ void Duel::update(Uint32 dt)
                         checkCollisionTwoBullets(b1, b2);
 
     // Bônus: só jogadores humanos coletam; o da equipe, só jogadores daquela cor
-    // (os adversários passam por cima)
+    // (os adversários passam por cima); quem guarda um poder só pega outro depois de usá-lo
     for(auto player : m_players)
         for(auto bonus : m_bonuses)
-            if(!player->to_erase && !bonus->to_erase && player->testFlag(TSF_LIFE) &&
+            if(!player->to_erase && !bonus->to_erase && player->testFlag(TSF_LIFE) && player->held_power == ST_NONE &&
                (bonus->owner_team < 0 || bonus->owner_team == player->team) &&
                intersects(player->collision_rect, bonus->collision_rect))
                 applyBonus(player, bonus);
@@ -658,6 +778,7 @@ void Duel::update(Uint32 dt)
     for(Tank* t : tanks) tryCornerSlide(t, dt);
 
     updateAI(dt);
+    updatePowers(dt);
 
     for(auto enemy : m_enemies) enemy->update(dt);
     for(auto player : m_players) player->update(dt);
@@ -678,6 +799,8 @@ void Duel::update(Uint32 dt)
     erase(m_players);
     erase(m_bonuses);
     erase(m_bushes);
+    erase(m_turrets);
+    erase(m_mines);
 
     updateFortify(dt);
 
@@ -708,8 +831,10 @@ void Duel::draw()
     for(auto row : m_level)
         for(auto item : row)
             if(item != nullptr) item->draw();
+    for(auto mine : m_mines) mine->draw();
     for(auto player : m_players) player->draw();
     for(auto enemy : m_enemies) enemy->draw();
+    for(auto turret : m_turrets) turret->draw();
     for(auto bush : m_bushes) bush->draw();
     for(auto bonus : m_bonuses) bonus->draw();
     for(Eagle* base : bases()) base->draw();
@@ -746,7 +871,10 @@ void Duel::draw()
         std::vector<Player*> members;
         for(auto player : m_players)
             if(player->team == team && !player->to_erase) members.push_back(player);
-        int height = 4 + 16 + static_cast<int>(members.size()) * 13 + 3;
+        std::sort(members.begin(), members.end(), [](Player* a, Player* b) { return a->playerIndex() < b->playerIndex(); });
+        // Cada jogador: "P1  3" e, embaixo, o espaço do poder guardado (até 3 por equipe)
+        const int MEMBER_HEIGHT = 31;
+        int height = 4 + 16 + static_cast<int>(members.size()) * MEMBER_HEIGHT + 1;
         int y = (team == 1 ? 6 : AppConfig::map_rect.h - 6 - height);
         SDL_Rect block = {block_x, y, block_w, height};
         renderer->drawRect(&block, teamColor(team), true);
@@ -759,13 +887,23 @@ void Duel::draw()
             SDL_Rect dst = {block_x + 18 + w * 12, y + 4, 12, 12};
             renderer->drawObject(&flag_src, &dst);
         }
-        // Jogadores da equipe e as vidas de cada um ("P1  3")
+        // Jogadores da equipe, as vidas de cada um ("P1  3") e o poder guardado: o ícone do
+        // poder, ou uma moldura vazia
         for(size_t row = 0; row < members.size(); row++)
         {
-            p = {block_x + 4, y + 21 + static_cast<int>(row) * 13};
+            int row_y = y + 21 + static_cast<int>(row) * MEMBER_HEIGHT;
+            p = {block_x + 4, row_y};
             renderer->drawText(&p, "P" + Engine::intToString(members[row]->playerIndex() + 1), BLACK, 3);
-            p = {block_x + 30, p.y};
+            p = {block_x + 30, row_y};
             renderer->drawText(&p, Engine::intToString(members[row]->lives_count), BLACK, 3);
+            SDL_Rect slot = {block_x + 4, row_y + 12, 16, 16};
+            if(members[row]->held_power != ST_NONE)
+            {
+                SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(members[row]->held_power)->rect;
+                renderer->drawObject(&icon, &slot);
+            }
+            else
+                renderer->drawRect(&slot, BLACK, false);
         }
     }
     // Rodada atual no meio do painel, em branco sobre preto

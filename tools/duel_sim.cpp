@@ -18,6 +18,7 @@
 
 #include <SDL2/SDL.h>
 
+#include "../src/app_state/powers.h"
 #include "../src/app_state/duel_layout.h"
 #include "../src/app_state/duel.h"
 #include "../src/appconfig.h"
@@ -38,18 +39,7 @@ namespace
 
     const char* bonusName(SpriteType type)
     {
-        switch(type)
-        {
-        case ST_BONUS_GRENADE: return "grenade";
-        case ST_BONUS_HELMET:  return "helmet";
-        case ST_BONUS_CLOCK:   return "clock";
-        case ST_BONUS_SHOVEL:  return "shovel";
-        case ST_BONUS_TANK:    return "tank";
-        case ST_BONUS_STAR:    return "star";
-        case ST_BONUS_GUN:     return "gun";
-        case ST_BONUS_BOAT:    return "boat";
-        default:               return "?";
-        }
+        return Powers::name(type);
     }
 
     // Vitórias de quem pegou o bônus, separadas pela situação no momento da coleta

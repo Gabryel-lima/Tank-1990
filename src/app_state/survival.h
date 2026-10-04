@@ -50,6 +50,9 @@ public:
 
 protected:
     void generateEnemy() override;
+    SpriteType randomBonusType() override;
+    void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus) override;
+    bool reservedTile(int row, int column) override;
     int enemyLimit() const override;
     Uint32 enemySpawnDelay() const override;
     void drawStatus() override;
@@ -75,12 +78,26 @@ private:
     /** Vida extra para todos; quem tinha caído volta ao mapa. */
     void rewardLives();
 
+    /** Um jogador que caiu volta com uma vida. @return false se ninguém caiu */
+    bool reviveOne();
+
+    /** Usa o poder guardado do jogador. @return false se não deu (sem espaço, ponto ocupado) */
+    bool usePower(Player* player);
+
+    /**
+     * A torreta acerta um inimigo atirando na direção @a d: inimigo alinhado, a até
+     * AppConfig::power_turret_range tiles, sem pedra no caminho e sem a águia ou a muralha
+     * dela no meio (o tiro destruiria a própria base).
+     */
+    bool turretShot(Turret* turret, Direction d);
+
     Phase m_phase;
     Uint32 m_phase_time;
     int m_wave;
     int m_map;                 ///< mapa em jogo (índice em AppConfig::survival_maps)
     int m_destroyed;           ///< inimigos destruídos na partida
     bool m_life_reward;        ///< o aviso desta onda inclui a vida extra
+    Uint32 m_truce_time = 0;   ///< tempo restante da trégua (ms): sem inimigos novos
 };
 
 #endif // SURVIVAL_H

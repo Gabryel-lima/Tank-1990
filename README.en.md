@@ -95,6 +95,7 @@ make run          # Builds and runs the game
 make clean        # Removes build files
 make info         # Shows system information
 make doc          # Generates documentation (Doxygen)
+make sprites      # Paints the pixel art from tools/sprites/ into resources/png/texture.png
 make install-deps # Installs dependencies (apk, apt, dnf or brew)
 make help         # Lists every available command
 ```
@@ -293,6 +294,43 @@ Adding a map works like in the duel: a **26×26** grid using the level symbols i
 - It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
 - The numbers live in `AppConfig::survival_*`.
 
+## 🧨 New powers (duel and survival)
+
+On top of the 8 original bonuses, the extra modes have 9 new powers, with their own pixel art in the style of the NES icons. They come in two kinds:
+
+- **Storable:** they go into the player's **power slot** and are used whenever the player wants, with the **power button**. While holding a power, the player **can't pick up any other bonus**: bonuses keep appearing (and stay on the map), but can only be picked up after using the held one. **Dying loses the held power**, just like stars: holding it is a risk.
+- **Immediate:** they take effect at once, like the original bonuses.
+
+| Power | Kind | Effect |
+|-------|------|--------|
+| **Mine** | storable | Drops a mine where the tank stands. It blows up the first **enemy** tank that drives over it (it respects shield and boat, so it can't be used to kill a tank that just spawned). Any shot sets it off early. Lasts 30 s. In survival it destroys even armored enemies. |
+| **Barricade** | storable | Raises a 2×2 brick block right ahead. It can't be placed on a tank, base, scenery, bush or spawn point; with no room, the power stays held. |
+| **Turret** | storable | Sets up a fixed cannon ahead, in the owner's color, facing where the tank faces. It turns and fires on its own at enemies lined up within 12 tiles, **never towards its own base**. One shot destroys it; it lasts 20 s and blinks before vanishing. |
+| **Recall** | storable | Teleports the tank to its spawn point, next to its base (if taken, to another one of the team). Keeps the boat and stars. The answer to an invasion when you are far from home. |
+| **Turbo** | storable | Speed ×1.5 for 8 s. |
+| **Revive** | immediate | A fallen teammate comes back with one life; if nobody fell, an extra life for the teammate with the fewest. |
+| **Repair** | immediate | Rebuilds your own base wall. |
+| **Team shield** | immediate | Shield for every player of the team at once. |
+| **Truce** | immediate, **survival only** | For 10 s, no new enemy enters the map (**TRUCE** shows at the top). Nothing spawns in the duel, so it would do nothing there: it is left out of the draw. |
+
+**Why these are storable and the others aren't:** storing only makes sense when a power's value depends on **where** and **when** it is used. A mine, a barricade or a turret is worth a lot at the entrance of your base and almost nothing where the bonus happened to appear; recall only helps when the base is under attack; turbo, when fleeing or invading. Star, helmet, revive, repair and shield are worth the same at any time (or more if used right away), so storing them would only delay the effect.
+
+**Power button:**
+
+| Device | Button |
+|--------|--------|
+| Controller | **LB** (left shoulder; L1 on PlayStation, L on Switch) |
+| `WASD` keyboard | **Left Shift** |
+| `ARROWS` keyboard | **Right Shift** |
+
+**In the side panel**, below each player's lives, the held power is shown (an empty square when there is none). In the duel, from 1 vs 1 up to 4 players, each team's panel grows to show one line per player; in survival, the icon sits next to the lives.
+
+**In survival** the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
+
+**Draw:** in the duel, the new powers share the draw with the originals; the strongest ones (turret, revive and team shield) are as rare as the grenade and the gun (in 1 vs 1, revive is just an extra life). The odds are in `Powers::duelTable()` and `Powers::survivalTable()` (`src/app_state/powers.cpp`); durations and ranges in `AppConfig::power_*`.
+
+**The art** is kept as text in `tools/sprites/powers.txt` (one character per pixel, using the original icons' palette), and `make sprites` paints it into `resources/png/texture.png`. To tweak an icon, edit the drawing and run `make sprites` again.
+
 ## 🎯 Power-ups
 
 Eight power-ups appear at random when you destroy enemy tanks:
@@ -336,12 +374,14 @@ automatically backs up anyone without one. There is nothing to configure.
 
 - **Move**: D-pad or left stick
 - **Fire**: any face button (A, B, X or Y)
+- **Use the held power** (duel and survival): LB
 - **Start**: pause · **Back/Select**: back to the menu
 - **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
-**On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`)
-and `ARROWS` (arrow keys + `Right Ctrl`; `Right Alt` on Mac). Each layout
-drives a single player: one player's keys never move or fire another tank.
+**On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`,
+power on `Left Shift`) and `ARROWS` (arrow keys + `Right Ctrl`, `Right Alt` on Mac;
+power on `Right Shift`). Each layout drives a single player: one player's keys
+never move or fire another tank.
 
 ### Which device goes to which player
 
@@ -422,6 +462,8 @@ Tank-1990/
 │   │   ├── player.h/cpp  # Player-controlled tank
 │   │   ├── enemy.h/cpp   # Enemy tanks
 │   │   ├── bot.h/cpp     # Allied bot (reinforcement power-up) in duel mode
+│   │   ├── mine.h/cpp    # Mine (extra-mode power)
+│   │   ├── turret.h/cpp  # Fixed turret (extra-mode power)
 │   │   ├── tank.h/cpp    # Tank base class
 │   │   ├── bullet.h/cpp  # Bullets
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -434,6 +476,7 @@ Tank-1990/
 │   │   ├── duel_layout.h/cpp # Duel geometry and map validation
 │   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
 │   │   ├── survival.h/cpp # Survival mode (waves)
+│   │   ├── powers.h/cpp  # New powers: storable vs immediate, and draw odds
 │   │   ├── survival_layout.h/cpp # Survival map geometry and validation
 │   │   ├── message_box.h/cpp # Message box for the extra modes
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
@@ -456,6 +499,8 @@ Tank-1990/
 │   └── survival_levels/  # Survival mode maps (listed in maps.txt)
 ├── tools/                # WSL install/uninstall scripts and the duel simulation
 │   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)
+│   ├── paint_sprites.cpp # Paints text pixel art into the texture (make sprites)
+│   ├── sprites/powers.txt # Pixel art of the new powers
 │   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows

@@ -44,7 +44,7 @@ void Player::update(Uint32 dt)
     // Só processa input se não estiver no menu
     if(!testFlag(TSF_MENU))
     {
-        bool up = false, down = false, left = false, right = false, shoot = false;
+        bool up = false, down = false, left = false, right = false, shoot = false, power = false;
 
         // Jogador do computador: a IA do modo de jogo decide no lugar do teclado
         if(cpu)
@@ -54,6 +54,7 @@ void Player::update(Uint32 dt)
             left  = cpu_command.move && cpu_command.direction == D_LEFT;
             right = cpu_command.move && cpu_command.direction == D_RIGHT;
             shoot = cpu_command.fire;
+            power = cpu_command.use_power;
             if(!cpu_command.move) setDirection(cpu_command.direction); // vira sem andar
         }
 
@@ -67,6 +68,7 @@ void Player::update(Uint32 dt)
             left  = key_state[keys->left];
             right = key_state[keys->right];
             shoot = key_state[keys->fire];
+            power = key_state[keys->power];
         }
 
         // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira
@@ -83,6 +85,8 @@ void Player::update(Uint32 dt)
                           || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B)
                           || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)
                           || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y);
+            // LB usa o poder guardado (modos extras)
+            power = power || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
         }
 
         // Movimentação: uma direção por vez, na ordem cima/baixo/esquerda/direita
@@ -91,8 +95,12 @@ void Player::update(Uint32 dt)
         else if(left)  setDirection(D_LEFT);
         else if(right) setDirection(D_RIGHT);
 
+        // Botão de poder: conta só o momento em que é apertado
+        if(power && !m_power_down) m_power_pressed = true;
+        m_power_down = power;
+
         if(up || down || left || right)
-            speed = default_speed;
+            speed = default_speed * (m_turbo_time > 0 ? AppConfig::power_turbo_factor : 1.0);
         else if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
             speed = 0.0; // Para o tanque, exceto se estiver escorregando no gelo
 
@@ -105,6 +113,7 @@ void Player::update(Uint32 dt)
     }
 
     m_fire_time += dt; // Atualiza tempo desde o último tiro
+    m_turbo_time = m_turbo_time > dt ? m_turbo_time - dt : 0;
 
     // Atualiza o frame do sprite conforme o estado de vida e power-up
     if(testFlag(TSF_LIFE))
@@ -144,6 +153,8 @@ void Player::respawn()
     dest_rect.h = m_sprite->rect.h;
     dest_rect.w = m_sprite->rect.w;
 
+    m_turbo_time = 0; // o turbo acaba com a morte (o poder guardado, não)
+
     // Renasce apontando para cima; no duelo, a equipe de cima (B) renasce apontando para baixo
     setDirection(team == 1 ? D_DOWN : D_UP);
     // A IA começa parada, olhando para onde o tanque nasceu (Tank::respawn chama update)
@@ -182,8 +193,10 @@ void Player::destroy()
         changeStarCountBy(-1);
     else
     {
-        // Perde três estrelas e chama destruição da classe base
+        // Perde três estrelas e o poder guardado (guardar tem risco) e chama a
+        // destruição da classe base
         changeStarCountBy(-3);
+        held_power = ST_NONE;
         Tank::destroy();
     }
 }
@@ -226,6 +239,31 @@ void Player::changeStarCountBy(int c)
 void Player::setReloadTime(Uint32 ms)
 {
     m_reload_time = ms;
+}
+
+bool Player::takePowerPress()
+{
+    bool pressed = m_power_pressed;
+    m_power_pressed = false;
+    return pressed;
+}
+
+void Player::boost(Uint32 ms)
+{
+    m_turbo_time = ms;
+}
+
+void Player::teleport(double x, double y)
+{
+    bool boat = testFlag(TSF_BOAT);
+    pos_x = x;
+    pos_y = y;
+    setDirection(team == 1 ? D_DOWN : D_UP);
+    cpu_command = TankCommand();
+    cpu_command.direction = direction;
+    Tank::respawn();               // animação de nascimento, sem gastar vida
+    if(boat) setFlag(TSF_BOAT);    // o barco continua
+    SoundManager::getInstance().playSound("bonus");
 }
 
 void Player::addLife() {

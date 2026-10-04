@@ -2,6 +2,7 @@
 #include "message_box.h"
 #include "survival_layout.h"
 #include "duel_layout.h"
+#include "powers.h"
 #include "menu.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
@@ -157,6 +158,7 @@ void Survival::rebuildBaseWalls()
 int Survival::enemyLimit() const
 {
     if(m_phase != PHASE_PLAY) return 0; // no aviso da onda, ninguém surge
+    if(m_truce_time > 0) return 0;      // trégua: os que estão em campo continuam, novos não
     // Mais inimigos ao mesmo tempo com mais jogadores e a cada poucas ondas
     int limit = AppConfig::survival_first_on_map + (m_player_count - 1) + (m_wave - 1) / AppConfig::survival_on_map_every_waves;
     return std::min(limit, AppConfig::survival_max_on_map);
@@ -191,6 +193,174 @@ void Survival::generateEnemy()
     }
 }
 
+// ======================== Poderes ========================
+
+SpriteType Survival::randomBonusType()
+{
+    return Powers::draw(Powers::survivalTable());
+}
+
+bool Survival::reservedTile(int row, int column)
+{
+    // Nada de barricada ou torreta em cima de onde os inimigos surgem ou os jogadores nascem
+    std::vector<SDL_Point> points(AppConfig::enemy_starting_point.begin(), AppConfig::enemy_starting_point.end());
+    points.insert(points.end(), AppConfig::player_starting_point.begin(), AppConfig::player_starting_point.end());
+    for(SDL_Point p : points)
+    {
+        int r = p.y / AppConfig::tile_rect.h, c = p.x / AppConfig::tile_rect.w;
+        if(row >= r && row < r + 2 && column >= c && column < c + 2) return true;
+    }
+    return false;
+}
+
+void Survival::checkCollisionPlayerWithBonus(Player* player, Bonus* bonus)
+{
+    if(player->to_erase || bonus->to_erase) return;
+    SDL_Rect hit = intersectRect(&player->collision_rect, &bonus->collision_rect);
+    if(hit.w <= 0 || hit.h <= 0) return;
+
+    // Quem guarda um poder só pega outro bônus depois de usar o que tem
+    if(player->held_power != ST_NONE) return;
+
+    SpriteType type = bonus->type;
+    if(Powers::storable(type))
+    {
+        SoundManager::getInstance().playSound("bonus");
+        player->score += 300;
+        bonus->to_erase = true;
+        player->held_power = type;
+        // Com os poderes de uso imediato (AppConfig::survival_store_powers = false), vale na
+        // hora; se não couber ali (barricada sem espaço...), fica guardado
+        if(!AppConfig::survival_store_powers && usePower(player)) player->held_power = ST_NONE;
+        return;
+    }
+    if(!Powers::isExtra(type))
+    {
+        Game::checkCollisionPlayerWithBonus(player, bonus); // os 8 originais, como na campanha
+        return;
+    }
+
+    SoundManager::getInstance().playSound("bonus");
+    player->score += 300;
+    bonus->to_erase = true;
+    switch(type)
+    {
+    case ST_BONUS_REVIVE:
+    {
+        // Um companheiro que caiu volta; ninguém caído: vida extra para quem tem menos
+        if(reviveOne()) break;
+        Player* weakest = player;
+        for(Player* p : m_players)
+            if(!p->to_erase && p->lives_count < weakest->lives_count) weakest = p;
+        weakest->addLife();
+        break;
+    }
+    case ST_BONUS_REPAIR:
+        rebuildBaseWalls();
+        break;
+    case ST_BONUS_TRUCE:
+        m_truce_time = AppConfig::power_truce_time;
+        break;
+    case ST_BONUS_TEAM_SHIELD:
+        for(Player* p : m_players)
+            if(!p->to_erase) p->setFlag(TSF_SHIELD); // como o capacete da campanha
+        break;
+    default:
+        break;
+    }
+}
+
+bool Survival::reviveOne()
+{
+    if(m_killed_players.empty()) return false;
+    Player* player = m_killed_players.front();
+    m_killed_players.erase(m_killed_players.begin());
+    player->to_erase = false;
+    player->lives_count = 2; // respawn() gasta uma ao entrar no mapa
+    player->respawn();
+    m_players.push_back(player);
+    SoundManager::getInstance().playSound("life");
+    return true;
+}
+
+bool Survival::usePower(Player* player)
+{
+    switch(player->held_power)
+    {
+    case ST_BONUS_MINE:
+        placeMine(player);
+        return true;
+    case ST_BONUS_BARRICADE:
+        return placeBarricade(player);
+    case ST_BONUS_TURRET:
+        return placeTurret(player);
+    case ST_BONUS_TURBO:
+        player->boost(AppConfig::power_turbo_time);
+        SoundManager::getInstance().playSound("bonus");
+        return true;
+    case ST_BONUS_RECALL:
+    {
+        // O próprio ponto de nascimento, ao lado da águia; ocupado, o de outro jogador
+        std::vector<SDL_Point> points;
+        int index = player->playerIndex();
+        if(index >= 0 && index < static_cast<int>(AppConfig::player_starting_point.size()))
+            points.push_back(AppConfig::player_starting_point[index]);
+        points.insert(points.end(), AppConfig::player_starting_point.begin(), AppConfig::player_starting_point.end());
+        return recall(player, points);
+    }
+    default:
+        return false;
+    }
+}
+
+bool Survival::turretShot(Turret* turret, Direction d)
+{
+    const int t = AppConfig::tile_rect.w;
+    SDL_Point c = {turret->dest_rect.x + turret->dest_rect.w / 2, turret->dest_rect.y + turret->dest_rect.h / 2};
+    bool vertical = (d == D_UP || d == D_DOWN);
+
+    // Inimigo mais perto alinhado com o cano (o tiro tem 8 px de largura)
+    Enemy* target = nullptr;
+    int best = AppConfig::power_turret_range * t + 1;
+    for(Enemy* e : m_enemies)
+    {
+        if(e->to_erase || !e->testFlag(TSF_LIFE)) continue;
+        SDL_Rect r = e->collision_rect;
+        bool aligned = vertical ? (r.x < c.x + 4 && r.x + r.w > c.x - 4) : (r.y < c.y + 4 && r.y + r.h > c.y - 4);
+        if(!aligned) continue;
+        int distance;
+        switch(d)
+        {
+        case D_UP: distance = c.y - (r.y + r.h); break;
+        case D_DOWN: distance = r.y - c.y; break;
+        case D_LEFT: distance = c.x - (r.x + r.w); break;
+        default: distance = r.x - c.x; break;
+        }
+        if(distance >= 0 && distance < best) { best = distance; target = e; }
+    }
+    if(target == nullptr) return false;
+
+    // Caminho do tiro até o alvo: sem pedra, sem a águia e sem a muralha dela
+    int lane0 = ((vertical ? c.x : c.y) - 4) / t, lane1 = ((vertical ? c.x : c.y) + 3) / t;
+    int from = (vertical ? c.y : c.x) / t;
+    int to = vertical ? (d == D_UP ? target->collision_rect.y + target->collision_rect.h : target->collision_rect.y) / t
+                      : (d == D_LEFT ? target->collision_rect.x + target->collision_rect.w : target->collision_rect.x) / t;
+    int step = (to >= from) ? 1 : -1;
+    std::vector<SurvivalLayout::Tile> wall = SurvivalLayout::baseWallTiles();
+    for(int i = from; i != to + step; i += step)
+        for(int j = lane0; j <= lane1; j++)
+        {
+            int row = vertical ? i : j, column = vertical ? j : i;
+            if(row < 0 || column < 0 || row >= m_level_rows_count || column >= m_level_columns_count) continue;
+            Object* o = m_level.at(row).at(column);
+            if(o != nullptr && o->type == ST_STONE_WALL) return false;
+            for(const SurvivalLayout::Tile& w : wall)
+                if(w.row == row && w.column == column) return false;
+            if(row >= m_level_rows_count - 2 && (column == 12 || column == 13)) return false; // águia
+        }
+    return true;
+}
+
 // ======================== Laço do jogo ========================
 
 void Survival::update(Uint32 dt)
@@ -205,11 +375,22 @@ void Survival::update(Uint32 dt)
         return;
     }
 
+    // Torretas: miram antes do Game atualizar e mover tudo
+    if(!m_pause)
+        for(Turret* turret : m_turrets)
+            turret->think([&](Direction d) { return turretShot(turret, d); });
+
     int before = m_enemy_to_kill;
     Game::update(dt);
     if(m_pause) return;
     m_phase_time += dt;
     m_destroyed += std::max(0, before - m_enemy_to_kill);
+    m_truce_time = m_truce_time > dt ? m_truce_time - dt : 0;
+
+    // Botão de poder: usa o poder guardado (sem espaço, continua guardado)
+    for(Player* player : m_players)
+        if(player->takePowerPress() && player->held_power != ST_NONE && player->testFlag(TSF_LIFE) && usePower(player))
+            player->held_power = ST_NONE;
 
     if(m_phase == PHASE_WAVE_INTRO && m_phase_time > AppConfig::survival_wave_intro_time)
     {
@@ -312,6 +493,15 @@ void Survival::drawStatus()
         SDL_Point p = {dst.x + dst.w + 2, dst.y + 3};
         bool out = std::find(m_killed_players.begin(), m_killed_players.end(), player) != m_killed_players.end();
         renderer->drawText(&p, Engine::intToString(out ? 0 : player->lives_count), BLACK, 3);
+        // Poder guardado: o ícone, ou uma moldura vazia
+        SDL_Rect slot = {x + 31, dst.y + 1, 14, 14};
+        if(player->held_power != ST_NONE && !out)
+        {
+            SDL_Rect power = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
+            renderer->drawObject(&power, &slot);
+        }
+        else
+            renderer->drawRect(&slot, BLACK, false);
         row++;
     }
 }
@@ -319,6 +509,14 @@ void Survival::drawStatus()
 void Survival::drawOverlay()
 {
     Renderer* renderer = Engine::getEngine().getRenderer();
+
+    // Trégua: contagem no alto do mapa enquanto os inimigos não surgem
+    if(m_truce_time > 0 && m_phase == PHASE_PLAY)
+    {
+        std::string text = "TRUCE " + Engine::intToString(static_cast<int>((m_truce_time + 999) / 1000));
+        SDL_Point size = renderer->textSize(text, 2);
+        renderer->drawTextOutlined({AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2, 40}, text, WHITE, 2);
+    }
 
     if(m_phase == PHASE_WAVE_INTRO && !m_pause)
     {

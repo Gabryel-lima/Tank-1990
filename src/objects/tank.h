@@ -18,6 +18,7 @@ struct TankCommand
     Direction direction = D_UP;
     bool move = false;
     bool fire = false;
+    bool use_power = false; ///< usa o poder guardado (jogador do computador)
 };
 
 /**

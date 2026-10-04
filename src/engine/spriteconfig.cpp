@@ -35,6 +35,19 @@ SpriteConfig::SpriteConfig()
     insert(ST_BONUS_GUN, 896, 192, 32, 32, 1, 200, false);        // Canhão
     insert(ST_BONUS_BOAT, 896, 224, 32, 32, 1, 200, false);       // Barco
 
+    // Poderes dos modos extras: arte em tools/sprites/powers.txt (make sprites)
+    insert(ST_BONUS_MINE, 0, 352, 32, 32, 1, 200, false);         // Mina
+    insert(ST_BONUS_BARRICADE, 32, 352, 32, 32, 1, 200, false);   // Barricada
+    insert(ST_BONUS_TURRET, 64, 352, 32, 32, 1, 200, false);      // Torreta
+    insert(ST_BONUS_RECALL, 96, 352, 32, 32, 1, 200, false);      // Retorno
+    insert(ST_BONUS_TURBO, 128, 352, 32, 32, 1, 200, false);      // Turbo
+    insert(ST_BONUS_REVIVE, 160, 352, 32, 32, 1, 200, false);     // Reviver
+    insert(ST_BONUS_REPAIR, 192, 352, 32, 32, 1, 200, false);     // Reparo
+    insert(ST_BONUS_TRUCE, 224, 352, 32, 32, 1, 200, false);      // Trégua
+    insert(ST_BONUS_TEAM_SHIELD, 256, 352, 32, 32, 1, 200, false); // Escudo de equipe
+    insert(ST_TURRET, 0, 384, 32, 32, 1, 200, false);             // Torreta no mapa (direções em x)
+    insert(ST_MINE, 128, 384, 16, 16, 2, 400, true);              // Mina no mapa (luz piscando)
+
     // Efeitos e animações
     insert(ST_SHIELD, 976, 0, 32, 32, 2, 45, true);               // Escudo (animado)
     insert(ST_CREATE, 1008, 0, 32, 32, 10, 100, false);           // Animação de criação

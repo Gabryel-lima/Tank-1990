@@ -93,6 +93,7 @@ make run         # Compila e executa o jogo
 make clean       # Remove arquivos de build
 make info        # Mostra informações do sistema
 make doc         # Gera documentação (Doxygen)
+make sprites     # Desenha a pixel art de tools/sprites/ em resources/png/texture.png
 make install-deps # Instala as dependências (apk, apt, dnf ou brew)
 make help        # Mostra todos os comandos disponíveis
 ```
@@ -294,6 +295,43 @@ Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os s�
 - Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só.
 - Os números ficam em `AppConfig::survival_*`.
 
+## 🧨 Poderes novos (duelo e sobrevivência)
+
+Além dos 8 bônus originais, os modos extras têm 9 poderes novos, com pixel art própria no estilo dos ícones do NES. Eles se dividem em dois tipos:
+
+- **Guardáveis:** vão para o **espaço de poder** do jogador e são usados quando ele quiser, com o **botão de poder**. Enquanto guarda um poder, o jogador **não pega outro bônus**: os bônus continuam surgindo (e ficam no mapa), mas só dá para pegá-los depois de usar o que está guardado. **Morrer faz perder o poder guardado**, como as estrelas: guardar tem risco.
+- **Imediatos:** fazem efeito na hora, como os bônus originais.
+
+| Poder | Tipo | Efeito |
+|-------|------|--------|
+| **Mina** | guardável | Deixa uma mina onde o tanque está. Explode o primeiro tanque **adversário** que passar por cima (respeita escudo e barco, para não virar arma contra quem acabou de nascer). Qualquer tiro a detona antes. Dura 30 s. Na sobrevivência, destrói até inimigo blindado. |
+| **Barricada** | guardável | Levanta um bloco de tijolos 2×2 logo à frente. Não pode ser colocada em cima de tanque, base, cenário, arbusto ou ponto de nascimento; sem espaço, o poder continua guardado. |
+| **Torreta** | guardável | Instala à frente um canhão fixo, na cor do dono, virado para onde o tanque olha. Ela gira e atira sozinha nos inimigos alinhados a até 12 tiles, **nunca na direção da própria base**. Um tiro a destrói; dura 20 s e pisca antes de sumir. |
+| **Retorno** | guardável | Teleporta o tanque para o seu ponto de nascimento, ao lado da base (se estiver ocupado, para outro da equipe). Mantém o barco e as estrelas. É a resposta a uma invasão quando se está longe de casa. |
+| **Turbo** | guardável | Velocidade ×1,5 por 8 s. |
+| **Reviver** | imediato | Um companheiro que caiu volta com uma vida; se ninguém caiu, uma vida extra para quem da equipe tem menos. |
+| **Reparo** | imediato | Refaz a muralha da própria base. |
+| **Escudo de equipe** | imediato | Escudo para todos os jogadores da equipe ao mesmo tempo. |
+| **Trégua** | imediato, **só na sobrevivência** | Por 10 s, nenhum inimigo novo entra no mapa (aviso **TRUCE** no topo). No duelo nada surge, então não teria efeito: fica fora do sorteio. |
+
+**Por que esses são guardáveis e os outros não:** guardar só faz sentido quando o valor do poder depende de **onde** e **quando** ele é usado. Uma mina, uma barricada ou uma torreta valem muito na entrada da base e quase nada no lugar onde o bônus apareceu por acaso; o retorno só serve quando a base está sob ataque; o turbo, na hora de fugir ou de invadir. Já estrela, capacete, reviver, reparo e escudo valem o mesmo a qualquer hora (ou valem mais se usados logo), então guardá-los só atrasaria o efeito.
+
+**Botão de poder:**
+
+| Dispositivo | Botão |
+|-------------|-------|
+| Controle | **LB** (ombro esquerdo; L1 no PlayStation, L no Switch) |
+| Teclado `WASD` | **Shift esquerdo** |
+| Teclado `ARROWS` | **Shift direito** |
+
+**No painel lateral**, abaixo das vidas de cada jogador, aparece o poder guardado (um quadrado vazio quando não há nenhum). No duelo, de 1 contra 1 até 4 jogadores, o painel de cada equipe cresce para mostrar uma linha por jogador; na sobrevivência, o ícone fica ao lado das vidas.
+
+**Na sobrevivência** os mesmos 5 poderes também são guardáveis (`AppConfig::survival_store_powers = true`). Os bônus surgem em lugares aleatórios do mapa, então uma mina ou uma torreta usada na hora quase sempre cairia num canto sem inimigos; guardada, vira defesa da águia. Com `survival_store_powers = false`, todo poder é usado na hora em que é pego.
+
+**Sorteio:** no duelo, os poderes novos dividem o sorteio com os originais; os mais fortes (torreta, reviver e escudo de equipe) são raros como a granada e o canhão (em 1 contra 1 o reviver vira só uma vida extra). As chances ficam em `Powers::duelTable()` e `Powers::survivalTable()` (`src/app_state/powers.cpp`); os tempos e alcances, em `AppConfig::power_*`.
+
+**A arte** fica em texto, em `tools/sprites/powers.txt` (um caractere por pixel, com a paleta dos ícones originais), e `make sprites` a desenha em `resources/png/texture.png`. Para ajustar um ícone, edite o desenho e rode `make sprites` de novo.
+
 ## 🎯 Power-ups e Bônus
 
 O jogo possui 8 tipos diferentes de power-ups que aparecem aleatoriamente quando você destrói tanques inimigos:
@@ -336,12 +374,14 @@ como reserva de quem não tiver controle. Não há nada para configurar.
 
 - **Mover**: D-pad ou analógico esquerdo
 - **Atirar**: qualquer botão frontal (A, B, X ou Y)
+- **Usar o poder guardado** (duelo e sobrevivência): LB
 - **Start**: pausa · **Back/Select**: volta ao menu
 - **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
-**No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`) e
-`ARROWS` (setas + `Ctrl direito`; `Alt direito` no Mac). Cada layout controla
-um único jogador: apertar a tecla de um nunca move ou faz atirar outro.
+**No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`, poder no
+`Shift esquerdo`) e `ARROWS` (setas + `Ctrl direito`, `Alt direito` no Mac; poder no
+`Shift direito`). Cada layout controla um único jogador: apertar a tecla de um nunca
+move ou faz atirar outro.
 
 ### Qual dispositivo fica com qual jogador
 
@@ -424,6 +464,8 @@ Tank-1990/
 │   │   ├── player.h/cpp  # Jogador controlável
 │   │   ├── enemy.h/cpp   # Tanques inimigos
 │   │   ├── bot.h/cpp     # Bot aliado (bônus de reforço) no modo duelo
+│   │   ├── mine.h/cpp    # Mina (poder dos modos extras)
+│   │   ├── turret.h/cpp  # Torreta fixa (poder dos modos extras)
 │   │   ├── tank.h/cpp    # Classe base dos tanques
 │   │   ├── bullet.h/cpp  # Projéteis
 │   │   ├── bonus.h/cpp   # Power-ups
@@ -436,6 +478,7 @@ Tank-1990/
 │   │   ├── duel_layout.h/cpp # Geometria do duelo e validação dos mapas
 │   │   ├── duel_ai.cpp   # IA do duelo (bots de reforço)
 │   │   ├── survival.h/cpp # Modo sobrevivência (ondas)
+│   │   ├── powers.h/cpp  # Poderes novos: guardáveis x imediatos e chances de sorteio
 │   │   ├── survival_layout.h/cpp # Geometria e validação dos mapas da sobrevivência
 │   │   ├── message_box.h/cpp # Caixa de mensagem dos modos extras
 │   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
@@ -458,6 +501,8 @@ Tank-1990/
 │   └── survival_levels/  # Mapas do modo sobrevivência (lista em maps.txt)
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
+│   ├── paint_sprites.cpp # Desenha a pixel art em texto na textura (make sprites)
+│   ├── sprites/powers.txt # Pixel art dos poderes novos
 │   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build

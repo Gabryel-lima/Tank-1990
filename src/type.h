@@ -33,6 +33,20 @@ enum SpriteType
     ST_BONUS_GUN,      // Bônus: arma (poder de fogo extra)
     ST_BONUS_BOAT,     // Bônus: barco (permite atravessar água)
 
+    // Poderes dos modos extras (duelo e sobrevivência), ver Powers
+    ST_BONUS_MINE,         // Mina: explode o inimigo que passar por cima
+    ST_BONUS_BARRICADE,    // Barricada: bloco de tijolos 2x2 na frente do tanque
+    ST_BONUS_TURRET,       // Torreta: canhão fixo que atira sozinho por um tempo
+    ST_BONUS_RECALL,       // Retorno: volta para o ponto de nascimento, ao lado da base
+    ST_BONUS_TURBO,        // Turbo: mais velocidade por um tempo
+    ST_BONUS_REVIVE,       // Reviver: traz de volta um companheiro que caiu
+    ST_BONUS_REPAIR,       // Reparo: refaz a muralha da própria base
+    ST_BONUS_TRUCE,        // Trégua: os inimigos param de surgir por um tempo (sobrevivência)
+    ST_BONUS_TEAM_SHIELD,  // Escudo de equipe: capacete para todos da equipe
+
+    ST_TURRET,         // Torreta no mapa (4 direções)
+    ST_MINE,           // Mina no mapa (2 quadros, a luz pisca)
+
     ST_SHIELD,         // Sprite de escudo protetor
     ST_CREATE,         // Animação de criação de tanque
     ST_DESTROY_TANK,   // Animação de destruição de tanque

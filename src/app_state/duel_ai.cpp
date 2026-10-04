@@ -64,7 +64,7 @@ bool Duel::isAI(Tank* tank) const
     return player != nullptr && player->cpu;
 }
 
-Bot::Role Duel::roleOf(Tank* tank) const
+Bot::Role Duel::baseRole(Tank* tank) const
 {
     if(Bot* bot = dynamic_cast<Bot*>(tank)) return bot->role;
 
@@ -74,6 +74,21 @@ Bot::Role Duel::roleOf(Tank* tank) const
     for(int i = 0; player != nullptr && i < player->playerIndex(); i++)
         if(m_config.human_team[i] == player->team) before++;
     return before % 2 == 0 ? Bot::ROLE_ATTACK : Bot::ROLE_DEFEND;
+}
+
+Bot::Role Duel::roleOf(Tank* tank) const
+{
+    Bot::Role role = baseRole(tank);
+    if(role == Bot::ROLE_ATTACK || dynamic_cast<Player*>(tank) == nullptr) return role;
+
+    // Ninguém em campo ataca (os atacantes das duas equipes caíram): os defensores saem,
+    // senão sobram dois parados no posto e a rodada não acaba. Só nesse caso: um
+    // defensor que fica sozinho na equipe continua guardando a base se o adversário ataca
+    for(auto player : m_players)
+        if(!player->to_erase && baseRole(player) == Bot::ROLE_ATTACK) return role;
+    for(auto enemy : m_enemies)
+        if(!enemy->to_erase && baseRole(enemy) == Bot::ROLE_ATTACK) return role;
+    return Bot::ROLE_ATTACK;
 }
 
 NavGrid::Abilities Duel::abilitiesOf(Tank* tank) const
@@ -111,6 +126,16 @@ void Duel::buildNavGrids()
                     t = NavGrid::TILE_BLOCKED;
                 nav.setTile(row, column, t);
             }
+
+        // Minas da outra equipe (estão à vista de todos): a IA desvia delas
+        for(Mine* mine : m_mines)
+        {
+            if(mine->team == team || mine->to_erase) continue;
+            SDL_Rect r = mine->collision_rect;
+            for(int row = r.y / tile(); row <= (r.y + r.h - 1) / tile(); row++)
+                for(int column = r.x / tile(); column <= (r.x + r.w - 1) / tile(); column++)
+                    if(nav.validCell(row, column)) nav.setTile(row, column, NavGrid::TILE_BLOCKED);
+        }
 
         // As águias bloqueiam a passagem (e o tiro, para fireGoals)
         for(Eagle* base : all_bases)
@@ -333,8 +358,9 @@ void Duel::planAI(Tank* tank, AIState& state)
     };
 
     // Jogador do computador: busca os bônus que pode pegar, se o caminho não for longo
+    // (guardando um poder, não pega nenhum: nem vai atrás)
     Player* player = dynamic_cast<Player*>(tank);
-    if(player != nullptr)
+    if(player != nullptr && player->held_power == ST_NONE)
         for(Bonus* bonus : m_bonuses)
         {
             if(bonus->to_erase || (bonus->owner_team >= 0 && bonus->owner_team != team)) continue;
@@ -696,6 +722,25 @@ void Duel::updateAI(Uint32 dt)
             // Tempo de reação: o jogador do computador não atira no quadro exato em que
             // o alvo se alinha (o bot já tem uma recarga mais lenta e sorteada)
             if(command.fire && rand() % 3 != 0) command.fire = false;
+
+            // Poder guardado: usa logo (se não couber, tenta de novo nos quadros seguintes),
+            // menos o retorno, guardado até um inimigo chegar perto da base com ele longe
+            command.use_power = false;
+            if(player->held_power != ST_NONE && tank->testFlag(TSF_LIFE) && rand() % 20 == 0)
+            {
+                bool use = true;
+                Eagle* own = baseOf(player->team);
+                if(player->held_power == ST_BONUS_RECALL && own != nullptr)
+                {
+                    SDL_Point home = centerOf(own->collision_rect);
+                    int threat = INT_MAX;
+                    for(Tank* t : allTanks())
+                        if(t->team != player->team && !t->to_erase && t->testFlag(TSF_LIFE))
+                            threat = std::min(threat, manhattan(centerOf(t->dest_rect), home));
+                    use = threat < INVADER_RANGE * tile() && manhattan(centerOf(tank->dest_rect), home) > 2 * INVADER_RANGE * tile();
+                }
+                command.use_power = use;
+            }
             player->cpu_command = command;
         }
     }

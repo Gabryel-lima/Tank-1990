@@ -324,6 +324,15 @@ $(BUILD)/tools/check_duel_maps.o: tools/check_duel_maps.cpp Makefile
 
 -include $(BUILD)/tools/check_duel_maps.d
 
+# Desenha a pixel art dos poderes dos modos extras (tools/sprites/powers.txt) em
+# resources/png/texture.png. Só é preciso rodar ao mudar a arte; a textura vai no git
+SPRITES_EXE = $(BIN)/paint_sprites$(EXE_EXT)
+sprites: $(BUILD_DIRS) $(SPRITES_EXE)
+	$(SPRITES_EXE) tools/sprites/powers.txt $(RESOURCES_DIR)/png/texture.png
+
+$(SPRITES_EXE): tools/paint_sprites.cpp
+	$(CC) $(INCLUDEPATH) $< $(LIBSPATH) $(LIBS) -o $@
+
 # Copia arquivos/diretórios específicos listados em APP_RESOURCES
 $(APP_RESOURCES): | $(BIN)
 	@if [ -d "$(RESOURCES_DIR)/$@" ]; then \
@@ -367,6 +376,7 @@ help:
 	@echo "  make doc         - Gera documentação (Doxygen)"
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
 	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
+	@echo "  make sprites     - Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""
@@ -390,7 +400,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps sprites
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO
