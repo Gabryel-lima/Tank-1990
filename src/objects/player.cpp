@@ -223,8 +223,8 @@ Bullet* Player::fire()
 void Player::drawEffects()
 {
     // Brilho rápido (120 ms a cada 1 s): diferente da névoa contínua de quem está acabando
-    if(m_demolisher && testFlag(TSF_LIFE) && m_effect_time % 1000 < 120)
-        Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, 170);
+    if(m_demolisher && testFlag(TSF_LIFE) && demolisherGlint(m_effect_time))
+        Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, DEMOLISHER_GLINT_ALPHA);
 }
 
 // Altera o número de estrelas (power-up) do jogador.

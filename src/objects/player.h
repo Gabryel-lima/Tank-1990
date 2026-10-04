@@ -133,6 +133,10 @@ public:
     bool demolisher() const { return m_demolisher; }
     void setDemolisher(bool on) { m_demolisher = on && star_count >= 3; }
 
+    /** Brilho do tiro demolidor: aceso nos primeiros 120 ms de cada segundo do relógio. */
+    static bool demolisherGlint(Uint32 effect_time) { return effect_time % 1000 < 120; }
+    static const Uint8 DEMOLISHER_GLINT_ALPHA = 170;
+
 protected:
     /** Tiro demolidor: um brilho branco curto a cada segundo, à vista de todos. */
     void drawEffects() override;

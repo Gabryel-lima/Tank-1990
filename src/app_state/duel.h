@@ -123,6 +123,9 @@ public:
      */
     static SDL_Color teamColor(int team);
 
+    /** Tom da pedra da zona da base da equipe: a cor dela clareada. */
+    static SDL_Color stoneTint(int team);
+
     /** O que aconteceu na partida até agora (usado pela simulação). */
     const DuelStats& stats() const { return m_stats; }
 
@@ -131,6 +134,13 @@ protected:
     void onBaseHit(Eagle* base, Bullet* bullet) override;
     bool bulletCanDamage(Bullet* bullet, int row, int column) override;
     bool powerAppliesAt(Bullet* bullet, int row, int column) override;
+
+    /**
+     * Além do canhão (Game), a pedra da zona da própria base (a pintada com a cor da
+     * equipe) cai com qualquer tiro de jogador da equipe: o defensor abre o caminho que
+     * quiser em casa. Para o adversário ela é inquebrável, menos para o tiro demolidor.
+     */
+    bool breaksBlock(Bullet* bullet, int row, int column) override;
 
 private:
     enum Phase

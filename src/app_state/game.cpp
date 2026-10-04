@@ -873,7 +873,7 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
                 {
                     // bloco protegido: o projétil some sem causar dano
                 }
-                else if(bullet->increased_damage && powerAppliesAt(bullet, i, j))
+                else if(breaksBlock(bullet, i, j))
                 {
                     delete o;
                     m_level.at(i).at(j) = nullptr;
@@ -936,6 +936,11 @@ bool Game::bulletCanDamage(Bullet*, int, int)
 bool Game::powerAppliesAt(Bullet*, int, int)
 {
     return true;
+}
+
+bool Game::breaksBlock(Bullet* bullet, int row, int column)
+{
+    return bullet->increased_damage && powerAppliesAt(bullet, row, column);
 }
 
 // Verifica colisão da bala com arbustos (só se for bala forte)

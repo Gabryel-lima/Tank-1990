@@ -288,11 +288,16 @@ bool Duel::firesAtOwnBase(Tank* tank, Direction d) const
             int base_row = DuelLayout::baseRow(team);
             if(row >= base_row && row < base_row + 2 && column >= DuelLayout::BASE_COLUMN && column < DuelLayout::BASE_COLUMN + 2)
                 return true;
-            // Pedra (inclusive a frente da própria base) segura o tiro sem dano; tijolo da
-            // própria muralha, não
+            // A muralha da própria base (tijolo ou pedra: o tiro do jogador derruba as duas)
+            // não; pedra segura o tiro, menos a da zona da própria base, que o tiro do
+            // jogador da equipe também derruba (Duel::breaksBlock): o tiro segue adiante
             Object* o = m_level.at(row).at(column);
-            if(o != nullptr && o->type == ST_STONE_WALL) return false;
-            if(o != nullptr && isBaseWall(team, row, column)) return true;
+            if(o != nullptr && isBaseWall(team, row, column)) return dynamic_cast<Player*>(tank) != nullptr || o->type != ST_STONE_WALL;
+            if(o != nullptr && o->type == ST_STONE_WALL)
+            {
+                if(dynamic_cast<Player*>(tank) != nullptr && DuelLayout::zoneTeam(row, column) == team) continue;
+                return false;
+            }
         }
     return false;
 }

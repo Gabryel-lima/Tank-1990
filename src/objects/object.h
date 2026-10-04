@@ -109,6 +109,12 @@ protected:
      */
     void drawHaze(double level);
 
+public:
+    /** Relógio dos efeitos visuais (ms), para sincronizar outro desenho com este objeto. */
+    Uint32 effectTime() const { return m_effect_time; }
+
+protected:
+
     /** Relógio dos efeitos visuais (ms): avança com o jogo, para na pausa. */
     Uint32 m_effect_time = 0;
 

@@ -238,6 +238,14 @@ bool Duel::powerAppliesAt(Bullet* bullet, int row, int column)
     return bullet->demolisher && zone != bullet->team && from == zone;
 }
 
+bool Duel::breaksBlock(Bullet* bullet, int row, int column)
+{
+    if(Game::breaksBlock(bullet, row, column)) return true;
+    Object* o = m_level.at(row).at(column);
+    return bullet->from_player && o != nullptr && o->type == ST_STONE_WALL &&
+           bullet->team >= 0 && DuelLayout::zoneTeam(row, column) == bullet->team;
+}
+
 bool Duel::bulletCanDamage(Bullet* bullet, int row, int column)
 {
     // O jogador derruba os tijolos da própria muralha (abrir uma passagem ou um ângulo de
@@ -390,6 +398,14 @@ void Duel::checkBulletsAgainstTank(Tank* shooter, Tank* target)
 }
 
 // ======================== Bônus ========================
+
+SDL_Color Duel::stoneTint(int team)
+{
+    // Meio caminho entre a cor da equipe e o branco: a pedra continua com cara de pedra
+    // (o verde puro a confundia com o arbusto)
+    SDL_Color c = teamColor(team);
+    return {static_cast<Uint8>((c.r + 255) / 2), static_cast<Uint8>((c.g + 255) / 2), static_cast<Uint8>((c.b + 255) / 2), 255};
+}
 
 SDL_Color Duel::teamColor(int team)
 {
@@ -841,9 +857,25 @@ void Duel::draw()
     renderer->clear();
 
     renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 255}, true);
-    for(auto row : m_level)
-        for(auto item : row)
-            if(item != nullptr) item->draw();
+    // Quem tem o tiro demolidor em cada equipe: a pedra da base adversária pisca junto
+    // com o brilho dele, avisando que ela não segura esse tanque
+    Player* demolisher[2] = {nullptr, nullptr};
+    for(auto player : m_players)
+        if(!player->to_erase && player->demolisher() && demolisher[player->team] == nullptr)
+            demolisher[player->team] = player;
+    for(size_t r = 0; r < m_level.size(); r++)
+        for(size_t c = 0; c < m_level[r].size(); c++)
+        {
+            Object* item = m_level[r][c];
+            if(item == nullptr) continue;
+            int team = item->type == ST_STONE_WALL ? DuelLayout::zoneTeam(static_cast<int>(r), static_cast<int>(c)) : -1;
+            if(team < 0) { item->draw(); continue; }
+            // Pedra da zona de uma base: na cor da equipe (só ela a derruba)
+            renderer->drawObjectWithColor(&item->src_rect, &item->dest_rect, stoneTint(team));
+            Player* threat = demolisher[1 - team];
+            if(threat != nullptr && Player::demolisherGlint(threat->effectTime()))
+                renderer->drawWhite(&item->src_rect, &item->dest_rect, Player::DEMOLISHER_GLINT_ALPHA);
+        }
     for(auto mine : m_mines) mine->draw();
     for(auto player : m_players) player->draw();
     for(auto enemy : m_enemies) enemy->draw();

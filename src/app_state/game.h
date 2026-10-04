@@ -115,6 +115,12 @@ protected:
     virtual bool powerAppliesAt(Bullet* bullet, int row, int column);
 
     /**
+     * O projétil destrói o bloco inteiro (em vez de desgastar tijolo ou parar na pedra).
+     * Na campanha: o projétil reforçado, onde o poder vale (powerAppliesAt).
+     */
+    virtual bool breaksBlock(Bullet* bullet, int row, int column);
+
+    /**
      * Carrega o mapa do nível a partir de um arquivo.
      * @param path - caminho para o arquivo do mapa
      */
