@@ -267,7 +267,7 @@ The AI doesn't play like a person, so the numbers show trends (a power-up that d
 
 ## 🛡️ Survival Mode (Extra Modes)
 
-**Extra Modes → Survival**: 1 to 4 players, together, defending the eagle against **endless waves of enemies**. Pick the number of players (← →), **Next** and the map (with a thumbnail, or **Random**). Each player has their own color (P1 yellow, P2 green, P3 blue, P4 red), and the side panel shows the wave, the enemies left and everyone's lives.
+**Extra Modes → Survival**: 1 to 4 players, together, defending the eagle against **endless waves of enemies**. Pick the number of players (← →; the screen shows each player's device, as in the duel), **Next** and the map (with a thumbnail, or **Random**). Each player has their own color (P1 yellow, P2 green, P3 blue, P4 red), and the side panel shows the wave, the enemies left and everyone's lives.
 
 **Maps** (`resources/survival_levels/`, separate from the campaign and the duel):
 
@@ -535,8 +535,8 @@ least one life and the eagle is intact.
 - **Singleton**: `SoundManager` and `Renderer`
 - **Central configuration**: `AppConfig` holds every game constant
 
-### Extra modes: always playable solo
-Every extra mode that is **not** a contest between players (like survival) must work with **a single player**, as well as 2 to 4. Competitive modes (the duel: 1 vs 1, 2 vs 1, 2 vs 2, up to 4 players) are the exception, since they need an opponent.
+### Extra-mode rules
+Every extra mode, existing or new, follows the rules in **[MODOS_EXTRAS.md](MODOS_EXTRAS.md)** (in Portuguese): for instance, a non-competitive mode works with a single player; setup shows each player's device; the end of a match goes back to map selection; the power button is the same; anything running out gets the white haze. The file also has the checklist for a new mode and the intentional differences between modes.
 
 ### Colors
 Each player gets a unique color applied with `SDL_SetTextureColorMod()`, so

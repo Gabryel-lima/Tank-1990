@@ -5,6 +5,7 @@
 #include "../controllers.h"
 #include "menu.h"
 #include "scores.h"
+#include "message_box.h"
 
 #include <SDL2/SDL.h>
 #include <stdlib.h>
@@ -141,15 +142,7 @@ void Game::draw()
 
         drawStatus();
 
-        // "PAUSE" piscando no centro do mapa, como no original; contorno para não sumir
-        // sobre os tijolos (o vermelho direto sobre tijolo vermelho desaparecia)
-        if(m_pause && (SDL_GetTicks() / AppConfig::pause_blink_time) % 2 == 0)
-        {
-            SDL_Point size = renderer->textSize("PAUSE", 1);
-            SDL_Point pos = {AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2,
-                             AppConfig::map_rect.y + (AppConfig::map_rect.h - size.y) / 2};
-            renderer->drawTextOutlined(pos, "PAUSE", {255, 70, 70, 255}, 1);
-        }
+        if(m_pause) drawPause();
         drawOverlay();
     }
 
@@ -936,6 +929,69 @@ bool Game::bulletCanDamage(Bullet*, int, int)
 bool Game::powerAppliesAt(Bullet*, int, int)
 {
     return true;
+}
+
+void Game::drawPause()
+{
+    // "PAUSE" piscando no centro do mapa, como no original; contorno para não sumir
+    // sobre os tijolos (o vermelho direto sobre tijolo vermelho desaparecia)
+    if((SDL_GetTicks() / AppConfig::pause_blink_time) % 2 != 0) return;
+    Renderer* renderer = Engine::getEngine().getRenderer();
+    SDL_Point size = renderer->textSize("PAUSE", 1);
+    SDL_Point pos = {AppConfig::map_rect.x + (AppConfig::map_rect.w - size.x) / 2,
+                     AppConfig::map_rect.y + (AppConfig::map_rect.h - size.y) / 2};
+    renderer->drawTextOutlined(pos, "PAUSE", {255, 70, 70, 255}, 1);
+}
+
+void Game::drawPauseBox()
+{
+    const SDL_Color pause_red = {255, 70, 70, 255};   // 6,2:1 sobre preto
+    drawMessageBox(Engine::getEngine().getRenderer(), {
+        {"PAUSE", pause_red, 1, 8},
+        {"ENTER / START", {150, 150, 150, 255}, 3, 0},
+    }, pause_red);
+}
+
+void Game::extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause)
+{
+    if(ev->type == SDL_KEYDOWN)
+    {
+        SDL_Keycode key = ev->key.keysym.sym;
+        if(key == SDLK_ESCAPE)
+            m_finished = true;
+        else if(results_ready)
+        {
+            // Qualquer tecla de tiro ou Enter volta ao menu
+            bool fire = (key == SDLK_RETURN);
+            for(auto& keys : AppConfig::keyboard_layouts)
+                if(ev->key.keysym.scancode == keys.fire) fire = true;
+            if(fire) m_finished = true;
+        }
+        else if(key == SDLK_RETURN && can_pause)
+            m_pause = !m_pause;
+    }
+    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
+    {
+        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
+            m_finished = true;
+        else if(results_ready && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
+                                  ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
+            m_finished = true;
+        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_START && can_pause)
+            m_pause = !m_pause;
+    }
+}
+
+void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
+{
+    Engine& engine = Engine::getEngine();
+    if(player != nullptr && player->held_power != ST_NONE)
+    {
+        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
+        engine.getRenderer()->drawObject(&icon, &slot);
+    }
+    else
+        engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);
 }
 
 bool Game::breaksBlock(Bullet* bullet, int row, int column)

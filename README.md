@@ -268,7 +268,7 @@ A IA não joga como uma pessoa, então os números indicam tendências (um bônu
 
 ## 🛡️ Modo Sobrevivência (Extra Modes)
 
-**Extra Modes → Survival**: de 1 a 4 jogadores, juntos, defendendo a águia contra **ondas de inimigos sem fim**. Escolha a quantidade de jogadores (← →), **Next** e o mapa (com miniatura, ou **Random**). Cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho), e o painel lateral mostra a onda, os inimigos que faltam e as vidas de cada um.
+**Extra Modes → Survival**: de 1 a 4 jogadores, juntos, defendendo a águia contra **ondas de inimigos sem fim**. Escolha a quantidade de jogadores (← →; a tela mostra o dispositivo de cada um, como no duelo), **Next** e o mapa (com miniatura, ou **Random**). Cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho), e o painel lateral mostra a onda, os inimigos que faltam e as vidas de cada um.
 
 **Mapas** (`resources/survival_levels/`, separados da campanha e do duelo):
 
@@ -539,8 +539,8 @@ Você avança para o próximo nível quando:
 - **Singleton**: `SoundManager` e `Renderer` usam padrão Singleton
 - **Configuração Centralizada**: `AppConfig` contém todas as constantes do jogo
 
-### Modos extras: sempre com opção para 1 jogador
-Todo modo extra que **não** é uma disputa entre jogadores (como a sobrevivência) precisa funcionar com **1 jogador só**, além de 2 a 4. Os modos competitivos (o duelo: 1 contra 1, 2 contra 1, 2 contra 2, até 4 jogadores) são exceção, porque precisam de adversário.
+### Regras dos modos extras
+Todo modo extra, existente ou novo, segue as regras de **[MODOS_EXTRAS.md](MODOS_EXTRAS.md)**: por exemplo, modo não competitivo funciona com 1 jogador; a configuração mostra o dispositivo de cada jogador; o fim volta para a escolha de mapa; o botão de poder é o mesmo; o que está acabando ganha a névoa branca. O arquivo também traz o checklist de um modo novo e as diferenças intencionais entre os modos.
 
 ### Sistema de Cores
 Cada jogador tem uma cor única aplicada via `SDL_SetTextureColorMod()`, permitindo diferenciar visualmente os tanques durante o jogo multiplayer.

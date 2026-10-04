@@ -95,6 +95,8 @@ private:
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
         ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS,
+        // linhas informativas da sobrevivência: dispositivo de cada jogador (não selecionáveis)
+        ITEM_SURVIVAL_PLAYER_1, ITEM_SURVIVAL_PLAYER_2, ITEM_SURVIVAL_PLAYER_3, ITEM_SURVIVAL_PLAYER_4,
         ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i da lista da tela (duelo ou sobrevivência)
     };
 
@@ -129,6 +131,9 @@ private:
 
     /** Item tem valor ajustável com esquerda/direita. */
     bool isValueItem(Item item) const;
+
+    /** O cursor para no item (as linhas só informativas ele pula). */
+    bool isSelectable(Item item) const;
 
     /** Altura (y) do texto na linha @a slot da tela (-1 = título, 0 = primeira linha da lista). */
     int slotY(int slot) const;

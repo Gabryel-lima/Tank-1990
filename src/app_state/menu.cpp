@@ -84,7 +84,12 @@ void Menu::buildItems()
         m_items = {ITEM_DUEL_MODE, ITEM_SURVIVAL, ITEM_BACK};
         break;
     case SCREEN_SURVIVAL:
-        m_items = {ITEM_SURVIVAL_PLAYERS, ITEM_NEXT, ITEM_BACK};
+        // Como no duelo: cada jogador aparece com o dispositivo que vai usar
+        m_items = {ITEM_SURVIVAL_PLAYERS};
+        for(int i = 0; i < s_survival_players; i++)
+            m_items.push_back(static_cast<Item>(ITEM_SURVIVAL_PLAYER_1 + i));
+        m_items.push_back(ITEM_NEXT);
+        m_items.push_back(ITEM_BACK);
         break;
     case SCREEN_DUEL_FORMAT:
         // Só jogadores humanos (até 4): 3 vs 3 e 4 vs 4 não cabem
@@ -216,6 +221,15 @@ std::string Menu::itemText(Item item) const
         input.resize(6, ' ');
         return "P" + Engine::intToString(i + 1) + " " + input + " < " + (c.human_team[i] == 0 ? "A" : "B") + " >";
     }
+    case ITEM_SURVIVAL_PLAYER_1:
+    case ITEM_SURVIVAL_PLAYER_2:
+    case ITEM_SURVIVAL_PLAYER_3:
+    case ITEM_SURVIVAL_PLAYER_4:
+    {
+        // "P1 PAD 1": o dispositivo do jogador, como na configuração do duelo
+        int i = item - ITEM_SURVIVAL_PLAYER_1;
+        return "P" + Engine::intToString(i + 1) + " " + Controllers::inputName(s_survival_players, i);
+    }
     case ITEM_NEXT: return "Next";
     case ITEM_MAP_RANDOM: return "Random";
     case ITEM_BACK: return "Back";
@@ -262,10 +276,21 @@ void Menu::syncTeamSizes()
 
 void Menu::moveSelection(int delta)
 {
-    m_menu_index += delta;
-    if(m_menu_index < 0) m_menu_index = m_items.size() - 1;
-    else if(m_menu_index >= static_cast<int>(m_items.size())) m_menu_index = 0;
+    if(m_items.empty()) return;
+    // Anda até o próximo item selecionável (a lista sempre tem algum: Back)
+    for(size_t step = 0; step < m_items.size(); step++)
+    {
+        m_menu_index += delta;
+        if(m_menu_index < 0) m_menu_index = m_items.size() - 1;
+        else if(m_menu_index >= static_cast<int>(m_items.size())) m_menu_index = 0;
+        if(isSelectable(m_items[m_menu_index])) break;
+    }
     ensureVisible();
+}
+
+bool Menu::isSelectable(Item item) const
+{
+    return item < ITEM_SURVIVAL_PLAYER_1 || item > ITEM_SURVIVAL_PLAYER_4;
 }
 
 void Menu::changeValue(int delta)
@@ -280,6 +305,7 @@ void Menu::changeValue(int delta)
         s_survival_players += delta;
         if(s_survival_players > 4) s_survival_players = 1;
         else if(s_survival_players < 1) s_survival_players = 4;
+        buildItems(); // a lista de jogadores muda de tamanho
         return;
     }
 
@@ -488,6 +514,9 @@ void Menu::draw()
         if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM &&
            Controllers::inputName(s_duel_config.humans, item - ITEM_HUMAN_1_TEAM) == "NO PAD")
             color = RED;
+        if(item >= ITEM_SURVIVAL_PLAYER_1 && item <= ITEM_SURVIVAL_PLAYER_4 &&
+           Controllers::inputName(s_survival_players, item - ITEM_SURVIVAL_PLAYER_1) == "NO PAD")
+            color = RED;
         text_start = {TEXT_X, itemY(i)};
         renderer->drawText(&text_start, itemText(item), color, 2);
         // "P1" na cor da equipe escolhida (muda junto ao trocar de equipe)
@@ -495,6 +524,12 @@ void Menu::draw()
         {
             int idx = item - ITEM_HUMAN_1_TEAM;
             renderer->drawText(&text_start, "P" + Engine::intToString(idx + 1), Duel::teamColor(s_duel_config.human_team[idx]), 2);
+        }
+        // Na sobrevivência, "P1" na cor do jogador (cada um tem a sua)
+        if(item >= ITEM_SURVIVAL_PLAYER_1 && item <= ITEM_SURVIVAL_PLAYER_4 && color.r == WHITE.r && color.g == WHITE.g)
+        {
+            int idx = item - ITEM_SURVIVAL_PLAYER_1;
+            renderer->drawText(&text_start, "P" + Engine::intToString(idx + 1), Player::getPlayerColor(idx), 2);
         }
     }
 

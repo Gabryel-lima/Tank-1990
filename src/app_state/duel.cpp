@@ -26,7 +26,6 @@ namespace
     const SDL_Color WHITE = {255, 255, 255, 255};
     const SDL_Color LIGHT_GRAY = {200, 200, 200, 255};
     const SDL_Color GRAY = {150, 150, 150, 255};
-    const SDL_Color PAUSE_RED = {255, 70, 70, 255};   // 6,2:1 sobre preto (o vermelho antigo dava 3,5:1)
 
     const char* TEAM_NAME[2] = {"TEAM A", "TEAM B"};
 
@@ -941,14 +940,7 @@ void Duel::draw()
             renderer->drawText(&p, "P" + Engine::intToString(members[row]->playerIndex() + 1), BLACK, 3);
             p = {block_x + 30, row_y};
             renderer->drawText(&p, Engine::intToString(members[row]->lives_count), BLACK, 3);
-            SDL_Rect slot = {block_x + 4, row_y + 12, 16, 16};
-            if(members[row]->held_power != ST_NONE)
-            {
-                SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(members[row]->held_power)->rect;
-                renderer->drawObject(&icon, &slot);
-            }
-            else
-                renderer->drawRect(&slot, BLACK, false);
+            drawPowerSlot(members[row], {block_x + 4, row_y + 12, 16, 16});
             // Ao lado, o canhão de quem tem o tiro demolidor (a pedra da base adversária não o
             // segura de perto)
             if(members[row]->demolisher())
@@ -976,12 +968,7 @@ void Duel::draw()
         }, GRAY);
     }
     else if(m_phase == PHASE_PLAY && m_pause)
-    {
-        drawMessageBox(renderer, {
-            {"PAUSE", PAUSE_RED, 1, 8},
-            {"ENTER / START", GRAY, 3, 0},
-        }, PAUSE_RED);
-    }
+        drawPauseBox();
     else if(m_phase == PHASE_ROUND_END)
     {
         if(m_round_winner < 0)
@@ -1026,33 +1013,7 @@ void Duel::draw()
 void Duel::eventProcess(SDL_Event* ev)
 {
     bool match_over = (m_phase == PHASE_MATCH_END && m_phase_time > MATCH_END_INPUT_DELAY);
-
-    if(ev->type == SDL_KEYDOWN)
-    {
-        SDL_Scancode key = ev->key.keysym.scancode;
-        if(ev->key.keysym.sym == SDLK_ESCAPE)
-            m_finished = true;
-        else if(match_over)
-        {
-            // Qualquer tecla de tiro ou Enter volta ao menu
-            bool fire = (ev->key.keysym.sym == SDLK_RETURN);
-            for(auto& keys : AppConfig::keyboard_layouts)
-                if(key == keys.fire) fire = true;
-            if(fire) m_finished = true;
-        }
-        else if(ev->key.keysym.sym == SDLK_RETURN && m_phase == PHASE_PLAY)
-            m_pause = !m_pause;
-    }
-    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
-    {
-        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
-            m_finished = true;
-        else if(match_over && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
-                               ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
-            m_finished = true;
-        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_START && m_phase == PHASE_PLAY)
-            m_pause = !m_pause;
-    }
+    extraModeInput(ev, match_over, m_phase == PHASE_PLAY);
 }
 
 AppState* Duel::nextState()

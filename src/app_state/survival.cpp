@@ -417,32 +417,7 @@ void Survival::update(Uint32 dt)
 void Survival::eventProcess(SDL_Event* ev)
 {
     bool results_ready = (m_phase == PHASE_RESULTS && m_phase_time > RESULTS_INPUT_DELAY);
-
-    if(ev->type == SDL_KEYDOWN)
-    {
-        SDL_Keycode key = ev->key.keysym.sym;
-        if(key == SDLK_ESCAPE)
-            m_finished = true;
-        else if(results_ready)
-        {
-            bool fire = (key == SDLK_RETURN);
-            for(auto& keys : AppConfig::keyboard_layouts)
-                if(ev->key.keysym.scancode == keys.fire) fire = true;
-            if(fire) m_finished = true;
-        }
-        else if(key == SDLK_RETURN && m_phase != PHASE_RESULTS && !m_game_over)
-            m_pause = !m_pause;
-    }
-    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
-    {
-        if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
-            m_finished = true;
-        else if(results_ready && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
-                                  ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
-            m_finished = true;
-        else if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_START && m_phase != PHASE_RESULTS && !m_game_over)
-            m_pause = !m_pause;
-    }
+    extraModeInput(ev, results_ready, m_phase != PHASE_RESULTS && !m_game_over);
 }
 
 AppState* Survival::nextState()
@@ -494,14 +469,7 @@ void Survival::drawStatus()
         bool out = std::find(m_killed_players.begin(), m_killed_players.end(), player) != m_killed_players.end();
         renderer->drawText(&p, Engine::intToString(out ? 0 : player->lives_count), BLACK, 3);
         // Poder guardado: o ícone, ou uma moldura vazia
-        SDL_Rect slot = {x + 31, dst.y + 1, 14, 14};
-        if(player->held_power != ST_NONE && !out)
-        {
-            SDL_Rect power = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
-            renderer->drawObject(&power, &slot);
-        }
-        else
-            renderer->drawRect(&slot, BLACK, false);
+        drawPowerSlot(out ? nullptr : player, {x + 31, dst.y + 1, 14, 14});
         row++;
     }
 }

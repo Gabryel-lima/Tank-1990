@@ -121,6 +121,20 @@ protected:
     virtual bool breaksBlock(Bullet* bullet, int row, int column);
 
     /**
+     * Teclas comuns a todos os modos extras (ver MODOS_EXTRAS.md):
+     * @li Esc / Back - sai para o menu (o modo decide a tela em nextState)
+     * @li na tela final (@a results_ready): tiro, Enter, A ou Start também saem
+     * @li Enter / Start - pausa, quando @a can_pause
+     */
+    void extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause);
+
+    /**
+     * Espaço do poder guardado no painel de um modo extra: o ícone do poder, ou uma
+     * moldura preta vazia (também quando @a player é nulo, por exemplo quem já caiu).
+     */
+    void drawPowerSlot(const Player* player, const SDL_Rect& slot);
+
+    /**
      * Carrega o mapa do nível a partir de um arquivo.
      * @param path - caminho para o arquivo do mapa
      */
@@ -162,6 +176,15 @@ protected:
 
     /** Desenhado por cima de tudo, antes de apresentar o quadro (mensagens dos modos extras). */
     virtual void drawOverlay();
+
+    /**
+     * Aviso de pausa. Campanha: "PAUSE" piscando, como no original. Os modos extras usam a
+     * caixa padrão (drawPauseBox).
+     */
+    virtual void drawPause();
+
+    /** Caixa de pausa dos modos extras: "PAUSE" e como continuar (Enter / Start). */
+    void drawPauseBox();
 
     /**
      * Gera um bônus aleatório no mapa e o posiciona em local que não colida com a águia.

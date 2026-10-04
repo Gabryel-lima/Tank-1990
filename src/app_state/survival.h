@@ -57,6 +57,7 @@ protected:
     Uint32 enemySpawnDelay() const override;
     void drawStatus() override;
     void drawOverlay() override;
+    void drawPause() override { drawPauseBox(); }
 
 private:
     enum Phase
