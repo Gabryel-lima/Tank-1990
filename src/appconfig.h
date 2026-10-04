@@ -51,8 +51,10 @@ public:
     static SDL_Rect status_rect;
 
     /**
-     * Retângulo que define o tamanho total da janela do aplicativo.
-     * Inclui o mapa e a área de status.
+     * Tamanho da janela do aplicativo em pixels reais. Começa com o mapa mais a área de
+     * status e muda quando a janela é redimensionada (app.cpp), por isso não serve para
+     * posicionar nada na tela: o desenho é todo em coordenadas lógicas (map_rect e
+     * status_rect), que o renderizador amplia e centraliza na janela (Renderer::setScale).
      */
     static SDL_Rect windows_rect;
 

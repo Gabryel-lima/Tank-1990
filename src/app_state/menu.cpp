@@ -159,9 +159,11 @@ int Menu::playersOnScreen() const
 
 int Menu::visibleRows() const
 {
-    // Linhas da grade (32 px) cujo texto termina antes da margem inferior da tela
+    // Linhas da grade (32 px) cujo texto termina antes da margem inferior da tela.
+    // A conta é na altura lógica (a do mapa), não na da janela: o renderizador amplia
+    // tudo por igual e corta o que passa dela, qualquer que seja o tamanho da janela
     const int TEXT_HEIGHT = 14, BOTTOM_MARGIN = 20;
-    int last_y = AppConfig::windows_rect.h - BOTTOM_MARGIN - TEXT_HEIGHT;
+    int last_y = AppConfig::map_rect.h - BOTTOM_MARGIN - TEXT_HEIGHT;
     return (last_y - slotY(0)) / ROW_HEIGHT + 1;
 }
 
@@ -175,14 +177,15 @@ void Menu::ensureVisible()
 
 void Menu::drawScrollArrow(int y, bool up)
 {
-    // Triângulo de 9 px à direita da lista, centrado na altura do texto (14 px)
+    // Triângulo de 9 px à direita da lista, centrado na altura do texto (14 px), em
+    // branco como os itens: avisa que a lista continua acima ou abaixo
     Renderer* renderer = Engine::getEngine().getRenderer();
     const int x = 398, size = 5;
     for(int k = 0; k < size; k++)
     {
         int width = 1 + 2 * k;
         SDL_Rect line = {x - k, y + 4 + (up ? k : size - 1 - k), width, 1};
-        renderer->drawRect(&line, GRAY, true);
+        renderer->drawRect(&line, WHITE, true);
     }
 }
 
