@@ -22,6 +22,9 @@ public:
 
     void update(Uint32 dt) override;
 
+    /** Pisca a luz; no último quarto do tempo, uma névoa branca avisa que vai sumir. */
+    void draw() override;
+
     /** Explode (encostou num inimigo ou levou um tiro): some do mapa. */
     void detonate();
 

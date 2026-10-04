@@ -1,4 +1,5 @@
 #include "turret.h"
+#include <algorithm>
 #include "../appconfig.h"
 #include "../soundmanager.h"
 
@@ -9,6 +10,7 @@ Turret::Turret(double x, double y, int team, int owner, SDL_Color color)
     this->color = color;
     m_time_left = AppConfig::power_turret_time;
     m_reload_left = 0;
+    m_ammo = AppConfig::power_turret_ammo;
     m_bullet_max_size = 1;
     direction = (team == 1 ? D_DOWN : D_UP);
     lives_count = 0;  // não renasce: destruída (ou com o tempo acabado), some
@@ -31,15 +33,16 @@ void Turret::update(Uint32 dt)
     else m_time_left -= dt;
 }
 
-void Turret::draw()
+void Turret::drawEffects()
 {
-    // Pisca no último quarto do tempo, avisando que vai acabar
-    if(testFlag(TSF_LIFE) && m_time_left < AppConfig::power_turret_time / 4 && (m_time_left / 150) % 2)
-    {
-        for(auto bullet : bullets) bullet->draw();
-        return;
-    }
-    Tank::draw();
+    if(!testFlag(TSF_LIFE)) return;
+    // Acabando: no último quarto do tempo ou nos últimos 3 tiros; vale o que estiver
+    // mais perto do fim
+    double warn = AppConfig::power_turret_time / 4.0;
+    double by_time = m_time_left < warn ? 1.0 - m_time_left / warn : 0.0;
+    double by_ammo = m_ammo <= 3 ? (4 - m_ammo) / 4.0 : 0.0;
+    double level = std::max(by_time, by_ammo);
+    if(level > 0) drawHaze(std::max(level, 0.15));
 }
 
 void Turret::think(const std::function<bool(Direction)>& worth)
@@ -50,10 +53,12 @@ void Turret::think(const std::function<bool(Direction)>& worth)
         Direction d = static_cast<Direction>((direction + k) % 4);
         if(!worth(d)) continue;
         direction = d;
-        if(m_reload_left == 0 && fire() != nullptr)
+        if(m_reload_left == 0 && m_ammo > 0 && fire() != nullptr)
         {
             SoundManager::getInstance().playSound("shoot");
             m_reload_left = AppConfig::power_turret_reload;
+            // Último tiro: some logo depois (o tempo de o projétil seguir e a névoa avisar)
+            if(--m_ammo == 0) m_time_left = std::min<Uint32>(m_time_left, 800);
         }
         return;
     }

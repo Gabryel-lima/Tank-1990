@@ -126,6 +126,20 @@ public:
     int stars() const { return star_count; }
 
     /**
+     * Tiro demolidor (duelo): o segundo estágio do tanque. Vem do canhão pego por quem já
+     * tinha estrela (AppConfig::duel_demolisher_stars). O tiro derruba a pedra da base
+     * inimiga, se disparado de dentro da zona dela. Perde-se ao morrer.
+     */
+    bool demolisher() const { return m_demolisher; }
+    void setDemolisher(bool on) { m_demolisher = on && star_count >= 3; }
+
+protected:
+    /** Tiro demolidor: um brilho branco curto a cada segundo, à vista de todos. */
+    void drawEffects() override;
+
+public:
+
+    /**
      * Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque (como no original).
      * O duelo desliga (ver AppConfig::duel_star_armor).
      */
@@ -178,6 +192,7 @@ private:
     bool m_power_down = false;     ///< botão de poder segurado no quadro anterior
     bool m_power_pressed = false;  ///< aperto ainda não consumido por takePowerPress
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
+    bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 
     /**
      * Índice do jogador (0 = Jogador 1). Guardado à parte porque no duelo

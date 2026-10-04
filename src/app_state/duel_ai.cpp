@@ -97,6 +97,7 @@ NavGrid::Abilities Duel::abilitiesOf(Tank* tank) const
     abilities.boat = tank->testFlag(TSF_BOAT);
     Player* player = dynamic_cast<Player*>(tank);
     abilities.break_stone = (player != nullptr && player->stars() >= 3);
+    abilities.demolish = (player != nullptr && player->demolisher());
     return abilities;
 }
 
@@ -122,8 +123,9 @@ void Duel::buildNavGrids()
                 // (powerAppliesAt), então não adianta planejar atravessá-la
                 if(t != NavGrid::TILE_FREE && t != NavGrid::TILE_WATER && isBaseWall(team, row, column))
                     t = NavGrid::TILE_BLOCKED;
+                // (o tiro demolidor derruba a da base inimiga, mas só de perto: TILE_ZONE_STONE)
                 if(t == NavGrid::TILE_STONE && isInBaseZone(row, column))
-                    t = NavGrid::TILE_BLOCKED;
+                    t = DuelLayout::zoneTeam(row, column) == 1 - team ? NavGrid::TILE_ZONE_STONE : NavGrid::TILE_BLOCKED;
                 nav.setTile(row, column, t);
             }
 
@@ -158,6 +160,7 @@ std::vector<int> Duel::fireGoals(const SDL_Rect& target, int team, const NavGrid
     for(int d = 0; d < 4; d++)
     {
         int bricks = 0;
+        bool zone_stone = false; // há pedra da base inimiga no caminho: só de dentro da zona
         for(int k = 2; k <= range; k++)
         {
             // Faixa de blocos entre o tanque (a k células) e o alvo, por onde o tiro passa
@@ -177,8 +180,10 @@ std::vector<int> Duel::fireGoals(const SDL_Rect& target, int team, const NavGrid
                 bool blocked = false, brick = false;
                 for(NavGrid::Tile t : {nav.tile(r0, c0), nav.tile(r1, c1)})
                 {
-                    if(t == NavGrid::TILE_BLOCKED || (t == NavGrid::TILE_STONE && !abilities.break_stone)) blocked = true;
-                    if(t == NavGrid::TILE_BRICK || t == NavGrid::TILE_STONE) brick = true;
+                    if(t == NavGrid::TILE_BLOCKED || (t == NavGrid::TILE_STONE && !abilities.break_stone) ||
+                       (t == NavGrid::TILE_ZONE_STONE && !abilities.demolish)) blocked = true;
+                    if(t == NavGrid::TILE_BRICK || t == NavGrid::TILE_STONE || t == NavGrid::TILE_ZONE_STONE) brick = true;
+                    if(t == NavGrid::TILE_ZONE_STONE) zone_stone = true;
                 }
                 if(brick) bricks++;
                 if(blocked || bricks > 2) break;
@@ -186,6 +191,8 @@ std::vector<int> Duel::fireGoals(const SDL_Rect& target, int team, const NavGrid
 
             int r = tr + DR[d] * k, c = tc + DC[d] * k;
             if(!nav.validCell(r, c)) break;
+            // O tiro sai do centro do tanque (bloco r+1, c+1): precisa estar na zona inimiga
+            if(zone_stone && DuelLayout::zoneTeam(r + 1, c + 1) != 1 - team) continue;
             if(nav.cellCost(r, c, abilities) < NavGrid::UNREACHABLE) goals.push_back(nav.cellIndex(r, c));
         }
     }
@@ -198,6 +205,8 @@ bool Duel::clearShot(Tank* shooter, Direction d, const SDL_Rect& target, int ran
     bool heavy = abilitiesOf(shooter).break_stone;
     SDL_Rect me = shooter->dest_rect;
     SDL_Point c = centerOf(me);
+    // Tiro demolidor de dentro da zona da base inimiga: a pedra dela cai
+    bool demolish = abilitiesOf(shooter).demolish && DuelLayout::zoneTeam(c.y / tile(), c.x / tile()) == 1 - shooter->team;
     SDL_Point tc = centerOf(target);
     const int half_bullet = 4; // o projétil tem 8x8 e sai do centro do tanque
 
@@ -229,8 +238,8 @@ bool Duel::clearShot(Tank* shooter, Direction d, const SDL_Rect& target, int ran
         for(int j = lane0; j <= lane1; j++)
         {
             NavGrid::Tile t = vertical ? nav.tile(i, j) : nav.tile(j, i);
-            if(t == NavGrid::TILE_BLOCKED || (t == NavGrid::TILE_STONE && !heavy)) return false;
-            if(t == NavGrid::TILE_BRICK || t == NavGrid::TILE_STONE) brick = true;
+            if(t == NavGrid::TILE_BLOCKED || (t == NavGrid::TILE_STONE && !heavy) || (t == NavGrid::TILE_ZONE_STONE && !demolish)) return false;
+            if(t == NavGrid::TILE_BRICK || t == NavGrid::TILE_STONE || t == NavGrid::TILE_ZONE_STONE) brick = true;
         }
         if(brick && ++bricks > 2) return false;
     }
@@ -293,6 +302,8 @@ bool Duel::breakableAhead(Tank* tank, Direction d) const
     const NavGrid& nav = m_nav[tank->team];
     bool heavy = abilitiesOf(tank).break_stone;
     SDL_Rect r = tank->collision_rect;
+    SDL_Point center = centerOf(r);
+    bool demolish = abilitiesOf(tank).demolish && DuelLayout::zoneTeam(center.y / tile(), center.x / tile()) == 1 - tank->team;
 
     // Blocos encostados na frente do tanque
     int r0, r1, c0, c1;
@@ -310,7 +321,7 @@ bool Duel::breakableAhead(Tank* tank, Direction d) const
         for(int column = c0; column <= c1; column++)
         {
             NavGrid::Tile t = nav.tile(row, column);
-            if(t == NavGrid::TILE_BRICK || (t == NavGrid::TILE_STONE && heavy)) return true;
+            if(t == NavGrid::TILE_BRICK || (t == NavGrid::TILE_STONE && heavy) || (t == NavGrid::TILE_ZONE_STONE && demolish)) return true;
         }
     return false;
 }

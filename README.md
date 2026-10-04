@@ -249,7 +249,8 @@ O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na hori
 - **Fogo amigo:** tiros não ferem companheiros. O tiro de um **jogador** destrói a **própria base** (a rodada vai para o adversário) e derruba os tijolos em volta dela, como no original: dá para abrir um ângulo de tiro, mas cuidado com a mira. O tiro do bot de reforço não fere a própria base.
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge o próximo. Só jogadores coletam (reforços não).
 - Efeitos no duelo: **granada** explode os inimigos em campo, inclusive com escudo ou barco (é uma explosão, não um tiro; o companheiro não é atingido); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
-- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. A pedra da base (a frente, e as laterais quando a pá as reforça) não cai.
+- **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. A pedra da base (a frente, e as laterais quando a pá as reforça) não cai, a não ser com o tiro demolidor.
+- **Tiro demolidor (segundo estágio do tanque):** quem pega o **canhão já tendo estrela** (na mesma vida) ganha o tiro demolidor. Ele derruba a **pedra da base inimiga** (a frente, a pá e a base toda de pedra do 1 contra 3), mas **só disparado de dentro da zona dela**: abre o ataque por cima para quem chega perto, sem tiro de longe, de uma base para a outra. A própria pedra não cai com ele. Quem tem o tiro demolidor dá um brilho branco rápido a cada segundo e aparece com o ícone do canhão no painel; morrer faz perdê-lo. Quantas estrelas são exigidas fica em `AppConfig::duel_demolisher_stars` (padrão 1).
 - **Cadência:** no duelo, cada jogador dispara no máximo **3 tiros por segundo** (`AppConfig::duel_max_shots_per_second`), para que uma rajada não derrube a base inimiga sem chance de defesa.
 - **Equipes de tamanhos diferentes:** a menor recebe mais vidas por jogador (1 contra 3: 6 vidas contra 3) e, se a outra tiver o dobro de jogadores ou mais, a base inteira de pedra (aí só se vence eliminando os jogadores).
 
@@ -304,9 +305,9 @@ Além dos 8 bônus originais, os modos extras têm 9 poderes novos, com pixel ar
 
 | Poder | Tipo | Efeito |
 |-------|------|--------|
-| **Mina** | guardável | Deixa uma mina onde o tanque está. Explode o primeiro tanque **adversário** que passar por cima (respeita escudo e barco, para não virar arma contra quem acabou de nascer). Qualquer tiro a detona antes. Dura 30 s. Na sobrevivência, destrói até inimigo blindado. |
+| **Mina** | guardável | Deixa uma mina onde o tanque está. Explode o primeiro tanque **adversário** que passar por cima (respeita escudo e barco, para não virar arma contra quem acabou de nascer). Qualquer tiro a detona antes. Dura 30 s; no último quarto, uma névoa branca pulsa sobre ela. Na sobrevivência, destrói até inimigo blindado. |
 | **Barricada** | guardável | Levanta um bloco de tijolos 2×2 logo à frente. Não pode ser colocada em cima de tanque, base, cenário, arbusto ou ponto de nascimento; sem espaço, o poder continua guardado. |
-| **Torreta** | guardável | Instala à frente um canhão fixo, na cor do dono, virado para onde o tanque olha. Ela gira e atira sozinha nos inimigos alinhados a até 12 tiles, **nunca na direção da própria base**. Um tiro a destrói; dura 20 s e pisca antes de sumir. |
+| **Torreta** | guardável | Instala à frente um canhão fixo, na cor do dono, virado para onde o tanque olha. Ela gira e atira sozinha nos inimigos alinhados a até 12 tiles, **nunca na direção da própria base**. Um tiro a destrói. Acaba no que vier primeiro: **10 tiros ou 20 s**. Quando está acabando (últimos 3 tiros ou último quarto do tempo), uma névoa branca pulsa sobre ela, mais rápida perto do fim. |
 | **Retorno** | guardável | Teleporta o tanque para o seu ponto de nascimento, ao lado da base (se estiver ocupado, para outro da equipe). Mantém o barco e as estrelas. É a resposta a uma invasão quando se está longe de casa. |
 | **Turbo** | guardável | Velocidade ×1,5 por 8 s. |
 | **Reviver** | imediato | Um companheiro que caiu volta com uma vida; se ninguém caiu, uma vida extra para quem da equipe tem menos. |
@@ -537,6 +538,9 @@ Você avança para o próximo nível quando:
 - **Herança**: Sistema de classes base (`Object`, `Tank`) com especializações (`Player`, `Enemy`)
 - **Singleton**: `SoundManager` e `Renderer` usam padrão Singleton
 - **Configuração Centralizada**: `AppConfig` contém todas as constantes do jogo
+
+### Modos extras: sempre com opção para 1 jogador
+Todo modo extra que **não** é uma disputa entre jogadores (como a sobrevivência) precisa funcionar com **1 jogador só**, além de 2 a 4. Os modos competitivos (o duelo: 1 contra 1, 2 contra 1, 2 contra 2, até 4 jogadores) são exceção, porque precisam de adversário.
 
 ### Sistema de Cores
 Cada jogador tem uma cor única aplicada via `SDL_SetTextureColorMod()`, permitindo diferenciar visualmente os tanques durante o jogo multiplayer.

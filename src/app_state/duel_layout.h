@@ -88,6 +88,9 @@ namespace DuelLayout
     /** O bloco fica na zona de uma das bases (onde o canhão não vale). */
     bool inBaseZone(int row, int column);
 
+    /** Equipe dona da zona de base onde fica o bloco, ou -1 fora das zonas. */
+    int zoneTeam(int row, int column);
+
     /**
      * Pontos de nascimento da equipe (em pixels), em ordem de preferência, alternando os
      * lados da base. A equipe B é o espelho em ponto da A (AppConfig::duel_spawn_columns).

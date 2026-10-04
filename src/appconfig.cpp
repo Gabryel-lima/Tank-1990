@@ -182,6 +182,8 @@ unsigned AppConfig::duel_freeze_time = 4000;
 // Poderes dos modos extras (ver Powers)
 unsigned AppConfig::power_turret_time = 20000;
 unsigned AppConfig::power_turret_reload = 700;
+int AppConfig::power_turret_ammo = 10;
+int AppConfig::duel_demolisher_stars = 1;
 int AppConfig::power_turret_range = 12;
 unsigned AppConfig::power_mine_time = 30000;
 unsigned AppConfig::power_turbo_time = 8000;

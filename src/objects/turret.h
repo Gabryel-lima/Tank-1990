@@ -6,7 +6,8 @@
 #include <functional>
 
 /**
- * @brief Torreta dos modos extras: canhão parado que atira sozinho por um tempo.
+ * @brief Torreta dos modos extras: canhão parado que atira sozinho até acabar o tempo
+ * ou a munição (AppConfig::power_turret_time e power_turret_ammo).
  *
  * É um tanque que não anda (colide, leva tiro e explode como os outros). A cada quadro o
  * modo de jogo chama think() com a regra de quando vale atirar numa direção (inimigo
@@ -24,7 +25,6 @@ public:
     Turret(double x, double y, int team, int owner, SDL_Color color);
 
     void update(Uint32 dt) override;
-    void draw() override;
 
     /**
      * Escolhe a direção (a atual primeiro) em que @a worth diz que vale atirar, vira para ela
@@ -34,9 +34,17 @@ public:
 
     int owner;
 
+    /** Tiros que ainda restam. */
+    int ammo() const { return m_ammo; }
+
+protected:
+    /** Névoa branca quando o tempo ou a munição estão acabando. */
+    void drawEffects() override;
+
 private:
     Uint32 m_time_left;
     Uint32 m_reload_left;
+    int m_ammo;
 };
 
 #endif // TURRET_H

@@ -9,6 +9,7 @@
 Renderer::Renderer()
 {
     m_texture = nullptr;
+    m_white_texture = nullptr;
     m_renderer = nullptr;
     m_text_texture = nullptr;
     m_font1 = nullptr;
@@ -24,6 +25,8 @@ Renderer::~Renderer()
     // acessa memória liberada (segfault ao fechar o jogo).
     if(m_texture != nullptr)
         SDL_DestroyTexture(m_texture); // Libera a textura principal
+    if(m_white_texture != nullptr)
+        SDL_DestroyTexture(m_white_texture); // Libera a silhueta branca
     if(m_text_texture != nullptr)
         SDL_DestroyTexture(m_text_texture); // Libera a textura de texto
     if(m_renderer != nullptr)
@@ -48,7 +51,26 @@ void Renderer::loadTexture(SDL_Window* window)
 
     // Se a superfície e o renderizador foram criados com sucesso, cria a textura
     if(surface != nullptr && m_renderer != nullptr)
+    {
         m_texture = SDL_CreateTextureFromSurface(m_renderer, surface);
+
+        // Silhueta branca: mesma imagem, com todo pixel visível pintado de branco
+        SDL_Surface* white = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
+        if(white != nullptr)
+        {
+            SDL_LockSurface(white);
+            for(int y = 0; y < white->h; y++)
+            {
+                Uint8* row = static_cast<Uint8*>(white->pixels) + y * white->pitch;
+                for(int x = 0; x < white->w; x++)
+                    if(row[4 * x + 3] > 0) row[4 * x] = row[4 * x + 1] = row[4 * x + 2] = 255;
+            }
+            SDL_UnlockSurface(white);
+            m_white_texture = SDL_CreateTextureFromSurface(m_renderer, white);
+            if(m_white_texture != nullptr) SDL_SetTextureBlendMode(m_white_texture, SDL_BLENDMODE_BLEND);
+            SDL_FreeSurface(white);
+        }
+    }
 
     // Libera a superfície temporária
     SDL_FreeSurface(surface);
@@ -100,6 +122,13 @@ void Renderer::drawObjectWithColor(const SDL_Rect *texture_src, const SDL_Rect *
     // Restaura a cor original
     SDL_SetTextureColorMod(m_texture, r, g, b);
     SDL_SetTextureAlphaMod(m_texture, a);
+}
+
+void Renderer::drawWhite(const SDL_Rect *texture_src, const SDL_Rect *window_dest, Uint8 alpha)
+{
+    if(m_white_texture == nullptr || alpha == 0) return;
+    SDL_SetTextureAlphaMod(m_white_texture, alpha);
+    SDL_RenderCopy(m_renderer, m_white_texture, texture_src, window_dest);
 }
 
 // Define o fator de escala e o viewport do renderizador

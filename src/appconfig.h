@@ -275,6 +275,18 @@ public:
     static unsigned power_turret_time;
     /** Intervalo (ms) entre os tiros da torreta. */
     static unsigned power_turret_reload;
+    /**
+     * Tiros da torreta. Ela acaba no que vier primeiro: munição ou tempo. O tempo limita
+     * por quanto tempo ela ocupa o lugar (sem ele, uma torreta num corredor vazio ficaria lá
+     * para sempre); a munição limita o estrago num lugar movimentado.
+     */
+    static int power_turret_ammo;
+    /**
+     * Duelo: estrelas que o tanque precisa ter ao pegar o canhão para ganhar o tiro
+     * demolidor (o segundo estágio). Morrer zera as estrelas, então é preciso juntar os
+     * dois bônus na mesma vida.
+     */
+    static int duel_demolisher_stars;
     /** Alcance da torreta, em tiles. */
     static int power_turret_range;
     /** Duração (ms) da mina no mapa, se ninguém passar por cima. */

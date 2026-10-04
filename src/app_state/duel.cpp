@@ -222,13 +222,20 @@ bool Duel::isInBaseZone(int row, int column) const
     return DuelLayout::inBaseZone(row, column);
 }
 
-bool Duel::powerAppliesAt(Bullet*, int row, int column)
+bool Duel::powerAppliesAt(Bullet* bullet, int row, int column)
 {
     // Perto das bases, o canhão (3 estrelas) não vale: o projétil age como um comum,
     // desgasta tijolo e para na pedra. Assim a pedra que protege a base (do mapa ou da pá)
-    // continua indestrutível e a base não cai em menos de um segundo. Longe das bases,
-    // o tanque potente continua destruindo pedra do cenário
-    return !isInBaseZone(row, column);
+    // não cai de longe e a base não cai em menos de um segundo. Longe das bases, o tanque
+    // potente continua destruindo pedra do cenário
+    if(!isInBaseZone(row, column)) return true;
+
+    // Tiro demolidor: derruba a pedra da base INIMIGA, mas só disparado de dentro da zona
+    // dela. Abre um terceiro ângulo (a frente) para quem chega perto, sem tiro de longe,
+    // de uma base para a outra
+    int zone = DuelLayout::zoneTeam(row, column);
+    int from = DuelLayout::zoneTeam(bullet->origin.y / AppConfig::tile_rect.h, bullet->origin.x / AppConfig::tile_rect.w);
+    return bullet->demolisher && zone != bullet->team && from == zone;
 }
 
 bool Duel::bulletCanDamage(Bullet* bullet, int row, int column)
@@ -520,7 +527,13 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
         player->changeStarCountBy(1);
         break;
     case ST_BONUS_GUN:
-        player->changeStarCountBy(3);
+        // Segundo estágio: o canhão pego por quem já evoluiu o tanque (estrelas) vira tiro
+        // demolidor
+        {
+            bool evolved = player->stars() >= AppConfig::duel_demolisher_stars;
+            player->changeStarCountBy(3);
+            if(evolved) player->setDemolisher(true);
+        }
         break;
     case ST_BONUS_BOAT:
         player->setFlag(TSF_BOAT);
@@ -888,7 +901,7 @@ void Duel::draw()
             renderer->drawObject(&flag_src, &dst);
         }
         // Jogadores da equipe, as vidas de cada um ("P1  3") e o poder guardado: o ícone do
-        // poder, ou uma moldura vazia
+        // poder, ou uma moldura vazia; e, ao lado, o canhão de quem tem o tiro demolidor
         for(size_t row = 0; row < members.size(); row++)
         {
             int row_y = y + 21 + static_cast<int>(row) * MEMBER_HEIGHT;
@@ -904,6 +917,14 @@ void Duel::draw()
             }
             else
                 renderer->drawRect(&slot, BLACK, false);
+            // Ao lado, o canhão de quem tem o tiro demolidor (a pedra da base adversária não o
+            // segura de perto)
+            if(members[row]->demolisher())
+            {
+                SDL_Rect gun = engine.getSpriteConfig()->getSpriteData(ST_BONUS_GUN)->rect;
+                SDL_Rect mark = {block_x + 24, row_y + 12, 16, 16};
+                renderer->drawObject(&gun, &mark);
+            }
         }
     }
     // Rodada atual no meio do painel, em branco sobre preto

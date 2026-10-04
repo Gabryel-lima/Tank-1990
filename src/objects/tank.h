@@ -57,6 +57,9 @@ public:
      */
     void draw();
 
+    /** Efeitos por cima do sprite do tanque, antes do escudo e dos projéteis. */
+    virtual void drawEffects() {}
+
     /**
      * Atualiza o estado do tanque.
      * Atualiza posição, retângulos de destino e colisão, posição do escudo/barco, animação,

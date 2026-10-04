@@ -248,7 +248,8 @@ What the map must follow, checked by `check-maps`: be mirrored horizontally and 
 - **Friendly fire:** bullets don't hurt teammates. A **player's** shot destroys **your own base** (the round goes to the opponent) and breaks the bricks around it, as in the original: you can open a firing angle, but mind your aim. Reinforcement bots' shots don't hurt their own base.
 - **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
 - Duel effects: **grenade** blows up the enemy tanks on the field, even with a shield or a boat (it's an explosion, not a shot; teammates are safe); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
-- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. The base's stone (the front, and the sides when the shovel fortifies them) stays up.
+- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. The base's stone (the front, and the sides when the shovel fortifies them) stays up, except against the demolisher shot.
+- **Demolisher shot (the tank's second stage):** picking up the **gun while already holding a star** (in the same life) gives the demolisher shot. It breaks the **enemy base's stone** (the front, the shovel's stone and the all-stone base of 1 vs 3), but **only when fired from inside that base's zone**: it opens an attack over the top for whoever gets close, with no long-range shots from one base to the other. It doesn't break your own stone. A demolisher tank gives a quick white glint every second and shows the gun icon in the side panel; dying loses it. The stars required are in `AppConfig::duel_demolisher_stars` (default 1).
 - **Fire rate:** in duel mode each player fires at most **3 shots per second** (`AppConfig::duel_max_shots_per_second`), so a barrage can't take down the enemy base with no chance to defend.
 - **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, an all-stone base (then the only way to win is eliminating its players).
 
@@ -303,9 +304,9 @@ On top of the 8 original bonuses, the extra modes have 9 new powers, with their 
 
 | Power | Kind | Effect |
 |-------|------|--------|
-| **Mine** | storable | Drops a mine where the tank stands. It blows up the first **enemy** tank that drives over it (it respects shield and boat, so it can't be used to kill a tank that just spawned). Any shot sets it off early. Lasts 30 s. In survival it destroys even armored enemies. |
+| **Mine** | storable | Drops a mine where the tank stands. It blows up the first **enemy** tank that drives over it (it respects shield and boat, so it can't be used to kill a tank that just spawned). Any shot sets it off early. Lasts 30 s; in the last quarter, a white haze pulses over it. In survival it destroys even armored enemies. |
 | **Barricade** | storable | Raises a 2×2 brick block right ahead. It can't be placed on a tank, base, scenery, bush or spawn point; with no room, the power stays held. |
-| **Turret** | storable | Sets up a fixed cannon ahead, in the owner's color, facing where the tank faces. It turns and fires on its own at enemies lined up within 12 tiles, **never towards its own base**. One shot destroys it; it lasts 20 s and blinks before vanishing. |
+| **Turret** | storable | Sets up a fixed cannon ahead, in the owner's color, facing where the tank faces. It turns and fires on its own at enemies lined up within 12 tiles, **never towards its own base**. One shot destroys it. It ends with whichever comes first: **10 shots or 20 s**. When it is running out (last 3 shots or last quarter of its time), a white haze pulses over it, faster near the end. |
 | **Recall** | storable | Teleports the tank to its spawn point, next to its base (if taken, to another one of the team). Keeps the boat and stars. The answer to an invasion when you are far from home. |
 | **Turbo** | storable | Speed ×1.5 for 8 s. |
 | **Revive** | immediate | A fallen teammate comes back with one life; if nobody fell, an extra life for the teammate with the fewest. |
@@ -533,6 +534,9 @@ least one life and the eagle is intact.
 - **Inheritance**: base classes (`Object`, `Tank`) with specializations (`Player`, `Enemy`)
 - **Singleton**: `SoundManager` and `Renderer`
 - **Central configuration**: `AppConfig` holds every game constant
+
+### Extra modes: always playable solo
+Every extra mode that is **not** a contest between players (like survival) must work with **a single player**, as well as 2 to 4. Competitive modes (the duel: 1 vs 1, 2 vs 1, 2 vs 2, up to 4 players) are the exception, since they need an opponent.
 
 ### Colors
 Each player gets a unique color applied with `SDL_SetTextureColorMod()`, so

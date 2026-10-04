@@ -102,6 +102,16 @@ bool inBaseZone(int row, int column)
     return row < ZONE_DEPTH || row >= TILES - ZONE_DEPTH;
 }
 
+int zoneTeam(int row, int column)
+{
+    if(!inBaseZone(row, column)) return -1;
+    // A zona fica do lado da águia: a da equipe cuja base está na mesma metade do mapa
+    bool top = row < TILES / 2;
+    for(int team = 0; team < 2; team++)
+        if((baseRow(team) < TILES / 2) == top) return team;
+    return -1;
+}
+
 std::vector<SDL_Point> spawnOrder(int team)
 {
     // Equipe A: colunas na ordem de AppConfig; equipe B: espelho em ponto (troca os lados)

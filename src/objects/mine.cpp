@@ -1,4 +1,5 @@
 #include "mine.h"
+#include <algorithm>
 #include "../appconfig.h"
 #include "../soundmanager.h"
 
@@ -16,6 +17,13 @@ void Mine::update(Uint32 dt)
     Object::update(dt);
     if(dt >= m_time_left) to_erase = true;
     else m_time_left -= dt;
+}
+
+void Mine::draw()
+{
+    Object::draw();
+    double warn = AppConfig::power_mine_time / 4.0;
+    if(m_time_left < warn) drawHaze(std::max(1.0 - m_time_left / warn, 0.15));
 }
 
 void Mine::detonate()

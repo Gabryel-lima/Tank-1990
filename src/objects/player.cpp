@@ -215,20 +215,32 @@ Bullet* Player::fire()
         if(star_count > 0) b->speed = AppConfig::bullet_default_speed * 1.3;
         // Se está no nível máximo, o tiro causa mais dano
         if(star_count == 3) b->increased_damage = true;
+        b->demolisher = m_demolisher;
     }
     return b;
+}
+
+void Player::drawEffects()
+{
+    // Brilho rápido (120 ms a cada 1 s): diferente da névoa contínua de quem está acabando
+    if(m_demolisher && testFlag(TSF_LIFE) && m_effect_time % 1000 < 120)
+        Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, 170);
 }
 
 // Altera o número de estrelas (power-up) do jogador.
 // Ajusta velocidade, quantidade de balas e limita o valor.
 void Player::changeStarCountBy(int c)
 {
+    int before = star_count;
     star_count += c;
     if(star_count > 3) star_count = 3;
     else if(star_count < 0) star_count = 0;
+    if(star_count < 3) m_demolisher = false;
 
-    // Se ganhou estrela e chegou a 2 ou mais, aumenta o limite de balas
-    if(star_count >= 2 && c > 0) m_bullet_max_size++;
+    // Se ganhou estrela e chegou a 2 ou mais, aumenta o limite de balas. Só quando o
+    // número de estrelas sobe de fato: antes, cada estrela pega já com 3 somava mais uma
+    // bala, sem limite
+    if(star_count >= 2 && c > 0) { if(star_count > before) m_bullet_max_size++; }
     else m_bullet_max_size = 2;
 
     // Se tem pelo menos uma estrela, aumenta a velocidade padrão
