@@ -152,9 +152,11 @@ std::vector<std::string> readMap(const std::string& path)
     return grid;
 }
 
-std::vector<std::string> validate(const std::vector<std::string>& original)
+namespace
 {
-    std::vector<std::string> problems;
+// Erros (o mapa não funciona: é recusado) e avisos (funciona, mas vale rever) do mapa
+void analyze(const std::vector<std::string>& original, std::vector<std::string>& problems, std::vector<std::string>& warnings)
+{
 
     // Tamanho e símbolos
     if(original.size() != static_cast<size_t>(TILES))
@@ -168,7 +170,7 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
             if(!known(original[r][c]))
                 problems.push_back(std::string("símbolo desconhecido '") + original[r][c] + "' na " + where(r, c));
     }
-    if(!problems.empty()) return problems;
+    if(!problems.empty()) return;
 
     // O mapa como o jogo o monta: espaço das águias vazio, muralha de tijolo e a frente de pedra
     std::vector<std::string> grid = original;
@@ -180,34 +182,19 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
             for(int c = BASE_COLUMN; c < BASE_COLUMN + 2; c++) grid[r][c] = 'E';
     }
 
-    // Simetria: as duas equipes precisam ter o mesmo terreno
-    int asymmetric = 0;
+    // Justiça: as duas equipes precisam ver o mesmo terreno. As bases, as zonas, os pontos de
+    // nascimento (spawnOrder) e os de bônus da equipe B são os da A girados 180 graus, então
+    // basta o mapa girado 180 graus ser igual a si mesmo. Espelho na horizontal e na vertical
+    // também passa (é um caso particular), mas não é exigido: cata-ventos, diagonais e
+    // outros desenhos girados valem
     for(int r = 0; r < TILES; r++)
         for(int c = 0; c < TILES; c++)
-            if(original[r][c] != original[r][TILES - 1 - c] || original[r][c] != original[TILES - 1 - r][c])
+            if(original[r][c] != original[TILES - 1 - r][TILES - 1 - c])
             {
-                if(asymmetric++ == 0)
-                    problems.push_back("não é espelhado na horizontal e na vertical (primeira diferença na " + where(r, c) + ")");
+                problems.push_back("não é simétrico girando 180 graus (as equipes teriam terrenos diferentes): a " + where(r, c) +
+                                   " e a " + where(TILES - 1 - r, TILES - 1 - c) + " precisam ter o mesmo bloco");
+                r = TILES; break;
             }
-
-    // Pedra na borda da zona de uma base: a pedra de dentro da zona é da equipe (colorida,
-    // o adversário não derruba) e a de fora é comum (o canhão quebra). Uma fileira de pedra
-    // que cruza a borda ficaria metade de cada jeito, sem nada no mapa que explique a
-    // diferença; a zona precisa terminar num espaço, tijolo ou outro bloco que não seja pedra
-    for(int r = 0; r < TILES; r++)
-        for(int c = 0; c < TILES; c++)
-        {
-            if(grid[r][c] != '@' || !inBaseZone(r, c)) continue;
-            const int dr[] = {1, -1, 0, 0}, dc[] = {0, 0, 1, -1};
-            for(int k = 0; k < 4; k++)
-            {
-                int nr = r + dr[k], nc = c + dc[k];
-                if(nr < 0 || nc < 0 || nr >= TILES || nc >= TILES) continue;
-                if(grid[nr][nc] == '@' && !inBaseZone(nr, nc))
-                    problems.push_back("pedra cruza a borda da zona da base entre a " + where(r, c) + " e a " + where(nr, nc) +
-                                       " (a de dentro fica colorida e a de fora não): separe com espaço ou tijolo");
-            }
-        }
 
     // Posição (canto superior esquerdo, em tiles) de um tanque 2x2 que cabe ali
     auto fits = [&](int r, int c) {
@@ -257,7 +244,7 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
         for(SDL_Point p : halfBonusSpots(team)) bonus.push_back({p.y / tile(), p.x / tile()});
     for(auto& b : bonus)
         if(!fits(b.first, b.second))
-            problems.push_back("ponto de bônus bloqueado na " + where(b.first, b.second));
+            warnings.push_back("ponto de bônus na " + where(b.first, b.second) + " coberto: o bônus não surge ali enquanto o bloco estiver de pé");
 
     for(int team = 0; team < 2; team++)
         for(SDL_Point s : spawnOrder(team))
@@ -278,24 +265,77 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 std::string flank = side < 0 ? "esquerdo" : "direito";
                 int home = flankDistance(seen, team, side);
                 if(home < 0)
-                    problems.push_back(name + ": não alcança o flanco " + flank + " da própria base (o defensor não contorna a águia)");
+                    warnings.push_back(name + ": não alcança o flanco " + flank + " da própria base (o defensor não contorna a águia)");
                 else if(home > DEFENDER_REACH)
-                    problems.push_back(name + ": flanco " + flank + " da própria base a " + std::to_string(home) + " passos (máximo " +
+                    warnings.push_back(name + ": flanco " + flank + " da própria base a " + std::to_string(home) + " passos (sugerido: até " +
                                        std::to_string(DEFENDER_REACH) + "): o defensor demora para contornar a águia");
             }
             for(auto& b : bonus)
                 if(fits(b.first, b.second) && !seen.count(b))
-                    problems.push_back(name + ": não alcança o ponto de bônus da " + where(b.first, b.second));
+                    warnings.push_back(name + ": não alcança, sem barco nem tiro forte, o ponto de bônus da " + where(b.first, b.second));
         }
+}
+}
+
+std::vector<std::string> validate(const std::vector<std::string>& grid)
+{
+    std::vector<std::string> problems, warnings;
+    analyze(grid, problems, warnings);
     return problems;
 }
+
+std::vector<std::string> advise(const std::vector<std::string>& grid)
+{
+    std::vector<std::string> problems, warnings;
+    analyze(grid, problems, warnings);
+    return problems.empty() ? warnings : std::vector<std::string>();
+}
+
+std::vector<std::vector<int>> stoneOwners(const std::vector<std::string>& grid)
+{
+    // Blocos de pedra ligados (lado com lado) formam uma parede. A parede inteira dentro da
+    // zona de uma base é da equipe; a que cruza a borda (ou fica fora) é pedra comum. Assim
+    // uma parede nunca fica metade de cada jeito, e o mapa não precisa evitar a borda. A
+    // muralha da águia não entra aqui: é sempre da equipe (ver Duel::stoneOwner)
+    std::vector<std::vector<int>> owner(TILES, std::vector<int>(TILES, -1));
+    std::vector<std::vector<bool>> seen(TILES, std::vector<bool>(TILES, false));
+    auto stone = [&](int r, int c) {
+        if(r < 0 || c < 0 || r >= TILES || c >= TILES || r >= static_cast<int>(grid.size()) ||
+           c >= static_cast<int>(grid[r].size()) || grid[r][c] != '@') return false;
+        for(int team = 0; team < 2; team++)
+            if(isBaseWall(team, r, c)) return false;
+        return true;
+    };
+    for(int r0 = 0; r0 < TILES; r0++)
+        for(int c0 = 0; c0 < TILES; c0++)
+        {
+            if(seen[r0][c0] || !stone(r0, c0)) continue;
+            std::vector<std::pair<int, int>> wall = {{r0, c0}};
+            seen[r0][c0] = true;
+            int team = zoneTeam(r0, c0);
+            for(size_t k = 0; k < wall.size(); k++)
+            {
+                auto [r, c] = wall[k];
+                if(zoneTeam(r, c) != team) team = -1;
+                const int dr[] = {1, -1, 0, 0}, dc[] = {0, 0, 1, -1};
+                for(int d = 0; d < 4; d++)
+                {
+                    int nr = r + dr[d], nc = c + dc[d];
+                    if(stone(nr, nc) && !seen[nr][nc]) { seen[nr][nc] = true; wall.push_back({nr, nc}); }
+                }
+            }
+            for(auto [r, c] : wall) owner[r][c] = team;
+        }
+    return owner;
+}
+
 
 int protectedStone(const std::vector<std::string>& grid)
 {
     int count = 0;
-    for(size_t r = 0; r < grid.size(); r++)
-        for(size_t c = 0; c < grid[r].size(); c++)
-            if(grid[r][c] == '@' && inBaseZone(r, c)) count++;
+    for(const auto& row : stoneOwners(grid))
+        for(int owner : row)
+            if(owner >= 0) count++;
     return count;
 }
 

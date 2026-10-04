@@ -71,8 +71,9 @@ namespace DuelLayout
     int flankSide(const std::vector<std::string>& grid, int team, int row, int column);
 
     /**
-     * Distância máxima (em passos de 1 tile) de cada nascimento até os DOIS flancos da própria
-     * base: o defensor contorna a águia pelo pátio e chega rápido ao lado atacado.
+     * Distância sugerida (em passos de 1 tile) de cada nascimento até os DOIS flancos da própria
+     * base: o defensor contorna a águia pelo pátio e chega rápido ao lado atacado. Passar
+     * disso é aviso (advise), não erro: o mapa funciona, só fica mais difícil de defender.
      */
     const int DEFENDER_REACH = 20;
 
@@ -107,16 +108,31 @@ namespace DuelLayout
     std::vector<std::string> readMap(const std::string& path);
 
     /**
-     * Verifica se o mapa respeita a geometria do duelo: 26x26, só símbolos conhecidos,
-     * espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno), pontos de
-     * nascimento e de bônus livres, e caminho com a largura de um tanque (2 tiles) de cada
-     * nascimento até um ponto de tiro num flanco da base inimiga (flankSide), até os dois
-     * flancos da própria base em no máximo DEFENDER_REACH passos e até cada ponto de bônus.
-     * @return lista de problemas (vazia se o mapa é válido)
+     * Erros do mapa: o que impede o duelo de funcionar ou de ser justo. O mapa com erro é
+     * recusado. Só entra aqui o indispensável, para limitar o mínimo quem desenha mapas:
+     * 26x26 com símbolos conhecidos; simétrico girando 180 graus (as equipes com o mesmo
+     * terreno); pontos de nascimento livres; e, de cada nascimento, caminho da largura de um
+     * tanque (2 tiles) até um ponto de tiro num flanco da base inimiga (flankSide).
+     * @return lista de erros (vazia se o mapa é aceito)
      */
     std::vector<std::string> validate(const std::vector<std::string>& grid);
 
-    /** Quantos blocos de pedra do arquivo do mapa ficam na zona das bases, coloridos (informativo). */
+    /**
+     * Avisos de desenho de um mapa aceito (vazio se há erros): ponto de bônus coberto (o jogo
+     * o pula), ponto de bônus inalcançável a pé, defensor que não contorna a águia ou passa de
+     * DEFENDER_REACH passos até um flanco da própria base. O mapa funciona; vale rever.
+     */
+    std::vector<std::string> advise(const std::vector<std::string>& grid);
+
+    /**
+     * Dono de cada bloco de pedra do mapa (fora a muralha da águia): a equipe, se a parede
+     * (os blocos de pedra ligados lado com lado) fica inteira dentro da zona da base dela;
+     * -1 para pedra comum (a parede cruza a borda da zona ou fica fora) e para o que não é
+     * pedra. A pedra com dono fica na cor da equipe; o adversário não a derruba.
+     */
+    std::vector<std::vector<int>> stoneOwners(const std::vector<std::string>& grid);
+
+    /** Quantos blocos de pedra do mapa têm dono (stoneOwners), fora a muralha (informativo). */
     int protectedStone(const std::vector<std::string>& grid);
 
     /**
