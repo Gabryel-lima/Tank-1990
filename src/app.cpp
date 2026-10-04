@@ -6,6 +6,7 @@
 #include "soundmanager.h"
 #include "controllers.h"
 #include "app_state/duel_layout.h"
+#include "app_state/survival_layout.h"
 
 #include <ctime>
 #include <iostream>
@@ -49,6 +50,8 @@ void App::run()
 
         // Lista de mapas do duelo (duel_levels/maps.txt), sem os que não passam na validação
         DuelLayout::loadMapList();
+        // Idem para os mapas do modo sobrevivência (survival_levels/maps.txt)
+        SurvivalLayout::loadMapList();
 
         // Cria a janela principal do jogo
         m_window = SDL_CreateWindow("TANKS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,

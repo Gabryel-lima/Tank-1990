@@ -8,7 +8,8 @@
  *
  * Reaproveita do Game a campanha inteira (mapa, colisões, inimigos, bônus, águia e o
  * "GAME OVER"); muda só o ritmo:
- * @li o mapa é uma fase da campanha sorteada, que vai se desgastando de onda em onda;
+ * @li o mapa vem de survival_levels/ (escolhido no menu ou sorteado) e vai se desgastando
+ *     de onda em onda;
  * @li cada onda tem mais inimigos, mais deles no mapa ao mesmo tempo e mais blindados
  *     (a dificuldade segue a escala das fases da campanha);
  * @li entre as ondas, a muralha da águia é refeita e há uma pausa com o aviso "WAVE N";
@@ -22,9 +23,9 @@ class Survival : public Game
 public:
     /**
      * @param players - quantidade de jogadores (1 a 4)
-     * @param stage - fase da campanha usada como mapa (1 a 35), ou 0 para sortear
+     * @param map - mapa (índice em AppConfig::survival_maps), ou -1 para sortear
      */
-    explicit Survival(int players, int stage = 0);
+    explicit Survival(int players, int map = -1);
 
     /** Libera também os jogadores que caíram (na campanha eles vão para a tela de pontos). */
     ~Survival();
@@ -77,7 +78,7 @@ private:
     Phase m_phase;
     Uint32 m_phase_time;
     int m_wave;
-    int m_stage;               ///< fase da campanha usada como mapa
+    int m_map;                 ///< mapa em jogo (índice em AppConfig::survival_maps)
     int m_destroyed;           ///< inimigos destruídos na partida
     bool m_life_reward;        ///< o aviso desta onda inclui a vida extra
 };

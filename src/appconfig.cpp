@@ -22,6 +22,22 @@ vector<pair<string, string>> AppConfig::duel_maps =
     {"9", "Frozen Lake"},
     {"10", "Gauntlet"},
 };
+// Caminho da pasta dos mapas do modo sobrevivência e a lista padrão (a real vem de
+// survival_levels/maps.txt, ver SurvivalLayout::loadMapList)
+string AppConfig::survival_levels_path = "survival_levels/";
+vector<pair<string, string>> AppConfig::survival_maps =
+{
+    {"1", "Classic"},
+    {"2", "Trenches"},
+    {"3", "Canyon"},
+    {"4", "Forest"},
+    {"5", "Ice Rink"},
+    {"6", "Citadel"},
+    {"7", "Labyrinth"},
+    {"8", "Islands"},
+    {"9", "Crossfire"},
+    {"10", "Last Stand"},
+};
 // Nome do arquivo de fonte utilizada no jogo
 string AppConfig::font_name = "prstartk.ttf";
 // Texto exibido na tela de Game Over

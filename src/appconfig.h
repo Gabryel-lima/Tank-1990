@@ -191,6 +191,16 @@ public:
     static vector<pair<string, string>> duel_maps;
 
     /**
+     * Caminho da pasta dos mapas do modo sobrevivência (separados da campanha e do duelo).
+     */
+    static string survival_levels_path;
+
+    /**
+     * Mapas do modo sobrevivência: {arquivo em survival_levels_path, nome mostrado no menu}.
+     */
+    static vector<pair<string, string>> survival_maps;
+
+    /**
      * Colunas (x) de nascimento do duelo para a equipe A, em ordem de preferência
      * (lados alternados). A equipe B usa o espelho em ponto.
      */

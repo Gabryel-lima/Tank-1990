@@ -16,6 +16,7 @@
 DuelConfig Menu::s_duel_config;
 bool Menu::s_duel_custom = false;
 int Menu::s_survival_players = 1;
+int Menu::s_survival_map = 0;
 
 namespace
 {
@@ -57,6 +58,8 @@ Menu::Menu(Screen screen)
     // Grades dos mapas do duelo para as miniaturas (um mapa ausente fica com a grade vazia)
     for(auto& map : AppConfig::duel_maps)
         m_map_grids.push_back(DuelLayout::readMap(AppConfig::duel_levels_path + map.first));
+    for(auto& map : AppConfig::survival_maps)
+        m_survival_grids.push_back(DuelLayout::readMap(AppConfig::survival_levels_path + map.first));
 
     openScreen(screen);
 }
@@ -81,7 +84,7 @@ void Menu::buildItems()
         m_items = {ITEM_DUEL_MODE, ITEM_SURVIVAL, ITEM_BACK};
         break;
     case SCREEN_SURVIVAL:
-        m_items = {ITEM_SURVIVAL_PLAYERS, ITEM_START, ITEM_BACK};
+        m_items = {ITEM_SURVIVAL_PLAYERS, ITEM_NEXT, ITEM_BACK};
         break;
     case SCREEN_DUEL_FORMAT:
         // Só jogadores humanos (até 4): 3 vs 3 e 4 vs 4 não cabem
@@ -96,7 +99,8 @@ void Menu::buildItems()
         m_items.push_back(ITEM_BACK);
         break;
     case SCREEN_DUEL_MAP:
-        for(size_t i = 0; i < AppConfig::duel_maps.size(); i++)
+    case SCREEN_SURVIVAL_MAP:
+        for(size_t i = 0; i < mapList().size(); i++)
             m_items.push_back(static_cast<Item>(ITEM_MAP_FIRST + i));
         m_items.push_back(ITEM_MAP_RANDOM);
         m_items.push_back(ITEM_BACK);
@@ -117,10 +121,11 @@ void Menu::openScreen(Screen screen)
     if(screen == SCREEN_DUEL_SETUP)
         m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_NEXT) - m_items.begin();
     if(screen == SCREEN_SURVIVAL)
-        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_START) - m_items.begin();
-    if(screen == SCREEN_DUEL_MAP)
+        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_NEXT) - m_items.begin();
+    if(isMapScreen())
     {
-        Item last = s_duel_config.map < 0 ? ITEM_MAP_RANDOM : static_cast<Item>(ITEM_MAP_FIRST + s_duel_config.map);
+        int chosen = (screen == SCREEN_DUEL_MAP) ? s_duel_config.map : s_survival_map;
+        Item last = chosen < 0 ? ITEM_MAP_RANDOM : static_cast<Item>(ITEM_MAP_FIRST + chosen);
         auto it = std::find(m_items.begin(), m_items.end(), last);
         m_menu_index = (it != m_items.end()) ? it - m_items.begin() : 0;
     }
@@ -195,7 +200,6 @@ std::string Menu::itemText(Item item) const
     case ITEM_DUEL_MODE: return "Duel Mode";
     case ITEM_SURVIVAL: return "Survival";
     case ITEM_SURVIVAL_PLAYERS: return "Players   < " + Engine::intToString(s_survival_players) + " >";
-    case ITEM_START: return "Start";
     case ITEM_FORMAT_1V1: return "1 vs 1";
     case ITEM_FORMAT_2V2: return "2 vs 2";
     case ITEM_FORMAT_CUSTOM: return "Custom Teams";
@@ -218,9 +222,24 @@ std::string Menu::itemText(Item item) const
     default: break;
     }
     int map = item - ITEM_MAP_FIRST;
-    if(map >= 0 && map < static_cast<int>(AppConfig::duel_maps.size()))
-        return AppConfig::duel_maps[map].second;
+    if(map >= 0 && map < static_cast<int>(mapList().size()))
+        return mapList()[map].second;
     return "";
+}
+
+bool Menu::isMapScreen() const
+{
+    return m_screen == SCREEN_DUEL_MAP || m_screen == SCREEN_SURVIVAL_MAP;
+}
+
+const std::vector<std::pair<std::string, std::string>>& Menu::mapList() const
+{
+    return m_screen == SCREEN_SURVIVAL_MAP ? AppConfig::survival_maps : AppConfig::duel_maps;
+}
+
+const std::vector<std::vector<std::string>>& Menu::mapGrids() const
+{
+    return m_screen == SCREEN_SURVIVAL_MAP ? m_survival_grids : m_map_grids;
 }
 
 void Menu::applyDuelFormat(int team_size)
@@ -323,12 +342,6 @@ void Menu::confirm()
     case ITEM_SURVIVAL:
         openScreen(SCREEN_SURVIVAL);
         break;
-    case ITEM_START:
-        // Como no duelo: só começa se todo jogador tiver controle ou teclado
-        if(Controllers::playersWithoutInput(s_survival_players) > 0) break;
-        m_result = RESULT_SURVIVAL;
-        m_finished = true;
-        break;
     case ITEM_FORMAT_1V1:
     case ITEM_FORMAT_2V2:
         s_duel_custom = false;
@@ -343,12 +356,20 @@ void Menu::confirm()
         break;
     case ITEM_NEXT:
         // Só avança se todo jogador tiver controle ou teclado (o título explica o que falta)
-        if(Controllers::playersWithoutInput(s_duel_config.humans) > 0) break;
-        openScreen(SCREEN_DUEL_MAP);
+        if(Controllers::playersWithoutInput(playersOnScreen()) > 0) break;
+        openScreen(m_screen == SCREEN_SURVIVAL ? SCREEN_SURVIVAL_MAP : SCREEN_DUEL_MAP);
         break;
     case ITEM_MAP_RANDOM:
-        s_duel_config.map = -1;
-        m_result = RESULT_DUEL;
+        if(m_screen == SCREEN_SURVIVAL_MAP)
+        {
+            s_survival_map = -1;
+            m_result = RESULT_SURVIVAL;
+        }
+        else
+        {
+            s_duel_config.map = -1;
+            m_result = RESULT_DUEL;
+        }
         m_finished = true;
         break;
     case ITEM_BACK:
@@ -356,12 +377,20 @@ void Menu::confirm()
         break;
     default:
     {
-        // Um dos mapas: começa o duelo nele
+        // Um dos mapas: começa o duelo ou a sobrevivência nele
         int map = item - ITEM_MAP_FIRST;
-        if(map >= 0 && map < static_cast<int>(AppConfig::duel_maps.size()))
+        if(isMapScreen() && map >= 0 && map < static_cast<int>(mapList().size()))
         {
-            s_duel_config.map = map;
-            m_result = RESULT_DUEL;
+            if(m_screen == SCREEN_SURVIVAL_MAP)
+            {
+                s_survival_map = map;
+                m_result = RESULT_SURVIVAL;
+            }
+            else
+            {
+                s_duel_config.map = map;
+                m_result = RESULT_DUEL;
+            }
             m_finished = true;
         }
         break;
@@ -394,6 +423,9 @@ void Menu::back()
     case SCREEN_DUEL_MAP:
         openScreen(SCREEN_DUEL_SETUP);
         break;
+    case SCREEN_SURVIVAL_MAP:
+        openScreen(SCREEN_SURVIVAL);
+        break;
     }
 }
 
@@ -420,7 +452,7 @@ void Menu::draw()
     std::string title;
     if(m_screen == SCREEN_EXTRA) title = "Extra Modes";
     else if(m_screen == SCREEN_DUEL_FORMAT) title = "Duel Mode";
-    else if(m_screen == SCREEN_DUEL_MAP) title = "Select Map";
+    else if(isMapScreen()) title = "Select Map";
     else if(m_screen == SCREEN_SURVIVAL) title = "Survival";
     else if(m_screen == SCREEN_DUEL_SETUP)
     {
@@ -452,7 +484,7 @@ void Menu::draw()
     {
         Item item = m_items[i];
         SDL_Color color = WHITE;
-        if((item == ITEM_NEXT || item == ITEM_START) && missing > 0) color = GRAY;
+        if(item == ITEM_NEXT && missing > 0) color = GRAY;
         if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM &&
            Controllers::inputName(s_duel_config.humans, item - ITEM_HUMAN_1_TEAM) == "NO PAD")
             color = RED;
@@ -467,10 +499,10 @@ void Menu::draw()
     }
 
     // Miniatura do mapa selecionado, à esquerda da lista
-    if(m_screen == SCREEN_DUEL_MAP && !m_items.empty())
+    if(isMapScreen() && !m_items.empty())
     {
         int map = m_items[m_menu_index] - ITEM_MAP_FIRST;
-        drawMapPreview(map >= 0 && map < static_cast<int>(m_map_grids.size()) ? map : -1);
+        drawMapPreview(map >= 0 && map < static_cast<int>(mapGrids().size()) ? map : -1);
     }
 
     // Desenha o tanque que indica a opção selecionada
@@ -492,7 +524,7 @@ void Menu::drawMapPreview(int map_index)
     SDL_Rect inside = {frame.x + 2, frame.y + 2, 26 * TILE, 26 * TILE};
     renderer->drawRect(&inside, {16, 16, 16, 255}, true);
 
-    if(map_index < 0 || m_map_grids[map_index].empty())
+    if(map_index < 0 || mapGrids()[map_index].empty())
     {
         // Aleatório (ou mapa não encontrado)
         SDL_Point size = renderer->textSize("?", 1);
@@ -501,7 +533,7 @@ void Menu::drawMapPreview(int map_index)
         return;
     }
 
-    const std::vector<std::string>& grid = m_map_grids[map_index];
+    const std::vector<std::string>& grid = mapGrids()[map_index];
     for(size_t r = 0; r < grid.size() && r < 26; r++)
         for(size_t c = 0; c < grid[r].size() && c < 26; c++)
         {
@@ -519,7 +551,20 @@ void Menu::drawMapPreview(int map_index)
             renderer->drawRect(&tile, color, true);
         }
 
-    // Bases nas cores das equipes: A embaixo, B em cima
+    // Duelo: bases nas cores das equipes (A embaixo, B em cima). Sobrevivência: a águia
+    // embaixo, em dourado, e os pontos de onde os inimigos surgem, em vermelho, no topo
+    if(m_screen == SCREEN_SURVIVAL_MAP)
+    {
+        SDL_Rect base = {inside.x + 12 * TILE, inside.y + 24 * TILE, 2 * TILE, 2 * TILE};
+        renderer->drawRect(&base, {255, 215, 0, 255}, true);
+        for(SDL_Point p : AppConfig::enemy_starting_point)
+        {
+            int column = p.x / AppConfig::tile_rect.w;
+            SDL_Rect spawn = {inside.x + column * TILE + 1, inside.y + 1, 2 * TILE - 2, 2 * TILE - 2};
+            renderer->drawRect(&spawn, {230, 40, 40, 255}, true);
+        }
+        return;
+    }
     for(int team = 0; team < 2; team++)
     {
         SDL_Rect base = {inside.x + 12 * TILE, inside.y + (team == 0 ? 24 : 0) * TILE, 2 * TILE, 2 * TILE};
@@ -635,7 +680,7 @@ AppState* Menu::nextState()
     case RESULT_DUEL:
         return new Duel(s_duel_config);
     case RESULT_SURVIVAL:
-        return new Survival(s_survival_players);
+        return new Survival(s_survival_players, s_survival_map);
     default:
         // "Exit" ou Esc na tela principal: encerra o app
         return nullptr;

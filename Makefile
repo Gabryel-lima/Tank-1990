@@ -118,7 +118,7 @@ ifeq ($(OS),Windows_NT)
     LIBS   = -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_mixer -lSDL2_ttf
 
     # Recursos individuais copiados para o lado do executável
-    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
+    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels survival_levels
     RESOURCES     = $(APP_RESOURCES) copy_dlls
 else
     # -------------------------- LINUX / MACOS --------------------------
@@ -145,7 +145,7 @@ else
     LFLAGS = -O
     CFLAGS = -c -Wall -std=c++17 -MMD -MP
     LIBS   = -lSDL2main -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf
-    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels
+    APP_RESOURCES = font/prstartk.ttf png/texture.png levels duel_levels survival_levels
     RESOURCES     = $(APP_RESOURCES)
     SDL_FOUND     = yes
 endif
@@ -311,7 +311,7 @@ $(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
 
 -include $(BUILD)/tools/duel_sim.d
 
-# Verifica os mapas do duelo listados em resources/duel_levels/maps.txt
+# Verifica os mapas do duelo e da sobrevivência listados em resources/duel_levels/maps.txt e resources/survival_levels/maps.txt
 check-maps: $(BUILD_DIRS) copy_resources $(RESOURCES) $(CHECK_MAPS_EXE)
 	cd $(BIN) && ./check_duel_maps$(EXE_EXT)
 
@@ -366,7 +366,7 @@ help:
 	@echo "  make info        - Mostra informações do sistema"
 	@echo "  make doc         - Gera documentação (Doxygen)"
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
-	@echo "  make check-maps  - Verifica os mapas do duelo (mesmas regras do jogo)"
+	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""

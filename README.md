@@ -208,7 +208,7 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 
 1. Salve uma grade de **26×26** em `resources/duel_levels/` com os símbolos das fases: `#` tijolo, `@` pedra, `~` água, `%` arbusto, `-` gelo, `.` vazio.
 2. Acrescente uma linha `arquivo;Nome` em `resources/duel_levels/maps.txt`. O nome é o que aparece no menu.
-3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema.
+3. Rode `make check-maps`. Ele usa as mesmas regras do jogo (`DuelLayout`) e aponta linha e coluna de cada problema (e verifica também os mapas da sobrevivência).
 
 **A base** é montada pelo jogo, igual em todo mapa (não precisa estar no arquivo):
 
@@ -266,14 +266,32 @@ A IA não joga como uma pessoa, então os números indicam tendências (um bônu
 
 ## 🛡️ Modo Sobrevivência (Extra Modes)
 
-**Extra Modes → Survival**: de 1 a 4 jogadores, juntos, defendendo a águia contra **ondas de inimigos sem fim**. Escolha a quantidade de jogadores (← →) e **Start**. Cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho), e o painel lateral mostra a onda, os inimigos que faltam e as vidas de cada um.
+**Extra Modes → Survival**: de 1 a 4 jogadores, juntos, defendendo a águia contra **ondas de inimigos sem fim**. Escolha a quantidade de jogadores (← →), **Next** e o mapa (com miniatura, ou **Random**). Cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho), e o painel lateral mostra a onda, os inimigos que faltam e as vidas de cada um.
 
-- O mapa é uma fase da campanha sorteada, que vai se desgastando de onda em onda.
+**Mapas** (`resources/survival_levels/`, separados da campanha e do duelo):
+
+| Mapa | Estilo |
+|------|--------|
+| **Classic** | Um mapa no estilo da campanha: arbustos, tijolos e pedra |
+| **Trenches** | Trincheiras de tijolo atravessando o mapa, com passagens |
+| **Canyon** | Faixas de água com pontes; o barco abre atalhos |
+| **Forest** | Mata fechada: os inimigos aparecem de perto |
+| **Ice Rink** | Pista de gelo no meio: difícil parar e mirar |
+| **Citadel** | Muralhas de pedra com portões em volta da base |
+| **Labyrinth** | Labirinto de tijolos: dá para abrir caminho atirando |
+| **Islands** | Ilhas de água com arbustos |
+| **Crossfire** | Cruzes de tijolo e pilares de pedra, muitos ângulos de tiro |
+| **Last Stand** | Camadas de tijolo protegendo a base, topo aberto |
+| **Random** | Um mapa sorteado |
+
+Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os símbolos das fases em `resources/survival_levels/`, uma linha `arquivo;Nome` no `maps.txt` da pasta e `make check-maps`. O jogo monta a águia e a muralha de tijolos dela; o mapa precisa deixar livres os pontos onde os inimigos surgem (no topo) e onde os jogadores nascem, e ligar todos eles e a muralha da águia por caminhos da largura de um tanque. Mapas que não passam são recusados ao iniciar o jogo, com o motivo no terminal.
+
+- O mapa vai se desgastando de onda em onda.
 - Cada onda tem mais inimigos (6, 8, 10... até 40), mais deles no mapa ao mesmo tempo (4 na primeira onda, +1 por jogador extra e +1 a cada 3 ondas, até 10) e mais blindados (a onda N usa a dificuldade da fase 2N + 1 da campanha, até a 35).
 - Entre as ondas há uma pausa com o aviso **WAVE N** (os jogadores já podem se posicionar) e a muralha de tijolos da águia é refeita.
 - A cada **5 ondas**, todos ganham uma vida e quem já tinha caído **volta ao jogo**.
 - Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia).
-- Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a tela do modo, pronta para jogar de novo.
+- Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só.
 - Os números ficam em `AppConfig::survival_*`.
 
 ## 🎯 Power-ups e Bônus
@@ -418,6 +436,7 @@ Tank-1990/
 │   │   ├── duel_layout.h/cpp # Geometria do duelo e validação dos mapas
 │   │   ├── duel_ai.cpp   # IA do duelo (bots de reforço)
 │   │   ├── survival.h/cpp # Modo sobrevivência (ondas)
+│   │   ├── survival_layout.h/cpp # Geometria e validação dos mapas da sobrevivência
 │   │   ├── message_box.h/cpp # Caixa de mensagem dos modos extras
 │   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
 │   │   └── scores.h/cpp  # Tela de pontuação
@@ -435,7 +454,8 @@ Tank-1990/
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
 │   ├── levels/           # Arquivos dos 36 níveis
-│   └── duel_levels/      # Mapas do modo duelo (lista em maps.txt)
+│   ├── duel_levels/      # Mapas do modo duelo (lista em maps.txt)
+│   └── survival_levels/  # Mapas do modo sobrevivência (lista em maps.txt)
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
 │   └── duel_sim_report.py # Soma os resultados de várias simulações

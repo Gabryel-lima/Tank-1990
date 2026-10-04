@@ -21,7 +21,7 @@
  * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
  * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
  * @li escolha do mapa do duelo, com miniatura (ou aleatório a cada rodada)
- * @li sobrevivência: quantidade de jogadores (1 a 4) e início
+ * @li sobrevivência: quantidade de jogadores (1 a 4) e escolha do mapa, com miniatura
  */
 class Menu : public AppState
 {
@@ -36,7 +36,8 @@ public:
         SCREEN_DUEL_FORMAT,
         SCREEN_DUEL_SETUP,
         SCREEN_DUEL_MAP,
-        SCREEN_SURVIVAL
+        SCREEN_SURVIVAL,
+        SCREEN_SURVIVAL_MAP
     };
 
     /**
@@ -93,8 +94,8 @@ private:
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
-        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS, ITEM_START,
-        ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i de AppConfig::duel_maps
+        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS,
+        ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i da lista da tela (duelo ou sobrevivência)
     };
 
     /**
@@ -156,8 +157,18 @@ private:
     /** Desenha a miniatura do mapa (tiles de 5 px) à esquerda da lista. */
     void drawMapPreview(int map_index);
 
-    /** Grades dos mapas do duelo, lidas uma vez para as miniaturas. */
+    /** A tela atual é uma escolha de mapa (duelo ou sobrevivência). */
+    bool isMapScreen() const;
+
+    /** Lista de mapas da tela de escolha atual: {arquivo, nome}. */
+    const std::vector<std::pair<std::string, std::string>>& mapList() const;
+
+    /** Grades dos mapas da tela de escolha atual (para as miniaturas). */
+    const std::vector<std::vector<std::string>>& mapGrids() const;
+
+    /** Grades dos mapas do duelo e da sobrevivência, lidas uma vez para as miniaturas. */
     std::vector<std::vector<std::string>> m_map_grids;
+    std::vector<std::vector<std::string>> m_survival_grids;
 
     Screen m_screen;
     std::vector<Item> m_items;
@@ -184,6 +195,9 @@ private:
 
     /** Jogadores do modo sobrevivência (1 a 4), lembrado para jogar de novo. */
     static int s_survival_players;
+
+    /** Mapa do modo sobrevivência (índice em AppConfig::survival_maps, -1 = aleatório). */
+    static int s_survival_map;
 
     /**
      * Ponteiro para o objeto Player que representa o tanque usado como ponteiro visual no menu.

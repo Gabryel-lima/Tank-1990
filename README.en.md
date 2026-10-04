@@ -207,7 +207,7 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 
 1. Save a **26×26** grid in `resources/duel_levels/` using the level symbols: `#` brick, `@` stone, `~` water, `%` bush, `-` ice, `.` empty.
 2. Add an `file;Name` line to `resources/duel_levels/maps.txt`. The name is what the menu shows.
-3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem.
+3. Run `make check-maps`. It uses the game's own rules (`DuelLayout`) and reports the row and column of each problem (it also checks the survival maps).
 
 **The base** is built by the game, the same on every map (it doesn't need to be in the file):
 
@@ -265,14 +265,32 @@ The AI doesn't play like a person, so the numbers show trends (a power-up that d
 
 ## 🛡️ Survival Mode (Extra Modes)
 
-**Extra Modes → Survival**: 1 to 4 players, together, defending the eagle against **endless waves of enemies**. Pick the number of players (← →) and **Start**. Each player has their own color (P1 yellow, P2 green, P3 blue, P4 red), and the side panel shows the wave, the enemies left and everyone's lives.
+**Extra Modes → Survival**: 1 to 4 players, together, defending the eagle against **endless waves of enemies**. Pick the number of players (← →), **Next** and the map (with a thumbnail, or **Random**). Each player has their own color (P1 yellow, P2 green, P3 blue, P4 red), and the side panel shows the wave, the enemies left and everyone's lives.
 
-- The map is a random campaign stage, which wears down from wave to wave.
+**Maps** (`resources/survival_levels/`, separate from the campaign and the duel):
+
+| Map | Style |
+|-----|-------|
+| **Classic** | A campaign-style map: bushes, bricks and stone |
+| **Trenches** | Brick trenches across the map, with gaps |
+| **Canyon** | Water bands with bridges; the boat opens shortcuts |
+| **Forest** | Thick woods: enemies show up close |
+| **Ice Rink** | An ice rink in the middle: hard to stop and aim |
+| **Citadel** | Stone walls with gates around the base |
+| **Labyrinth** | Brick maze: you can shoot your way through |
+| **Islands** | Water islands with bushes |
+| **Crossfire** | Brick crosses and stone pillars, lots of firing angles |
+| **Last Stand** | Layers of brick shielding the base, open top |
+| **Random** | A random map |
+
+Adding a map works like in the duel: a **26×26** grid using the level symbols in `resources/survival_levels/`, a `file;Name` line in that folder's `maps.txt`, and `make check-maps`. The game builds the eagle and its brick wall; the map must keep clear the spots where enemies appear (at the top) and where players spawn, and connect all of them and the eagle's wall with tank-wide paths. Maps that fail are rejected when the game starts, with the reason printed in the terminal.
+
+- The map wears down from wave to wave.
 - Each wave has more enemies (6, 8, 10... up to 40), more of them on the map at once (4 on the first wave, +1 per extra player and +1 every 3 waves, up to 10) and tougher ones (wave N uses the difficulty of campaign stage 2N + 1, up to 35).
 - Between waves there's a pause with a **WAVE N** banner (players can already get into position) and the eagle's brick wall is rebuilt.
 - Every **5 waves**, everyone gets an extra life and anyone who had fallen **comes back**.
 - Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle).
-- It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the mode's screen, ready to play again.
+- It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
 - The numbers live in `AppConfig::survival_*`.
 
 ## 🎯 Power-ups
@@ -416,6 +434,7 @@ Tank-1990/
 │   │   ├── duel_layout.h/cpp # Duel geometry and map validation
 │   │   ├── duel_ai.cpp   # Duel AI (reinforcement bots)
 │   │   ├── survival.h/cpp # Survival mode (waves)
+│   │   ├── survival_layout.h/cpp # Survival map geometry and validation
 │   │   ├── message_box.h/cpp # Message box for the extra modes
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen
@@ -433,7 +452,8 @@ Tank-1990/
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
 │   ├── levels/           # The 36 level files
-│   └── duel_levels/      # Duel mode maps (listed in maps.txt)
+│   ├── duel_levels/      # Duel mode maps (listed in maps.txt)
+│   └── survival_levels/  # Survival mode maps (listed in maps.txt)
 ├── tools/                # WSL install/uninstall scripts and the duel simulation
 │   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)
 │   └── duel_sim_report.py # Adds up the results of several simulation runs

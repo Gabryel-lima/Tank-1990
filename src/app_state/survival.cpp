@@ -1,5 +1,7 @@
 #include "survival.h"
 #include "message_box.h"
+#include "survival_layout.h"
+#include "duel_layout.h"
 #include "menu.h"
 #include "../engine/engine.h"
 #include "../appconfig.h"
@@ -8,6 +10,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <iostream>
 
 namespace
 {
@@ -29,17 +32,33 @@ namespace
     }
 }
 
-Survival::Survival(int players, int stage)
+Survival::Survival(int players, int map)
     : Game(NoCampaign{})
 {
     m_player_count = std::max(1, std::min(4, players));
-    m_stage = (stage >= 1 && stage <= CAMPAIGN_STAGES) ? stage : 1 + rand() % CAMPAIGN_STAGES;
-    m_current_level = m_stage;
+    int map_count = static_cast<int>(AppConfig::survival_maps.size());
+    m_map = (map >= 0 && map < map_count) ? map : rand() % map_count;
+    m_current_level = m_map + 1;
     m_destroyed = 0;
     m_wave = 0;
     m_life_reward = false;
 
-    loadLevel(AppConfig::levels_path + Engine::intToString(m_stage));
+    // Mapa fora da geometria (arquivo ausente, tamanho errado...): volta ao menu em vez de
+    // rodar uma partida quebrada. Normalmente já foi recusado em SurvivalLayout::loadMapList
+    std::string path = AppConfig::survival_levels_path + AppConfig::survival_maps.at(m_map).first;
+    std::vector<std::string> problems = SurvivalLayout::validate(DuelLayout::readMap(path));
+    if(!problems.empty())
+    {
+        std::cerr << "Mapa de sobrevivência " << path << " inválido: " << problems.front() << "\n";
+        m_finished = true;
+        m_phase = PHASE_RESULTS;
+        m_phase_time = 0;
+        m_wave = 1;
+        m_level_start_screen = true; // sem águia nem mapa: o Game desenha só a tela cinza
+        return;
+    }
+    loadLevel(path);
+    rebuildBaseWalls(); // a muralha da águia é do jogo, não do arquivo
 
     // Cada jogador com a sua cor (a da campanha: amarelo, verde, azul e vermelho)
     Controllers::setPlayerCount(m_player_count);
@@ -181,7 +200,7 @@ void Survival::update(Uint32 dt)
     if(m_phase == PHASE_RESULTS)
     {
         m_phase_time += dt;
-        m_eagle->update(dt); // explosão da águia
+        if(m_eagle != nullptr) m_eagle->update(dt); // explosão da águia
         if(m_phase_time > RESULTS_TIMEOUT) m_finished = true;
         return;
     }
@@ -247,7 +266,8 @@ void Survival::eventProcess(SDL_Event* ev)
 
 AppState* Survival::nextState()
 {
-    return new Menu(Menu::SCREEN_SURVIVAL);
+    // Volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só
+    return new Menu(Menu::SCREEN_SURVIVAL_MAP);
 }
 
 // ======================== Desenho ========================
@@ -306,7 +326,11 @@ void Survival::drawOverlay()
             {"WAVE " + Engine::intToString(m_wave), WHITE, 1, 8},
             {Engine::intToString(m_enemy_to_kill) + " ENEMIES", LIGHT_GRAY, 2, 0},
         };
-        if(m_wave == 1) lines.insert(lines.begin(), {"SURVIVAL", GOLD, 2, 10});
+        if(m_wave == 1)
+        {
+            lines.insert(lines.begin(), {AppConfig::survival_maps.at(m_map).second, LIGHT_GRAY, 2, 10});
+            lines.insert(lines.begin(), {"SURVIVAL", GOLD, 2, 6});
+        }
         if(m_life_reward)
         {
             lines.back().gap = 8;
