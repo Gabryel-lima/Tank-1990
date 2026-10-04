@@ -192,7 +192,7 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 | Map | Style |
 |-----|-------|
 | **Arena** | Balanced: bricks, side rivers (the boat helps) and ice in the middle |
-| **Fortress** | Defensive: stone pillars and a stone band across the middle |
+| **Fortress** | Defensive: stone columns and a stone band across the middle |
 | **River** | A river cuts through the middle, with three bridges |
 | **Maze** | Brick maze: you can shoot your way through |
 | **Open Field** | Open and fast: bushes for ambushes, and ice |
@@ -212,21 +212,20 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 **The base** is built by the game, the same on every map (it doesn't need to be in the file):
 
 ```
-.....@@.....   stone pillar (2x2): blocks long shots down the middle of the map
-............   yard (2 rows): where the defender crosses from one side of the
-............   base to the other, and where the attacker has to go to shoot
-....@##@....   front: 2 bricks, the only attack point
-....@EE@....   stone sides and corners (E = eagle)
-....@EE@....
+............   yard (2 free rows): where the defender goes around the eagle
+............   to reach whichever flank the enemy comes from
+....#@@#....   armored front: 2 stone blocks
+....#EE#....   brick sides and corners (E = eagle): the base falls from the flanks
+....#EE#....
 ```
 
-So the base can only fall from one place: lined up with the eagle, inside the yard, right in front of it and next to where the defender respawns. Shooting from across the map, or from the flanks, does nothing.
+Shooting at the front, up close or from across the map, does nothing (not even with the gun). Attacks come from either flank, and the defender can always cross from one side to the other through the yard, so there's no single entrance for someone to camp.
 
 What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows), the base above; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
 
-What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; have a path **2 tiles wide** (a tank's width) from every spawn to the **enemy base's yard** and to every power-up spot; and from every spawn to **its own base's yard** in at most 20 steps, so the defender can cross from one side of the base to the other. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
+What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; have a path **2 tiles wide** (a tank's width) from every spawn to a **flank of the enemy base** and to every power-up spot; and from every spawn to **both flanks of its own base** in at most 20 steps, so the defender can go around the eagle to the side under attack. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
 
-**Balance** (not checked by `check-maps`): since maps are mirrored, when nobody defends each team attacks down its own side, they never cross paths, and the round turns into a race. Check with `duel_sim`: in a 2 vs 2 (one attacks, one defends, `--teams ABAB`), short rounds with nearly 100% base wins point to a path that's too easy to the enemy yard.
+**Balance** (not checked by `check-maps`): since maps are mirrored, when nobody defends each team attacks down its own side, they never cross paths, and the round turns into a race. Check with `duel_sim`: in a 2 vs 2 (one attacks, one defends, `--teams ABAB`), short rounds with nearly 100% base wins point to a path that's too easy to the enemy flanks.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -244,13 +243,13 @@ What the map must follow, checked by `check-maps`: be mirrored horizontally and 
   - **in one team's color** (with an **A** or **B** above it, ~65% of the time): only that team's players can pick it up; opponents drive over it. It shows up **70% of the time in the opponent's half** (you have to invade to get it) and 30% in your own. The team is drawn 50/50 (or is the one behind on lives), even in a 3 vs 1;
   - **gray**, with the game's original icon (~35%): **any player** can pick it up. It appears at a symmetric spot in the middle of the map (same distance from both bases) or, if a team is far behind on lives, on that team's side.
 - **Reinforcement:** the tank power-up brings an **allied bot** in the team's color, with one life. The first reinforcement guards the base and the second one attacks.
-- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and **holds its aim** while the target stays in line (it used to turn back and forth several times a second); it doesn't do a U-turn right after turning; it chases enemies with hysteresis (starts at 10 tiles, gives up at 14); defenders guard the yard, each at its own post, without blocking whoever spawns behind them; and, if it gets stuck, it sidesteps and plans again. The AI never fires toward its own base.
+- **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and **holds its aim** while the target stays in line (it used to turn back and forth several times a second); it doesn't do a U-turn right after turning; it chases enemies with hysteresis (starts at 10 tiles, gives up at 14); defenders guard the base (one in the yard, the same distance from both flanks), each at its own post, without blocking whoever spawns behind them; and, if it gets stuck, it sidesteps and plans again. The AI never fires toward its own base.
 - **Friendly fire:** bullets don't hurt teammates. A **player's** shot destroys **your own base** (the round goes to the opponent) and breaks the bricks around it, as in the original: you can open a firing angle, but mind your aim. Reinforcement bots' shots don't hurt their own base.
 - **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
 - Duel effects: **grenade** blows up the enemy tanks on the field, even with a shield or a boat (it's an explosion, not a shot; teammates are safe); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
-- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. The base's stone (sides, corners, pillar and the front when fortified by the shovel) stays up.
+- **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. The base's stone (the front, and the sides when the shovel fortifies them) stays up.
 - **Fire rate:** in duel mode each player fires at most **3 shots per second** (`AppConfig::duel_max_shots_per_second`), so a barrage can't take down the enemy base with no chance to defend.
-- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, a stone front on its base too (then the only way to win is eliminating its players).
+- **Uneven teams:** the smaller team gets more lives per player (1 vs 3: 6 lives vs 3) and, if the other team has twice as many players or more, an all-stone base (then the only way to win is eliminating its players).
 
 **Balance simulation:** `make duel-sim` builds `build/bin/duel_sim`, which plays whole matches with no window, every player driven by the AI, and reports how many rounds each team wins on each map, how much each power-up helps whoever picks it up (split by whether they were behind, even or ahead on lives) and how long bots spend stuck. The balance settings (`AppConfig::duel_*`) can be tried without recompiling:
 

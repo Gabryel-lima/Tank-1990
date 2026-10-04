@@ -54,23 +54,24 @@ std::vector<Tile> baseFrontTiles(int team)
     return {{front, BASE_COLUMN}, {front, BASE_COLUMN + 1}};
 }
 
-std::vector<Tile> pillarTiles(int team)
+Tile yardCenter(int team)
 {
-    // Duas linhas de pátio entre a frente da muralha e o pilar
-    int front = (team == 0) ? baseRow(team) - 1 : baseRow(team) + 2;
-    int first = (team == 0) ? front - 4 : front + 3;
-    std::vector<Tile> tiles;
-    for(int r = first; r < first + 2; r++)
-        for(int c = BASE_COLUMN; c < BASE_COLUMN + 2; c++) tiles.push_back({r, c});
-    return tiles;
+    int row = (team == 0) ? baseRow(team) - 3 : baseRow(team) + 3;
+    return {row, BASE_COLUMN};
 }
 
-std::vector<Tile> attackPositions(int team)
+int flankSide(const std::vector<std::string>& grid, int team, int row, int column)
 {
-    // Tanque nas duas linhas do pátio, alinhado com a águia (colunas 12-13). Uma coluna para
-    // o lado, o tiro (8 px no centro do tanque) encosta no canto de pedra e para ali
-    int row = (team == 0) ? baseRow(team) - 3 : baseRow(team) + 3;
-    return {{row, BASE_COLUMN}};
+    if(row != baseRow(team)) return 0;
+    int wall_left = BASE_COLUMN - 1, wall_right = BASE_COLUMN + 2;
+    int from, to, side;
+    if(column + 1 < wall_left) { from = column + 2; to = wall_left - 1; side = -1; }
+    else if(column > wall_right) { from = wall_right + 1; to = column - 1; side = 1; }
+    else return 0;
+    for(int r = row; r < row + 2; r++)
+        for(int c = from; c <= to; c++)
+            if(grid[r][c] == '@') return 0;
+    return side;
 }
 
 bool isBaseFront(int team, int row, int column)
@@ -123,7 +124,7 @@ std::vector<SDL_Point> midBonusSpots()
 std::vector<SDL_Point> halfBonusSpots(int team)
 {
     int t = tile();
-    // O central fica logo atrás do pilar da base
+    // O central fica logo à frente do pátio da base
     if(team == 0) return {{4 * t, 16 * t}, {(TILES - 6) * t, 16 * t}, {BASE_COLUMN * t, 17 * t}};
     return {{4 * t, 8 * t}, {(TILES - 6) * t, 8 * t}, {BASE_COLUMN * t, 7 * t}};
 }
@@ -159,14 +160,12 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
     }
     if(!problems.empty()) return problems;
 
-    // O mapa como o jogo o monta: espaço das águias vazio, muralha de pedra com a frente de
-    // tijolo e o pilar de pedra
+    // O mapa como o jogo o monta: espaço das águias vazio, muralha de tijolo e a frente de pedra
     std::vector<std::string> grid = original;
     for(int team = 0; team < 2; team++)
     {
-        for(const Tile& t : baseWallTiles(team)) grid[t.row][t.column] = '@';
-        for(const Tile& t : baseFrontTiles(team)) grid[t.row][t.column] = '#';
-        for(const Tile& t : pillarTiles(team)) grid[t.row][t.column] = '@';
+        for(const Tile& t : baseWallTiles(team)) grid[t.row][t.column] = '#';
+        for(const Tile& t : baseFrontTiles(team)) grid[t.row][t.column] = '@';
         for(int r = baseRow(team); r < baseRow(team) + 2; r++)
             for(int c = BASE_COLUMN; c < BASE_COLUMN + 2; c++) grid[r][c] = 'E';
     }
@@ -210,14 +209,15 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
         }
         return seen;
     };
-    // Menor distância das posições alcançadas até um ponto de ataque no pátio da equipe
-    // (-1 se nenhum é alcançado)
-    auto yardDistance = [&](const std::map<std::pair<int, int>, int>& seen, int team) {
+    // Menor distância das posições alcançadas até um ponto de tiro no flanco @a side
+    // (-1 esquerdo, +1 direito, 0 qualquer um) da base da equipe; -1 se nenhum é alcançado
+    auto flankDistance = [&](const std::map<std::pair<int, int>, int>& seen, int team, int side) {
         int best = -1;
-        for(const Tile& t : attackPositions(team))
+        for(auto& p : seen)
         {
-            auto it = seen.find({t.row, t.column});
-            if(it != seen.end() && (best < 0 || it->second < best)) best = it->second;
+            int s = flankSide(grid, team, p.first.first, p.first.second);
+            if(s == 0 || (side != 0 && s != side)) continue;
+            if(best < 0 || p.second < best) best = p.second;
         }
         return best;
     };
@@ -241,14 +241,19 @@ std::vector<std::string> validate(const std::vector<std::string>& original)
                 continue;
             }
             auto seen = reach(r, c);
-            if(yardDistance(seen, 1 - team) < 0)
-                problems.push_back(name + ": não há caminho da largura de um tanque até o pátio da base inimiga");
-            int home = yardDistance(seen, team);
-            if(home < 0)
-                problems.push_back(name + ": não alcança o pátio da própria base (o defensor não cruza para o outro lado)");
-            else if(home > DEFENDER_REACH)
-                problems.push_back(name + ": pátio da própria base a " + std::to_string(home) + " passos (máximo " +
-                                   std::to_string(DEFENDER_REACH) + "): o defensor demora para cruzar para o outro lado");
+            if(flankDistance(seen, 1 - team, 0) < 0)
+                problems.push_back(name + ": não há caminho da largura de um tanque até um flanco da base inimiga");
+            // O defensor precisa chegar aos dois flancos da própria base (contornando a águia)
+            for(int side : {-1, 1})
+            {
+                std::string flank = side < 0 ? "esquerdo" : "direito";
+                int home = flankDistance(seen, team, side);
+                if(home < 0)
+                    problems.push_back(name + ": não alcança o flanco " + flank + " da própria base (o defensor não contorna a águia)");
+                else if(home > DEFENDER_REACH)
+                    problems.push_back(name + ": flanco " + flank + " da própria base a " + std::to_string(home) + " passos (máximo " +
+                                       std::to_string(DEFENDER_REACH) + "): o defensor demora para contornar a águia");
+            }
             for(auto& b : bonus)
                 if(fits(b.first, b.second) && !seen.count(b))
                     problems.push_back(name + ": não alcança o ponto de bônus da " + where(b.first, b.second));

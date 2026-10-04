@@ -532,12 +532,10 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
 
 void Duel::setBaseWalls(int team, SpriteType wall)
 {
-    // Laterais, cantos e o pilar são sempre de pedra; a frente da águia (o ponto de ataque)
-    // é do material pedido: tijolo, ou pedra com a pá / para a equipe menor
+    // A frente da águia é sempre de pedra; laterais e cantos são do material pedido: tijolo,
+    // ou pedra com a pá / para a equipe menor
     std::vector<Tank*> tanks = allTanks();
-    std::vector<DuelLayout::Tile> tiles = DuelLayout::baseWallTiles(team);
-    for(const DuelLayout::Tile& t : DuelLayout::pillarTiles(team)) tiles.push_back(t);
-    for(const DuelLayout::Tile& wall_tile : tiles)
+    for(const DuelLayout::Tile& wall_tile : DuelLayout::baseWallTiles(team))
     {
         int row = wall_tile.row, column = wall_tile.column;
 
@@ -549,7 +547,7 @@ void Duel::setBaseWalls(int team, SpriteType wall)
         if(occupied) continue;
 
         delete m_level.at(row).at(column);
-        if(wall == ST_STONE_WALL || !DuelLayout::isBaseFront(team, row, column))
+        if(wall == ST_STONE_WALL || DuelLayout::isBaseFront(team, row, column))
             m_level.at(row).at(column) = new Object(tile.x, tile.y, ST_STONE_WALL);
         else
             m_level.at(row).at(column) = new Brick(tile.x, tile.y);

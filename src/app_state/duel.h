@@ -86,9 +86,8 @@ struct DuelStats
  * @li vence a partida quem ganhar AppConfig::duel_rounds_to_win rodadas;
  * @li projéteis não ferem aliados; o tiro de um jogador destrói a própria base e os
  *     tijolos em volta dela (como no original), o do bot de reforço não;
- * @li a base tem laterais de pedra e só dois tijolos na frente, protegidos por um pilar
- *     de pedra: para destruí-la é preciso entrar no pátio entre o pilar e a base
- *     (DuelLayout), que é também por onde o defensor cruza de um lado para o outro;
+ * @li a frente de cada águia é de pedra e as laterais de tijolo: a base cai pelos flancos,
+ *     e o pátio à frente dela deixa o defensor contornar a águia para o lado atacado;
  * @li bônus surgem em pontos simétricos no meio do mapa; a equipe em desvantagem
  *     passa a recebê-los do seu lado do campo;
  * @li a cor é da equipe (companheiros têm a mesma cor); cada bônus surge na cor de uma
@@ -280,7 +279,7 @@ private:
     /** Aplica o efeito do bônus para o jogador e a sua equipe. */
     void applyBonus(Player* player, Bonus* bonus);
 
-    /** Monta a base da equipe: frente do material @a wall, laterais e pilar de pedra. */
+    /** Monta a base da equipe: frente de pedra, laterais e cantos do material @a wall. */
     void setBaseWalls(int team, SpriteType wall);
 
     /** Controla a duração da pá (base reforçada com pedra) de cada equipe. */

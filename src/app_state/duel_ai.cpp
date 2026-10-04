@@ -235,8 +235,8 @@ bool Duel::worthFiring(Tank* shooter, Direction d, int range)
 bool Duel::firesAtOwnBase(Tank* tank, Direction d) const
 {
     // Percorre a faixa do projétil (8 px no centro do tanque) até a borda do mapa ou uma
-    // pedra: se passa pela muralha ou pela águia da própria equipe, não atira. Tijolos de
-    // outros lugares no meio não contam: tiros seguidos acabam atravessando
+    // pedra: se passa pelos tijolos da muralha ou pela águia da própria equipe, não atira.
+    // Tijolos de outros lugares no meio não contam: tiros seguidos acabam atravessando
     int team = tank->team;
     if(team < 0) return false;
     SDL_Point c = centerOf(tank->dest_rect);
@@ -251,12 +251,14 @@ bool Duel::firesAtOwnBase(Tank* tank, Direction d) const
         {
             int row = vertical ? i : j, column = vertical ? j : i;
             if(row < 0 || column < 0 || row >= m_level_rows_count || column >= m_level_columns_count) continue;
-            if(isBaseWall(team, row, column)) return true;
             int base_row = DuelLayout::baseRow(team);
             if(row >= base_row && row < base_row + 2 && column >= DuelLayout::BASE_COLUMN && column < DuelLayout::BASE_COLUMN + 2)
                 return true;
+            // Pedra (inclusive a frente da própria base) segura o tiro sem dano; tijolo da
+            // própria muralha, não
             Object* o = m_level.at(row).at(column);
             if(o != nullptr && o->type == ST_STONE_WALL) return false;
+            if(o != nullptr && isBaseWall(team, row, column)) return true;
         }
     return false;
 }
@@ -388,17 +390,16 @@ void Duel::planAI(Tank* tank, AIState& state)
             return;
         }
 
-        // Guarda a base olhando para o campo inimigo. Um defensor fica no pátio, no ponto de
-        // ataque (o único lugar de onde a águia é atingida); os outros, logo à frente do pilar,
-        // fora do pátio. O pátio é um corredor de um tanque só e, em alguns mapas, a saída de
-        // quem nasce ao lado da base: com dois ou três guardas lá dentro, eles se trancavam e
-        // trancavam quem nascia (antes, todos iam até para a mesma célula). Cada defensor
-        // escolhe, em ordem, o posto livre mais perto de onde está
+        // Guarda a base olhando para o campo inimigo. Um defensor fica no centro do pátio, à
+        // mesma distância dos dois flancos (por onde a base é atacada); os outros, duas linhas
+        // à frente dele, fora do pátio. O pátio é a passagem para contornar a águia e, em alguns
+        // mapas, a saída de quem nasce ao lado da base: com vários guardas lá dentro, eles se
+        // trancavam e trancavam quem nascia. Cada defensor escolhe, em ordem, o posto livre mais
+        // perto de onde está
         if(own_base != nullptr)
         {
-            DuelLayout::Tile center = DuelLayout::attackPositions(team).front();
-            std::vector<DuelLayout::Tile> pillar = DuelLayout::pillarTiles(team);
-            int outside_row = (team == 0) ? pillar.front().row - 2 : pillar.back().row + 1;
+            DuelLayout::Tile center = DuelLayout::yardCenter(team);
+            int outside_row = center.row + (team == 0 ? -2 : 2);
             std::vector<DuelLayout::Tile> posts = {center, {outside_row, center.column - 2}, {outside_row, center.column + 2}};
             DuelLayout::Tile spot = center;
             for(Tank* t : allTanks())
