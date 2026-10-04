@@ -289,7 +289,7 @@ Adding a map works like in the duel: a **26×26** grid using the level symbols i
 - Each wave has more enemies (6, 8, 10... up to 40), more of them on the map at once (4 on the first wave, +1 per extra player and +1 every 3 waves, up to 10) and tougher ones (wave N uses the difficulty of campaign stage 2N + 1, up to 35).
 - Between waves there's a pause with a **WAVE N** banner (players can already get into position) and the eagle's brick wall is rebuilt.
 - Every **5 waves**, everyone gets an extra life and anyone who had fallen **comes back**.
-- Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle).
+- Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle). Players have different colors but are **one team**: every power-up is **gray**, with the original icon, and any player can pick it up (team-colored power-ups are duel-only).
 - It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
 - The numbers live in `AppConfig::survival_*`.
 

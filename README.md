@@ -290,7 +290,7 @@ Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os s�
 - Cada onda tem mais inimigos (6, 8, 10... até 40), mais deles no mapa ao mesmo tempo (4 na primeira onda, +1 por jogador extra e +1 a cada 3 ondas, até 10) e mais blindados (a onda N usa a dificuldade da fase 2N + 1 da campanha, até a 35).
 - Entre as ondas há uma pausa com o aviso **WAVE N** (os jogadores já podem se posicionar) e a muralha de tijolos da águia é refeita.
 - A cada **5 ondas**, todos ganham uma vida e quem já tinha caído **volta ao jogo**.
-- Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia).
+- Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia). Os jogadores têm cores diferentes, mas são **uma equipe só**: todo bônus é **cinza**, com o ícone original, e qualquer jogador pega (as cores de equipe nos bônus são só do duelo).
 - Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só.
 - Os números ficam em `AppConfig::survival_*`.
 
