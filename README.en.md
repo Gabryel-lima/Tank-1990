@@ -186,7 +186,7 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 
 **Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (see [Controls](#-controls)), there is no 3 vs 3 or 4 vs 4.
 
-**Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map:
+**Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map. If the list doesn't fit on the screen, it scrolls with the selection (arrows on the right show there are more items above or below):
 
 | Map | Style |
 |-----|-------|
@@ -195,6 +195,11 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 | **River** | A river cuts through the middle, with three bridges |
 | **Maze** | Brick maze: you can shoot your way through |
 | **Open Field** | Open and fast: bushes for ambushes, and ice |
+| **Crossroads** | Wide avenues crossing between brick and bush blocks |
+| **Archipelago** | Water islands linked by ice bridges; the boat opens shortcuts |
+| **Bunkers** | Stone bunkers around the bases; attacks come from the front |
+| **Frozen Lake** | An ice lake in the middle, ringed with bushes: hard to stop and aim |
+| **Gauntlet** | A central stone gate: whoever goes through meets the opponent |
 | **Random** | A random map each round |
 
 **Adding a new map** (no code changes):
@@ -206,6 +211,8 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 What the game handles on any map: the eagles (columns 12-13, on the first two and last two rows) and the **base walls**, which don't need to be in the file; the **base zone** (columns 9-16, on the 7 rows on each eagle's side), where the gun has no effect and the map's stone can't be destroyed; spawn points out of anyone's line of fire; and the power-up spots.
 
 What the map must follow, checked by `check-maps`: be mirrored horizontally and vertically (both teams get the same terrain); keep the spawn points (columns 4-5, 8-9, 16-17 and 20-21, on rows 0-1 and 24-25) and power-up spots clear; and have a path **2 tiles wide** (a tank's width) from every spawn to the enemy base and to every power-up spot. A map that fails is rejected when the game starts, with the reason printed in the terminal, instead of breaking a match.
+
+**Balance** (not checked by `check-maps`): since maps are mirrored, if the shortest path to the enemy base runs along a side corridor, each team attacks down its own side, they never cross paths, and the round turns into a race. Prefer paths that cross in the middle (or stone beside the eagle, on columns 10 and 15, which removes the flank shot) and check with `duel_sim`: rounds lasting a few seconds with 100% base wins point to this problem.
 
 | In the setup screen | Key / controller |
 |---------------------|------------------|
@@ -399,7 +406,7 @@ Tank-1990/
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
 │   ├── levels/           # The 36 level files
-│   └── duel_levels/      # Duel mode maps (Arena, Fortress, River, Maze, Open Field)
+│   └── duel_levels/      # Duel mode maps (listed in maps.txt)
 ├── tools/                # WSL install/uninstall scripts and the duel simulation
 │   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)
 │   └── duel_sim_report.py # Adds up the results of several simulation runs

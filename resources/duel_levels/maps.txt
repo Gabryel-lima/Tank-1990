@@ -7,3 +7,8 @@
 3;River
 4;Maze
 5;Open Field
+6;Crossroads
+7;Archipelago
+8;Bunkers
+9;Frozen Lake
+10;Gauntlet

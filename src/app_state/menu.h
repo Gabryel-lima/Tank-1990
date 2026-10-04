@@ -126,8 +126,20 @@ private:
     /** Item tem valor ajustável com esquerda/direita. */
     bool isValueItem(Item item) const;
 
-    /** Altura (y) do texto do item na posição i. */
+    /** Altura (y) do texto na linha @a slot da tela (-1 = título, 0 = primeira linha da lista). */
+    int slotY(int slot) const;
+
+    /** Altura (y) do texto do item i (considera a rolagem da lista). */
     int itemY(int i) const;
+
+    /** Quantas linhas da lista cabem na tela sem passar da borda inferior. */
+    int visibleRows() const;
+
+    /** Ajusta a rolagem para que o item selecionado fique visível. */
+    void ensureVisible();
+
+    /** Desenha a seta (para cima ou para baixo) que indica mais itens fora da tela. */
+    void drawScrollArrow(int y, bool up);
 
     /** Define um formato de duelo N vs N com os jogadores alternando entre as equipes. */
     void applyDuelFormat(int team_size);
@@ -148,6 +160,12 @@ private:
      * Índice da opção atualmente selecionada no menu.
      */
     int m_menu_index;
+
+    /**
+     * Primeiro item visível da lista (rolagem). Listas maiores que a tela, como a de
+     * mapas, mostram só as linhas que cabem e rolam junto com a seleção.
+     */
+    int m_scroll = 0;
 
     Result m_result;
     int m_campaign_players;

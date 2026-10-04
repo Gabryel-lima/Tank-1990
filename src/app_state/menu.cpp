@@ -98,12 +98,14 @@ void Menu::buildItems()
         break;
     }
     if(m_menu_index >= static_cast<int>(m_items.size())) m_menu_index = m_items.size() - 1;
+    ensureVisible();
 }
 
 void Menu::openScreen(Screen screen)
 {
     m_screen = screen;
     m_menu_index = 0;
+    m_scroll = 0;
     buildItems();
     // Na configuração do duelo, começa no "Next"; na escolha de mapa, no último escolhido
     // (assim a revanche é um botão só)
@@ -115,14 +117,49 @@ void Menu::openScreen(Screen screen)
         auto it = std::find(m_items.begin(), m_items.end(), last);
         m_menu_index = (it != m_items.end()) ? it - m_items.begin() : 0;
     }
+    ensureVisible();
+}
+
+int Menu::slotY(int slot) const
+{
+    // Tela principal como no original (152, 184, 216...); nas demais, a linha
+    // 152 é o título da tela e os itens começam na seguinte
+    if(m_screen == SCREEN_MAIN) return rowY(slot + 1);
+    return rowY(slot + 2);
 }
 
 int Menu::itemY(int i) const
 {
-    // Tela principal como no original (152, 184, 216...); nas demais, a linha
-    // 152 é o título da tela e os itens começam na seguinte
-    if(m_screen == SCREEN_MAIN) return rowY(i + 1);
-    return rowY(i + 2);
+    return slotY(i - m_scroll);
+}
+
+int Menu::visibleRows() const
+{
+    // Linhas da grade (32 px) cujo texto termina antes da margem inferior da tela
+    const int TEXT_HEIGHT = 14, BOTTOM_MARGIN = 20;
+    int last_y = AppConfig::windows_rect.h - BOTTOM_MARGIN - TEXT_HEIGHT;
+    return (last_y - slotY(0)) / ROW_HEIGHT + 1;
+}
+
+void Menu::ensureVisible()
+{
+    int rows = visibleRows(), count = static_cast<int>(m_items.size());
+    if(m_menu_index < m_scroll) m_scroll = m_menu_index;
+    if(m_menu_index >= m_scroll + rows) m_scroll = m_menu_index - rows + 1;
+    m_scroll = std::max(0, std::min(m_scroll, count - rows));
+}
+
+void Menu::drawScrollArrow(int y, bool up)
+{
+    // Triângulo de 9 px à direita da lista, centrado na altura do texto (14 px)
+    Renderer* renderer = Engine::getEngine().getRenderer();
+    const int x = 398, size = 5;
+    for(int k = 0; k < size; k++)
+    {
+        int width = 1 + 2 * k;
+        SDL_Rect line = {x - k, y + 4 + (up ? k : size - 1 - k), width, 1};
+        renderer->drawRect(&line, GRAY, true);
+    }
 }
 
 bool Menu::isValueItem(Item item) const
@@ -192,6 +229,7 @@ void Menu::moveSelection(int delta)
     m_menu_index += delta;
     if(m_menu_index < 0) m_menu_index = m_items.size() - 1;
     else if(m_menu_index >= static_cast<int>(m_items.size())) m_menu_index = 0;
+    ensureVisible();
 }
 
 void Menu::changeValue(int delta)
@@ -361,12 +399,16 @@ void Menu::draw()
     }
     if(!title.empty())
     {
-        text_start = {TEXT_X, itemY(-1)};
+        text_start = {TEXT_X, slotY(-1)};
         renderer->drawText(&text_start, title, title_color, 2);
     }
 
-    // Desenha as opções do menu
-    for(size_t i = 0; i < m_items.size(); i++)
+    // Desenha as opções visíveis do menu (a lista rola se não couber na tela)
+    ensureVisible();
+    int first = m_scroll, last = std::min(static_cast<int>(m_items.size()), m_scroll + visibleRows());
+    if(first > 0) drawScrollArrow(itemY(first), true);
+    if(last < static_cast<int>(m_items.size())) drawScrollArrow(itemY(last - 1), false);
+    for(int i = first; i < last; i++)
     {
         Item item = m_items[i];
         SDL_Color color = WHITE;
@@ -404,7 +446,7 @@ void Menu::drawMapPreview(int map_index)
     // 26 x 26 tiles de 5 px = 130 px, na área livre à esquerda do ponteiro (x < 144),
     // com o topo alinhado ao primeiro item da lista
     const int TILE = 5;
-    SDL_Rect frame = {6, itemY(0) - 2, 26 * TILE + 4, 26 * TILE + 4};
+    SDL_Rect frame = {6, slotY(0) - 2, 26 * TILE + 4, 26 * TILE + 4};
     Renderer* renderer = Engine::getEngine().getRenderer();
     renderer->drawRect(&frame, GRAY, false);
     SDL_Rect inside = {frame.x + 2, frame.y + 2, 26 * TILE, 26 * TILE};

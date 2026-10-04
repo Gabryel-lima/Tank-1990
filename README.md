@@ -187,7 +187,7 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 
 **Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
 
-**Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado:
+**Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado. Se a lista não cabe na tela, ela rola junto com a seleção (setas à direita indicam que há mais itens acima ou abaixo):
 
 | Mapa | Estilo |
 |------|--------|
@@ -196,6 +196,11 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 | **River** | Um rio corta o meio do mapa, com três pontes |
 | **Maze** | Labirinto de tijolos: dá para abrir caminho atirando |
 | **Open Field** | Aberto e rápido: arbustos para emboscadas e gelo |
+| **Crossroads** | Avenidas largas em cruz entre quarteirões de tijolo e arbusto |
+| **Archipelago** | Ilhas de água ligadas por pontes de gelo; o barco abre atalhos |
+| **Bunkers** | Casamatas de pedra em volta das bases; o ataque é pela frente |
+| **Frozen Lake** | Lago de gelo no centro, cercado de arbustos: difícil parar e mirar |
+| **Gauntlet** | Um portão central de pedra: quem atravessa encontra o adversário |
 | **Random** | Um mapa sorteado a cada rodada |
 
 **Criar um mapa novo** (sem mexer em código):
@@ -207,6 +212,8 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 O que o jogo cuida sozinho, em qualquer mapa: as águias (colunas 12-13, nas duas primeiras e nas duas últimas linhas) e a **muralha das bases**, que não precisa estar no arquivo; a **zona da base** (colunas 9-16, nas 7 linhas do lado de cada águia), onde o canhão não vale e a pedra do mapa fica indestrutível; os pontos de nascimento sem mira; e os pontos de bônus.
 
 O que o mapa precisa respeitar, e o `check-maps` verifica: ser espelhado na horizontal e na vertical (as duas equipes com o mesmo terreno); deixar livres os pontos de nascimento (colunas 4-5, 8-9, 16-17 e 20-21, nas linhas 0-1 e 24-25) e de bônus; e ter caminho com **2 tiles de largura** (a largura de um tanque) de cada nascimento até a base inimiga e até cada bônus. Um mapa que não passa é recusado ao iniciar o jogo, com o motivo no terminal, em vez de quebrar uma partida.
+
+**Equilíbrio** (o `check-maps` não verifica): como o mapa é espelhado, se o caminho mais curto até a base inimiga for por um corredor lateral, cada equipe ataca por um lado, as duas nunca se cruzam e a rodada vira uma corrida de quem chega primeiro. Prefira caminhos que se cruzem no meio (ou pedra ao lado da águia, nas colunas 10 e 15, que tira o tiro pelo flanco) e confira com o `duel_sim`: rodadas de poucos segundos com 100% de vitórias por base indicam esse problema.
 
 | Na configuração | Tecla / controle |
 |-----------------|------------------|
@@ -401,7 +408,7 @@ Tank-1990/
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
 │   ├── levels/           # Arquivos dos 36 níveis
-│   └── duel_levels/      # Mapas do modo duelo (Arena, Fortress, River, Maze, Open Field)
+│   └── duel_levels/      # Mapas do modo duelo (lista em maps.txt)
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)
 │   └── duel_sim_report.py # Soma os resultados de várias simulações

@@ -16,6 +16,11 @@ vector<pair<string, string>> AppConfig::duel_maps =
     {"3", "River"},
     {"4", "Maze"},
     {"5", "Open Field"},
+    {"6", "Crossroads"},
+    {"7", "Archipelago"},
+    {"8", "Bunkers"},
+    {"9", "Frozen Lake"},
+    {"10", "Gauntlet"},
 };
 // Nome do arquivo de fonte utilizada no jogo
 string AppConfig::font_name = "prstartk.ttf";
