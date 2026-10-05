@@ -1345,10 +1345,11 @@ bool Game::rectFree(SDL_Rect area)
 
 void Game::frontCell(Tank* tank, int* row, int* column) const
 {
-    // Na direção do tanque, a borda vai para fora dele: o tanque anda de 8 em 8 px e para
-    // muito no meio de um bloco (y = 200 = 12,5 blocos); arredondando, a área "da frente"
-    // de quem olha para cima ou para a esquerda cobria o próprio tanque, e a barricada e a
-    // torreta eram recusadas por falta de espaço. Na outra direção, o arredondamento centra
+    // Na direção do tanque, a primeira fileira de blocos que não toca nele: o tanque para em
+    // qualquer pixel (anda speed * dt; só o lado se encaixa na grade ao virar), então o vão
+    // até ela vai de 0 a pouco menos de um bloco, nunca um bloco vazio inteiro. Arredondar
+    // para o mais perto cobria o próprio tanque ou pulava um bloco. No lado, o arredondamento
+    // centra a área no tanque
     const double t = AppConfig::tile_rect.w;
     int r = static_cast<int>(std::lround(tank->pos_y / t));
     int c = static_cast<int>(std::lround(tank->pos_x / t));
@@ -1363,14 +1364,51 @@ void Game::frontCell(Tank* tank, int* row, int* column) const
     *column = c;
 }
 
-bool Game::placeBarricade(Tank* tank)
+bool Game::frontArea(Tank* tank, bool on_grid, SDL_Rect* area)
 {
+    const int t = AppConfig::tile_rect.w;
     int row, column;
     frontCell(tank, &row, &column);
-    if(!areaFree(row, column, 2, 2)) return false;
+    const SDL_Rect grid = {column * t, row * t, 2 * t, 2 * t};
+
+    std::vector<SDL_Rect> candidates;
+    if(!on_grid)
+    {
+        // Encostada no tanque e alinhada com ele
+        SDL_Rect touching = {static_cast<int>(std::lround(tank->pos_x)), static_cast<int>(std::lround(tank->pos_y)), 2 * t, 2 * t};
+        switch(tank->direction)
+        {
+        case D_UP: touching.y -= touching.h; break;
+        case D_DOWN: touching.y += touching.h; break;
+        case D_LEFT: touching.x -= touching.w; break;
+        default: touching.x += touching.w; break;
+        }
+        candidates.push_back(touching);
+        // Ainda encostada, com o lado na grade: o tanque passa rente a uma parede, meio
+        // bloco ao lado dela, e a área alinhada com ele pegaria na parede
+        SDL_Rect side = touching;
+        if(tank->direction == D_UP || tank->direction == D_DOWN) side.x = grid.x;
+        else side.y = grid.y;
+        candidates.push_back(side);
+    }
+    candidates.push_back(grid);
+
+    for(const SDL_Rect& candidate : candidates)
+        if(rectFree(candidate))
+        {
+            *area = candidate;
+            return true;
+        }
+    return false;
+}
+
+bool Game::placeBarricade(Tank* tank)
+{
+    SDL_Rect area;
+    if(!frontArea(tank, true, &area)) return false;
     const int t = AppConfig::tile_rect.w;
-    for(int r = row; r < row + 2; r++)
-        for(int c = column; c < column + 2; c++)
+    for(int r = area.y / t; r < (area.y + area.h) / t; r++)
+        for(int c = area.x / t; c < (area.x + area.w) / t; c++)
             m_level.at(r).at(c) = new Brick(c * t, r * t);
     SoundManager::getInstance().playSound("bonus");
     return true;
@@ -1417,28 +1455,9 @@ void Game::restoreTerrain(const std::vector<std::string>& grid, const std::vecto
 
 bool Game::placeTurret(Player* player)
 {
-    // Encostada no tanque, na direção dele e alinhada com ele. A torreta é um tanque parado
-    // e não precisa da grade de tiles como a barricada: com frontCell, quem parava no meio
-    // de um bloco (o tanque anda de 8 em 8 px) a via surgir com um vão de meio bloco ou mais
-    const int size = 2 * AppConfig::tile_rect.w;
-    SDL_Rect area = {static_cast<int>(std::lround(player->pos_x)), static_cast<int>(std::lround(player->pos_y)), size, size};
-    switch(player->direction)
-    {
-    case D_UP: area.y -= area.h; break;
-    case D_DOWN: area.y += area.h; break;
-    case D_LEFT: area.x -= area.w; break;
-    default: area.x += area.w; break;
-    }
-    if(!rectFree(area))
-    {
-        // Encostada não cabe (o tanque passa rente a uma parede, meio bloco ao lado dela):
-        // vale a área da grade à frente, como a barricada, para não recusar onde antes cabia
-        int row, column;
-        frontCell(player, &row, &column);
-        if(!areaFree(row, column, 2, 2)) return false;
-        area.x = column * AppConfig::tile_rect.w;
-        area.y = row * AppConfig::tile_rect.w;
-    }
+    // A torreta é um tanque parado e não precisa da grade, como a barricada: fica encostada
+    SDL_Rect area;
+    if(!frontArea(player, false, &area)) return false;
     Turret* turret = new Turret(area.x, area.y, player->team, player->playerIndex(), player->color);
     turret->direction = player->direction;
     m_turrets.push_back(turret);

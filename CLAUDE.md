@@ -36,6 +36,9 @@ névoa branca (`Object::drawHaze`), no mapa e no espaço de poder do painel enqu
 (`Player::activePower`); regra W8 do `MODOS_EXTRAS.md`. Os poderes que já existem sem ela só
 mudam quando pedido.
 
+Poder colocado à frente (barricada, torreta...): logo à frente do tanque, na direção dele, nunca
+com um bloco vazio inteiro no meio; use `Game::frontArea` (regra W9 do `MODOS_EXTRAS.md`).
+
 Controles: o jogo só conhece o gamepad padronizado do SDL; o transporte (USB, Bluetooth, ponte)
 fica abaixo (ver `CONTROLES.md`). Fonte nova de controles entra como joystick virtual do SDL,
 como o `NetPad`, sem mudar o `Controllers` nem o jogo.
