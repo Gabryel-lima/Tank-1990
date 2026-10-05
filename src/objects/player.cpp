@@ -242,6 +242,15 @@ void Player::drawEffects()
     // Brilho rápido (120 ms a cada 1 s): diferente da névoa contínua de quem está acabando
     if(m_demolisher && testFlag(TSF_LIFE) && demolisherGlint(m_effect_time))
         Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, DEMOLISHER_GLINT_ALPHA);
+    // Turbo acabando: a névoa branca de tudo que está acabando (V1)
+    if(testFlag(TSF_LIFE)) drawHaze(turboEnding());
+}
+
+double Player::turboEnding() const
+{
+    double quarter = AppConfig::power_turbo_time / 4.0;
+    if(m_turbo_time == 0 || quarter <= 0 || m_turbo_time >= quarter) return 0;
+    return 1.0 - m_turbo_time / quarter;
 }
 
 // Altera o número de estrelas (power-up) do jogador.

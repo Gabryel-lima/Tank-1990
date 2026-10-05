@@ -1000,6 +1000,14 @@ void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
         SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
         engine.getRenderer()->drawObject(&icon, &slot);
     }
+    else if(player != nullptr && player->boosted())
+    {
+        // Turbo em uso: o ícone fica no espaço enquanto dura, com a névoa no fim (V1).
+        // Sem isso, o espaço esvaziava ao usar e nada mostrava que o turbo estava valendo
+        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(ST_BONUS_TURBO)->rect;
+        engine.getRenderer()->drawObject(&icon, &slot);
+        engine.getRenderer()->drawWhite(&icon, &slot, Object::hazeAlpha(player->turboEnding(), SDL_GetTicks()));
+    }
     else
         engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);
 }
@@ -1328,15 +1336,19 @@ bool Game::areaFree(int row, int column, int rows, int columns)
 
 void Game::frontCell(Tank* tank, int* row, int* column) const
 {
+    // Na direção do tanque, a borda vai para fora dele: o tanque anda de 8 em 8 px e para
+    // muito no meio de um bloco (y = 200 = 12,5 blocos); arredondando, a área "da frente"
+    // de quem olha para cima ou para a esquerda cobria o próprio tanque, e a barricada e a
+    // torreta eram recusadas por falta de espaço. Na outra direção, o arredondamento centra
     const double t = AppConfig::tile_rect.w;
     int r = static_cast<int>(std::lround(tank->pos_y / t));
     int c = static_cast<int>(std::lround(tank->pos_x / t));
     switch(tank->direction)
     {
-    case D_UP: r -= 2; break;
-    case D_DOWN: r += 2; break;
-    case D_LEFT: c -= 2; break;
-    default: c += 2; break;
+    case D_UP: r = static_cast<int>(std::floor(tank->pos_y / t)) - 2; break;
+    case D_DOWN: r = static_cast<int>(std::ceil(tank->pos_y / t)) + 2; break;
+    case D_LEFT: c = static_cast<int>(std::floor(tank->pos_x / t)) - 2; break;
+    default: c = static_cast<int>(std::ceil(tank->pos_x / t)) + 2; break;
     }
     *row = r;
     *column = c;

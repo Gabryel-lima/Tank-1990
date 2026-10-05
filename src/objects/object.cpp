@@ -99,17 +99,22 @@ void Object::draw()
     }
 }
 
-void Object::drawHaze(double level)
+Uint8 Object::hazeAlpha(double level, Uint32 time)
 {
-    if(level <= 0 || to_erase || m_sprite == nullptr) return;
+    if(level <= 0) return 0;
     if(level > 1) level = 1;
     // Onda triangular: sobe e desce, como uma névoa passando; perto do fim, mais rápida
     // (de 700 ms a 250 ms por pulso) e mais densa
     Uint32 period = 700 - static_cast<Uint32>(450 * level);
-    Uint32 t = m_effect_time % period;
+    Uint32 t = time % period;
     double wave = t < period / 2 ? 2.0 * t / period : 2.0 * (period - t) / period;
-    Uint8 alpha = static_cast<Uint8>(wave * (110 + 110 * level));
-    Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, alpha);
+    return static_cast<Uint8>(wave * (110 + 110 * level));
+}
+
+void Object::drawHaze(double level)
+{
+    if(level <= 0 || to_erase || m_sprite == nullptr) return;
+    Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, hazeAlpha(level, m_effect_time));
 }
 
 // Atualiza o estado do objeto, incluindo animação de frames e retângulos de colisão/destino

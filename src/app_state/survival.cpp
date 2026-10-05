@@ -690,6 +690,9 @@ void Survival::drawShop()
             lines.push_back({"SLOT FULL", RED});
         else
             lines.push_back({"FIRE: BUY", LIGHT_GRAY});
+        // Na loja, LB escolhe o item em vez de usar o poder guardado: para usar, é sair dela
+        if(user->held_power != ST_NONE)
+            lines.push_back({"USE OUTSIDE", LIGHT_GRAY});
     }
     else
     {

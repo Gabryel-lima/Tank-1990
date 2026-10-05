@@ -209,6 +209,12 @@ public:
     bool boosted() const { return m_turbo_time > 0; }
 
     /**
+     * Quanto falta para o turbo acabar, para a névoa de "acabando" (V1): 0 longe do fim (ou
+     * sem turbo), subindo até 1 no último quarto do tempo.
+     */
+    double turboEnding() const;
+
+    /**
      * Retorno: reaparece em (x, y) com a animação de nascimento (sem gastar vida, mantendo
      * estrelas e barco; durante a animação o tanque não leva tiro).
      */

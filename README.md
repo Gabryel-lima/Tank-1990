@@ -297,7 +297,7 @@ Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os s�
   - a cada **3 ondas**, todos ganham uma vida (**+1 LIFE**).
 - Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia). Os jogadores têm cores diferentes, mas são **uma equipe só**: todo bônus é **cinza**, com o ícone original, e qualquer jogador pega (as cores de equipe nos bônus são só do duelo).
 - **Loja:** os 8 bônus originais continuam caindo dos tanques que piscam, como na campanha; os 9 poderes novos são **comprados**, com as **moedas da equipe**: cada 100 pontos de qualquer jogador valem uma moeda (um inimigo básico dá 1, o blindado 4). O saldo fica no painel, no bloco dourado **$**, e na própria loja. É **uma loja só, da equipe**, que aparece **só no intervalo**, ao lado da base (à esquerda ou à direita, sorteado), como um quadrado dourado com **$** no chão, e some quando vem o aviso da próxima onda:
-  - quem para em cima dela é atendido: **LB e RB** escolhem o item (no teclado, o botão de poder avança), e o **tiro compra**, sem disparar. O preço fica vermelho sem moedas suficientes, e **SLOT FULL** avisa que o espaço de poder já está ocupado (os poderes imediatos continuam à venda);
+  - quem para em cima dela é atendido: **LB e RB** escolhem o item (no teclado, o botão de poder avança), e o **tiro compra**, sem disparar. Em cima da loja o LB escolhe, não usa: para usar um poder guardado (um turbo recém-comprado, por exemplo), saia da loja; a caixa avisa com **USE OUTSIDE**. O preço fica vermelho sem moedas suficientes, e **SLOT FULL** avisa que o espaço de poder já está ocupado (os poderes imediatos continuam à venda);
   - **um jogador por vez**: o tanque de quem está comprando ocupa o lugar inteiro e barra os outros; quando ele sai, o próximo entra;
   - os itens vão do mais barato ao mais caro: barricada e turbo 8, mina e retorno 10, reparo 12, reviver 15, torreta, trégua e escudo de equipe 20. A lista e os preços ficam em `AppConfig::survival_shop_items`, o intervalo em `survival_break_time`; `AppConfig::survival_shop = false` volta ao sorteio de todos os poderes no mapa (e a próxima onda vem logo);
   - o lugar da loja é o mais perto da águia, em chão à vista e com caminho para os tanques; mapa novo não precisa marcar nada.
@@ -317,7 +317,7 @@ Além dos 8 bônus originais, os modos extras têm 9 poderes novos, com pixel ar
 | **Barricada** | guardável | Levanta um bloco de tijolos 2×2 logo à frente. Não pode ser colocada em cima de tanque, base, cenário, arbusto ou ponto de nascimento; sem espaço, o poder continua guardado. |
 | **Torreta** | guardável | Instala à frente um canhão fixo, na cor do dono, virado para onde o tanque olha. Ela gira e atira sozinha nos inimigos alinhados a até 12 tiles, **nunca na direção da própria base**. Um tiro a destrói. Acaba no que vier primeiro: **10 tiros ou 20 s**. Quando está acabando (últimos 3 tiros ou último quarto do tempo), uma névoa branca pulsa sobre ela, mais rápida perto do fim. |
 | **Retorno** | guardável | Teleporta o tanque para o seu ponto de nascimento, ao lado da base (se estiver ocupado, para outro da equipe). Mantém o barco e as estrelas. É a resposta a uma invasão quando se está longe de casa. |
-| **Turbo** | guardável | Velocidade ×1,5 por 8 s. |
+| **Turbo** | guardável | Velocidade ×1,5 por 8 s. Enquanto dura, o ícone continua no espaço de poder do painel; no último quarto, a névoa branca pulsa sobre ele e sobre o tanque. |
 | **Reviver** | imediato | Um companheiro que caiu volta com uma vida; se ninguém caiu, uma vida extra para quem da equipe tem menos. |
 | **Reparo** | imediato | Refaz a muralha da própria base. |
 | **Escudo de equipe** | imediato | Escudo para todos os jogadores da equipe ao mesmo tempo. |
@@ -394,7 +394,7 @@ move ou faz atirar outro.
 
 ### Qual dispositivo fica com qual jogador
 
-1. **Controle primeiro**: o 1º controle conectado vai para o Player 1, o 2º para o Player 2, e assim por diante.
+1. **Controle primeiro, na ordem de quem aperta**: o controle que apertar um botão primeiro vai para o Player 1, o próximo para o Player 2, e assim por diante. Não importa a ordem em que foram conectados: um controle que o sistema ainda vê conectado mas ninguém usa (um pareado e esquecido ligado, um receptor sem fio sem controle) fica para trás e **não rouba a vaga** de quem pegou o controle. Quem já apertou nunca muda de vaga no meio da partida.
 2. **Teclado como reserva**: quem ficou sem controle recebe, na ordem, `WASD` e depois `ARROWS`.
 3. Os layouts que ninguém precisou continuam com o Player 1 (`WASD`) e o Player 2 (`ARROWS`): quem joga sozinho pode usar o teclado mesmo com um controle conectado.
 

@@ -296,7 +296,7 @@ Adding a map works like in the duel: a **26×26** grid using the level symbols i
   - every **3 waves**, everyone gets an extra life (**+1 LIFE**).
 - Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle). Players have different colors but are **one team**: every power-up is **gray**, with the original icon, and any player can pick it up (team-colored power-ups are duel-only).
 - **Shop:** the 8 original power-ups still drop from flashing tanks, as in the campaign; the 9 new powers are **bought** with the **team's coins**: every 100 points from any player are worth one coin (a basic enemy gives 1, an armored one 4). The balance shows in the side panel, in the gold **$** block, and at the shop itself. There is **one shop for the whole team**, which appears **only during the break**, next to the base (left or right, at random), as a gold square with a **$** on the floor, and disappears when the next wave's banner shows up:
-  - whoever stops on it gets served: **LB and RB** pick the item (on the keyboard, the power button moves forward), and **fire buys**, without shooting. The price turns red without enough coins, and **SLOT FULL** warns that the power slot is taken (immediate powers are still for sale);
+  - whoever stops on it gets served: **LB and RB** pick the item (on the keyboard, the power button moves forward), and **fire buys**, without shooting. On the shop, LB picks instead of using: to use a held power (a turbo you just bought, say), step off the shop; the box says **USE OUTSIDE**. The price turns red without enough coins, and **SLOT FULL** warns that the power slot is taken (immediate powers are still for sale);
   - **one player at a time**: the buyer's tank fills the spot and blocks the others; when they leave, the next one steps in;
   - items go from cheapest to most expensive: barricade and turbo 8, mine and recall 10, repair 12, revive 15, turret, truce and team shield 20. The list and prices live in `AppConfig::survival_shop_items`, the break in `survival_break_time`; `AppConfig::survival_shop = false` goes back to every power dropping on the map (and the next wave comes right away);
   - the shop goes to the spot closest to the eagle with visible floor and a path for tanks; a new map doesn't need to mark anything.
@@ -316,7 +316,7 @@ On top of the 8 original bonuses, the extra modes have 9 new powers, with their 
 | **Barricade** | storable | Raises a 2×2 brick block right ahead. It can't be placed on a tank, base, scenery, bush or spawn point; with no room, the power stays held. |
 | **Turret** | storable | Sets up a fixed cannon ahead, in the owner's color, facing where the tank faces. It turns and fires on its own at enemies lined up within 12 tiles, **never towards its own base**. One shot destroys it. It ends with whichever comes first: **10 shots or 20 s**. When it is running out (last 3 shots or last quarter of its time), a white haze pulses over it, faster near the end. |
 | **Recall** | storable | Teleports the tank to its spawn point, next to its base (if taken, to another one of the team). Keeps the boat and stars. The answer to an invasion when you are far from home. |
-| **Turbo** | storable | Speed ×1.5 for 8 s. |
+| **Turbo** | storable | Speed ×1.5 for 8 s. While it lasts, its icon stays in the side panel's power slot; in the last quarter, the white haze pulses over it and over the tank. |
 | **Revive** | immediate | A fallen teammate comes back with one life; if nobody fell, an extra life for the teammate with the fewest. |
 | **Repair** | immediate | Rebuilds your own base wall. |
 | **Team shield** | immediate | Shield for every player of the team at once. |
@@ -393,7 +393,7 @@ never move or fire another tank.
 
 ### Which device goes to which player
 
-1. **Controllers first**: the 1st connected controller goes to Player 1, the 2nd to Player 2, and so on.
+1. **Controllers first, in the order buttons are pressed**: the controller that presses a button first goes to Player 1, the next one to Player 2, and so on. Connection order doesn't matter: a controller the system still sees as connected but nobody uses (a forgotten paired one left on, a wireless receiver with no controller) stays behind and **never takes the slot** of whoever picked up a controller. A controller that has pressed a button never changes slots mid-match.
 2. **Keyboard as backup**: players left without a controller get `WASD`, then `ARROWS`, in order.
 3. Layouts nobody needed stay with Player 1 (`WASD`) and Player 2 (`ARROWS`), so a solo player can still use the keyboard with a controller plugged in.
 
