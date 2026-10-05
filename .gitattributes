@@ -1,0 +1,27 @@
+# Fins de linha: o projeto é desenvolvido no Linux e instalado no Windows (WSL).
+#
+# No repositório tudo fica em LF. Na cópia de trabalho, cada tipo de arquivo ganha o fim de
+# linha que o programa que o lê exige, qualquer que seja o core.autocrlf de quem clonou:
+#  - scripts de shell e Makefile: sempre LF. Com CRLF o sh do WSL lê "set -e\r" e para,
+#    e o make passa o "\r" para cada comando da receita
+#  - .cmd: sempre CRLF. Com LF o cmd.exe erra os saltos (goto, call :rotulo) quando uma
+#    linha cruza o limite de 512 bytes que ele lê por vez
+#  - o resto do texto: LF no repositório, o que o sistema preferir na cópia de trabalho (o
+#    jogo e as ferramentas aceitam os dois nos mapas e fases)
+* text=auto
+
+*.sh        text eol=lf
+Makefile    text eol=lf
+*.pri       text eol=lf
+
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+
+*.png       binary
+*.ogg       binary
+*.wav       binary
+*.ttf       binary
+*.xcf       binary
+*.dll       binary
+*.exe       binary

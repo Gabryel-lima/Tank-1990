@@ -95,7 +95,9 @@ rem ---------------------------------------------------------------------------
 echo  [4/5] Instalando dependencias e compilando o jogo...
 echo        ^(a primeira vez baixa ~150 MB de pacotes e leva alguns minutos^)
 echo.
-wsl.exe -d %DISTRO% --cd "%PROJECT_DIR%" -- /bin/sh tools/wsl-setup.sh %*
+rem  Roda uma copia do script sem os "\r": um clone feito antes do .gitattributes, ou
+rem  com core.autocrlf=true, traz o .sh com CRLF, e o sh do WSL para logo na primeira linha
+wsl.exe -d %DISTRO% --cd "%PROJECT_DIR%" -e /bin/sh -c "tr -d '\r' < tools/wsl-setup.sh > /tmp/tank1990-setup.sh && exec /bin/sh /tmp/tank1990-setup.sh %*"
 if !errorlevel! neq 0 (
     echo.
     echo  [ERRO] Falha ao compilar o jogo dentro do WSL.
