@@ -177,6 +177,9 @@ protected:
     /** Desenhado por cima de tudo, antes de apresentar o quadro (mensagens dos modos extras). */
     virtual void drawOverlay();
 
+    /** Desenhado no chão, depois do cenário e antes de minas e tanques (marcas dos modos extras). */
+    virtual void drawFloor() {}
+
     /**
      * Aviso de pausa. Campanha: "PAUSE" piscando, como no original. Os modos extras usam a
      * caixa padrão (drawPauseBox).

@@ -295,6 +295,12 @@ Adding a map works like in the duel: a **26×26** grid using the level symbols i
   - **anyone who had fallen comes back** with one life (the banner shows **P2 IS BACK**, in the player's color);
   - every **3 waves**, everyone gets an extra life (**+1 LIFE**).
 - Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle). Players have different colors but are **one team**: every power-up is **gray**, with the original icon, and any player can pick it up (team-colored power-ups are duel-only).
+- **Shop:** the 8 original power-ups still drop from flashing tanks, as in the campaign; the 9 new powers are **bought** with the **team's coins**: every 100 points from any player are worth one coin (a basic enemy gives 1, an armored one 4), and the side panel shows the balance in the gold **$** block. Each player's shop is at **their spawn point**, next to the base, marked on the floor with corner brackets in their color:
+  - standing still on the spot, with an empty power slot, the **power button** opens the shop and moves to the next item; **fire buys** (the price turns red without enough coins); moving closes it, and it closes by itself after 6 s without input;
+  - standing on the spot **without opening the shop, fire shoots as usual**: whoever defends the base from there never buys by accident. The **POWER: SHOP** hint shows only for the first 3 s, so it doesn't cover the map;
+  - with the shop open the tank doesn't shoot: buying is a risky moment, and the best time is between waves;
+  - holding a power, the power button uses it, as anywhere (a bought turret can go right in front of the base);
+  - prices: barricade and turbo 8, mine and recall 10, repair 12, revive 15, turret, truce and team shield 20. The list, order and prices live in `AppConfig::survival_shop_items`; `AppConfig::survival_shop = false` goes back to every power dropping on the map.
 - It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
 - The numbers live in `AppConfig::survival_*`.
 
@@ -329,7 +335,7 @@ On top of the 8 original bonuses, the extra modes have 9 new powers, with their 
 
 **In the side panel**, below each player's lives, the held power is shown (an empty square when there is none). In the duel, from 1 vs 1 up to 4 players, each team's panel grows to show one line per player; in survival, the icon sits next to the lives.
 
-**In survival** the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
+**In survival** the new powers are bought at the shop (see above), and the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
 
 **Draw:** in the duel, the new powers share the draw with the originals; the strongest ones (turret, revive and team shield) are as rare as the grenade and the gun (in 1 vs 1, revive is just an extra life). The odds are in `Powers::duelTable()` and `Powers::survivalTable()` (`src/app_state/powers.cpp`); durations and ranges in `AppConfig::power_*`.
 

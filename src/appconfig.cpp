@@ -191,6 +191,17 @@ unsigned AppConfig::power_turbo_time = 8000;
 double AppConfig::power_turbo_factor = 1.5;
 unsigned AppConfig::power_truce_time = 10000;
 bool AppConfig::survival_store_powers = true;
+// Loja da sobrevivência: os poderes novos são comprados no ponto de nascimento, com moedas
+// da equipe (cada 100 pontos de qualquer jogador valem uma; um inimigo básico dá 1, o
+// blindado 4). Os preços seguem o peso do poder: o que segura a onda inteira custa mais
+bool AppConfig::survival_shop = true;
+vector<pair<string, int>> AppConfig::survival_shop_items =
+{
+    {"barricade", 8}, {"mine", 10}, {"turbo", 8}, {"recall", 10}, {"turret", 20},
+    {"repair", 12}, {"revive", 15}, {"truce", 20}, {"teamshield", 20},
+};
+int AppConfig::survival_points_per_coin = 100;
+unsigned AppConfig::survival_shop_idle_time = 6000;
 
 // Modo sobrevivência: ondas cada vez maiores, com inimigos mais blindados (a dificuldade
 // segue a escala das fases da campanha: onda N ~ fase 2N + 1, até a 35)

@@ -304,6 +304,25 @@ public:
      */
     static bool survival_store_powers;
 
+    /**
+     * Sobrevivência: loja no ponto de nascimento de cada jogador. Ligada, os poderes novos só
+     * são comprados (com as moedas da equipe) e não caem mais como bônus; os 8 originais
+     * continuam caindo, como na campanha. Desligada, todos caem como bônus.
+     */
+    static bool survival_shop;
+
+    /**
+     * Itens da loja, na ordem em que aparecem: o nome do poder (Powers::name) e o preço em
+     * moedas. Só os poderes novos (mina, barricada, torreta...); nomes desconhecidos são ignorados.
+     */
+    static std::vector<std::pair<std::string, int>> survival_shop_items;
+
+    /** Pontos da equipe que valem uma moeda da loja (a soma dos pontos de todos os jogadores). */
+    static int survival_points_per_coin;
+
+    /** A loja aberta fecha sozinha depois deste tempo (ms) sem apertar nada nela. */
+    static unsigned survival_shop_idle_time;
+
     // ======================== Modo sobrevivência ========================
 
     /** Inimigos da primeira onda. */

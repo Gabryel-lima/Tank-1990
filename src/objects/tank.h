@@ -142,7 +142,7 @@ public:
      * @param flag - flag a ser verificada
      * @return true se a flag está ativa, false caso contrário
      */
-    bool testFlag(TankStateFlag flag);
+    bool testFlag(TankStateFlag flag) const;
 
     /**
      * Velocidade padrão do tanque.

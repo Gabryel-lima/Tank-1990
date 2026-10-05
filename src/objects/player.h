@@ -187,6 +187,15 @@ public:
      */
     bool takePowerPress();
 
+    /**
+     * O botão de tiro foi apertado desde a última chamada. Conta uma vez por aperto; serve à
+     * loja da sobrevivência, onde o tiro compra (ver shop_mode).
+     */
+    bool takeFirePress();
+
+    /** Loja aberta (sobrevivência): o tiro não dispara, só conta o aperto (takeFirePress). */
+    bool shop_mode = false;
+
     /** Turbo: velocidade multiplicada por AppConfig::power_turbo_factor por @a ms. */
     void boost(Uint32 ms);
 
@@ -202,6 +211,8 @@ public:
 private:
     bool m_power_down = false;     ///< botão de poder segurado no quadro anterior
     bool m_power_pressed = false;  ///< aperto ainda não consumido por takePowerPress
+    bool m_fire_down = false;      ///< botão de tiro segurado no quadro anterior
+    bool m_fire_pressed = false;   ///< aperto ainda não consumido por takeFirePress
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
     bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 

@@ -108,7 +108,9 @@ void Player::update(Uint32 dt)
         // Disparo: respeita o tempo de recarga. O relógio só volta a zero quando sai um tiro:
         // antes, a tentativa que falhava (bala ainda na tela) também o zerava, e o tiro seguinte
         // esperava uma recarga inteira a mais, um atraso que variava conforme o encaixe
-        if(shoot && m_fire_time > m_reload_time && fire() != nullptr)
+        if(shoot && !m_fire_down) m_fire_pressed = true;
+        m_fire_down = shoot;
+        if(!shop_mode && shoot && m_fire_time > m_reload_time && fire() != nullptr)
             m_fire_time = 0;
     }
 
@@ -258,6 +260,13 @@ void Player::changeStarCountBy(int c)
 void Player::setReloadTime(Uint32 ms)
 {
     m_reload_time = ms;
+}
+
+bool Player::takeFirePress()
+{
+    bool pressed = m_fire_pressed;
+    m_fire_pressed = false;
+    return pressed;
 }
 
 bool Player::takePowerPress()

@@ -123,6 +123,7 @@ void Game::draw()
             for(auto item : row)
                 if(item != nullptr) item->draw();
 
+        drawFloor();
         for(auto mine : m_mines) mine->draw();
         for(auto player : m_players) player->draw();
         for(auto enemy : m_enemies) enemy->draw();
