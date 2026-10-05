@@ -182,11 +182,16 @@ void Tank::update(Uint32 dt)
     }), bullets.end());
 }
 
+unsigned Tank::bulletsInUse() const
+{
+    return static_cast<unsigned>(bullets.size());
+}
+
 // Cria e dispara um novo projétil, se permitido.
 Bullet* Tank::fire()
 {
     if(!testFlag(TSF_LIFE)) return nullptr;
-    if(bullets.size() < m_bullet_max_size)
+    if(bulletsInUse() < m_bullet_max_size)
     {
 
         // sound
@@ -429,7 +434,7 @@ void Tank::clearFlag(TankStateFlag flag)
 }
 
 // Testa se uma flag de estado está ativa no tanque.
-bool Tank::testFlag(TankStateFlag flag)
+bool Tank::testFlag(TankStateFlag flag) const
 {
     return (m_flags & flag) == flag;
 }

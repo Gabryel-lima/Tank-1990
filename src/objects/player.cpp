@@ -3,6 +3,7 @@
 #include "../soundmanager.h"
 #include "../controllers.h"
 
+#include <algorithm>
 #include <iostream>
 #include <SDL2/SDL.h>
 
@@ -104,12 +105,13 @@ void Player::update(Uint32 dt)
         else if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
             speed = 0.0; // Para o tanque, exceto se estiver escorregando no gelo
 
-        // Disparo: respeita o tempo de recarga
-        if(shoot && m_fire_time > m_reload_time)
-        {
-            fire();
+        // Disparo: respeita o tempo de recarga. O relógio só volta a zero quando sai um tiro:
+        // antes, a tentativa que falhava (bala ainda na tela) também o zerava, e o tiro seguinte
+        // esperava uma recarga inteira a mais, um atraso que variava conforme o encaixe
+        if(shoot && !m_fire_down) m_fire_pressed = true;
+        m_fire_down = shoot;
+        if(!shop_mode && shoot && m_fire_time > m_reload_time && fire() != nullptr)
             m_fire_time = 0;
-        }
     }
 
     m_fire_time += dt; // Atualiza tempo desde o último tiro
@@ -187,9 +189,9 @@ void Player::destroy()
         return;
     }
 
-    // Se está no nível máximo de estrela, perde só uma estrela (a menos que o modo
-    // de jogo desligue essa "armadura", como o duelo)
-    if(star_count == 3 && star_armor)
+    // Com estrela, o tiro só rebaixa o tanque um estágio (pesado → médio → leve → básico)
+    // em vez de destruí-lo; o modo de jogo pode desligar essa "armadura" (o duelo desliga)
+    if(star_count > 0 && star_armor)
         changeStarCountBy(-1);
     else
     {
@@ -213,11 +215,16 @@ Bullet* Player::fire()
         b->from_player = true;
         // Se tem pelo menos uma estrela, aumenta a velocidade do tiro
         if(star_count > 0) b->speed = AppConfig::bullet_default_speed * 1.3;
-        // Se está no nível máximo, o tiro causa mais dano
+        // Se está no nível máximo, o tiro quebra pedra
         if(star_count == 3) b->increased_damage = true;
         b->demolisher = m_demolisher;
     }
     return b;
+}
+
+unsigned Player::bulletsInUse() const
+{
+    return static_cast<unsigned>(std::count_if(bullets.begin(), bullets.end(), [](const Bullet* b) { return !b->collide; }));
 }
 
 void Player::drawEffects()
@@ -229,19 +236,21 @@ void Player::drawEffects()
 
 // Altera o número de estrelas (power-up) do jogador.
 // Ajusta velocidade, quantidade de balas e limita o valor.
+//   0 estrelas: 1 tiro por vez
+//   1 estrela:  tiro e tanque mais rápidos
+//   2 estrelas: 2 tiros por vez
+//   3 estrelas: 3 tiros por vez, e o tiro quebra pedra
 void Player::changeStarCountBy(int c)
 {
-    int before = star_count;
     star_count += c;
     if(star_count > 3) star_count = 3;
     else if(star_count < 0) star_count = 0;
     if(star_count < 3) m_demolisher = false;
 
-    // Se ganhou estrela e chegou a 2 ou mais, aumenta o limite de balas. Só quando o
-    // número de estrelas sobe de fato: antes, cada estrela pega já com 3 somava mais uma
-    // bala, sem limite
-    if(star_count >= 2 && c > 0) { if(star_count > before) m_bullet_max_size++; }
-    else m_bullet_max_size = 2;
+    // O limite de balas sai só do estágio atual, subindo ou descendo: antes ele era somado
+    // e zerado para 2, e o mesmo estágio dava limites diferentes conforme o caminho (quem
+    // morria renascia com 2 balas, o começo da partida tinha 1)
+    m_bullet_max_size = std::max(AppConfig::player_bullet_max_size, static_cast<unsigned>(star_count));
 
     // Se tem pelo menos uma estrela, aumenta a velocidade padrão
     if(star_count > 0) default_speed = AppConfig::tank_default_speed * 1.3;
@@ -251,6 +260,13 @@ void Player::changeStarCountBy(int c)
 void Player::setReloadTime(Uint32 ms)
 {
     m_reload_time = ms;
+}
+
+bool Player::takeFirePress()
+{
+    bool pressed = m_fire_pressed;
+    m_fire_pressed = false;
+    return pressed;
 }
 
 bool Player::takePowerPress()

@@ -73,6 +73,12 @@ public:
     Bullet* fire();
 
     /**
+     * Só as balas que ainda voam: a que bateu libera o tiro na hora, sem esperar os 240 ms
+     * da animação da explosão (que segurava o tiro seguinte, mais ainda atirando de perto).
+     */
+    unsigned bulletsInUse() const override;
+
+    /**
      * Altera a quantidade de estrelas do jogador.
      * Se o número de estrelas for maior que zero, aumenta a velocidade padrão do tanque.
      * Para duas ou mais estrelas e para cada incremento positivo, aumenta o número máximo de projéteis.
@@ -144,8 +150,9 @@ protected:
 public:
 
     /**
-     * Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque (como no original).
-     * O duelo desliga (ver AppConfig::duel_star_armor).
+     * Com estrela, um tiro só tira uma estrela (o tanque volta um estágio) em vez de
+     * destruí-lo; sem estrela, morre. No Battle City original qualquer tiro mata: esta é
+     * uma regra do jogo. O duelo pode desligar (ver AppConfig::duel_star_armor).
      */
     bool star_armor = true;
 
@@ -180,6 +187,15 @@ public:
      */
     bool takePowerPress();
 
+    /**
+     * O botão de tiro foi apertado desde a última chamada. Conta uma vez por aperto; serve à
+     * loja da sobrevivência, onde o tiro compra (ver shop_mode).
+     */
+    bool takeFirePress();
+
+    /** Loja aberta (sobrevivência): o tiro não dispara, só conta o aperto (takeFirePress). */
+    bool shop_mode = false;
+
     /** Turbo: velocidade multiplicada por AppConfig::power_turbo_factor por @a ms. */
     void boost(Uint32 ms);
 
@@ -195,6 +211,8 @@ public:
 private:
     bool m_power_down = false;     ///< botão de poder segurado no quadro anterior
     bool m_power_pressed = false;  ///< aperto ainda não consumido por takePowerPress
+    bool m_fire_down = false;      ///< botão de tiro segurado no quadro anterior
+    bool m_fire_pressed = false;   ///< aperto ainda não consumido por takeFirePress
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
     bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 

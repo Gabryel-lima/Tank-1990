@@ -177,6 +177,9 @@ protected:
     /** Desenhado por cima de tudo, antes de apresentar o quadro (mensagens dos modos extras). */
     virtual void drawOverlay();
 
+    /** Desenhado no chão, depois do cenário e antes de minas e tanques (marcas dos modos extras). */
+    virtual void drawFloor() {}
+
     /**
      * Aviso de pausa. Campanha: "PAUSE" piscando, como no original. Os modos extras usam a
      * caixa padrão (drawPauseBox).
@@ -298,6 +301,15 @@ protected:
 
     /** Barricada: 4 tijolos (2x2) logo à frente do tanque. @return false se não há espaço */
     bool placeBarricade(Tank* tank);
+
+    /**
+     * Regenera o terreno do mapa @a grid (as linhas do arquivo, ver DuelLayout::readMap): o
+     * tijolo destruído ou rachado volta inteiro, e a pedra e o arbusto destruídos voltam.
+     * Só devolve: não tira o que os jogadores puseram (barricadas) e não põe nada em cima de
+     * tanque, torreta, mina ou bônus (ninguém fica preso dentro da parede). Os tiles de
+     * @a skip ({coluna, linha}) ficam como estão: o modo cuida deles (a águia, a muralha).
+     */
+    void restoreTerrain(const std::vector<std::string>& grid, const std::vector<SDL_Point>& skip);
 
     /** Torreta logo à frente do jogador, da cor e da equipe dele. @return false se não há espaço */
     bool placeTurret(Player* player);
@@ -435,6 +447,11 @@ protected:
      * Indica se o estado atual do jogo deve ser finalizado e transitar para a tela de resultados ou menu.
      */
     bool m_finished;
+    /**
+     * Modos extras: o jogador saiu pela pausa (Esc / Select). Separado de m_finished, que a
+     * sobrevivência usa como "a onda acabou": antes, o Select avançava a onda.
+     */
+    bool m_quit = false;
 
     /**
      * Indica se o jogo está pausado.

@@ -123,6 +123,7 @@ void Game::draw()
             for(auto item : row)
                 if(item != nullptr) item->draw();
 
+        drawFloor();
         for(auto mine : m_mines) mine->draw();
         for(auto player : m_players) player->draw();
         for(auto enemy : m_enemies) enemy->draw();
@@ -527,7 +528,7 @@ void Game::loadLevel(std::string path)
 // Retorna se o jogo terminou
 bool Game::finished() const
 {
-    return m_finished;
+    return m_finished || m_quit;
 }
 
 // Retorna o próximo estado do jogo (menu ou placar)
@@ -946,9 +947,11 @@ void Game::drawPause()
 void Game::drawPauseBox()
 {
     const SDL_Color pause_red = {255, 70, 70, 255};   // 6,2:1 sobre preto
+    const SDL_Color hint = {150, 150, 150, 255};
     drawMessageBox(Engine::getEngine().getRenderer(), {
-        {"PAUSE", pause_red, 1, 8},
-        {"ENTER / START", {150, 150, 150, 255}, 3, 0},
+        {"PAUSE", pause_red, 1, 10},
+        {"ENTER / START: PLAY", hint, 3, 6},
+        {"ESC / SELECT: MENU", hint, 3, 0},
     }, pause_red);
 }
 
@@ -957,8 +960,12 @@ void Game::extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause)
     if(ev->type == SDL_KEYDOWN)
     {
         SDL_Keycode key = ev->key.keysym.sym;
+        // Esc só sai com o jogo pausado (a caixa da pausa diz): sem querer, no meio da
+        // partida, não perde nada
         if(key == SDLK_ESCAPE)
-            m_finished = true;
+        {
+            if(m_pause) m_quit = true;
+        }
         else if(results_ready)
         {
             // Qualquer tecla de tiro ou Enter volta ao menu
@@ -972,8 +979,11 @@ void Game::extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause)
     }
     else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
     {
+        // Select, como o Esc: só na pausa
         if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
-            m_finished = true;
+        {
+            if(m_pause) m_quit = true;
+        }
         else if(results_ready && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
                                   ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
             m_finished = true;
@@ -1343,6 +1353,45 @@ bool Game::placeBarricade(Tank* tank)
             m_level.at(r).at(c) = new Brick(c * t, r * t);
     SoundManager::getInstance().playSound("bonus");
     return true;
+}
+
+void Game::restoreTerrain(const std::vector<std::string>& grid, const std::vector<SDL_Point>& skip)
+{
+    const int t = AppConfig::tile_rect.w;
+    std::vector<SDL_Rect> busy;
+    for(Player* p : m_players) if(!p->to_erase) busy.push_back(p->collision_rect);
+    for(Enemy* e : m_enemies) if(!e->to_erase) busy.push_back(e->collision_rect);
+    for(Turret* turret : m_turrets) if(!turret->to_erase) busy.push_back(turret->collision_rect);
+    for(Mine* mine : m_mines) if(!mine->to_erase) busy.push_back(mine->collision_rect);
+    for(Bonus* bonus : m_bonuses) if(!bonus->to_erase) busy.push_back(bonus->collision_rect);
+
+    for(int row = 0; row < m_level_rows_count && row < static_cast<int>(grid.size()); row++)
+        for(int column = 0; column < m_level_columns_count && column < static_cast<int>(grid[row].size()); column++)
+        {
+            if(std::any_of(skip.begin(), skip.end(), [&](SDL_Point p) { return p.x == column && p.y == row; }))
+                continue;
+            char symbol = grid[row][column];
+            if(symbol == '%')
+            {
+                // Arbusto não bloqueia ninguém: volta mesmo com alguém em cima
+                bool there = std::any_of(m_bushes.begin(), m_bushes.end(), [&](Object* b) {
+                    return !b->to_erase && b->pos_x == column * t && b->pos_y == row * t; });
+                if(!there) m_bushes.push_back(new Object(column * t, row * t, ST_BUSH));
+                continue;
+            }
+            if(symbol != '#' && symbol != '@') continue; // água e gelo não são destruídos
+
+            Object*& cell = m_level.at(row).at(column);
+            bool brick = (symbol == '#');
+            // Pedra que está lá fica; tijolo é trocado por um inteiro (pode estar rachado)
+            if(cell != nullptr && !cell->to_erase && (!brick || cell->type != ST_BRICK_WALL)) continue;
+            SDL_Rect area = {column * t, row * t, t, t};
+            if(std::any_of(busy.begin(), busy.end(), [&](const SDL_Rect& r) { return SDL_HasIntersection(&r, &area); }))
+                continue;
+            delete cell;
+            cell = brick ? static_cast<Object*>(new Brick(column * t, row * t))
+                         : new Object(column * t, row * t, ST_STONE_WALL);
+        }
 }
 
 bool Game::placeTurret(Player* player)

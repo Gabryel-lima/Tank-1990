@@ -250,7 +250,7 @@ O validador limita o mínimo possível quem desenha. **Erro** (o mapa é recusad
 - **IA dos reforços:** o bot calcula um caminho pelo mapa (busca em grade, como num GPS), contornando pedra e água e abrindo caminho a tiro pelos tijolos, então funciona em qualquer mapa, inclusive nos personalizados. Ele atira quando um inimigo ou a base inimiga está na linha de tiro, vira para atirar em quem aparece ao lado e **segura a mira** enquanto o alvo continua na linha (antes virava e desvirava várias vezes por segundo); não dá meia-volta logo depois de virar; persegue um inimigo com histerese (começa a caçar a 10 blocos e só desiste a 14); os defensores guardam a base (um no pátio, à mesma distância dos dois flancos), cada um no seu posto, sem tapar a saída de quem nasce atrás; e, se ficar preso, desvia e recalcula. A IA nunca atira na direção da própria base.
 - **Fogo amigo:** tiros não ferem companheiros. O tiro de um **jogador** destrói a **própria base** (a rodada vai para o adversário) e derruba os tijolos em volta dela, como no original, e também a pedra colorida da própria zona (ver abaixo): dá para abrir um ângulo de tiro, mas cuidado com a mira. O tiro do bot de reforço não fere a própria base.
 - **Bônus:** com o mapa vazio de bônus por 10 s, surge o próximo. Só jogadores coletam (reforços não).
-- Efeitos no duelo: **granada** explode os inimigos em campo, inclusive com escudo ou barco (é uma explosão, não um tiro; o companheiro não é atingido); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **3 estrelas não seguram um tiro** (na campanha, o tiro só tira uma estrela): o canhão quebra pedra, mas não vale uma vida extra.
+- Efeitos no duelo: **granada** explode os inimigos em campo, inclusive com escudo ou barco (é uma explosão, não um tiro; o companheiro não é atingido); **capacete** dá escudo por **6 s** (10 s na campanha); **relógio** imobiliza a equipe inimiga por 4 s (humanos ainda giram e atiram); **pá** reforça a **sua** base com pedra; **canhão** (3 estrelas) quebra pedra do cenário, mas não perto das bases (ver abaixo). Granada e canhão são os mais raros. No duelo, **estrela não segura tiro** (na campanha e na sobrevivência, o tiro só rebaixa o tanque um estágio): o canhão quebra pedra, mas não vale vidas extras.
 - **Zona da base:** perto de cada águia (colunas 9 a 16, nas 7 linhas do lado da base), o canhão não vale: a bala age como uma comum, desgasta tijolo e para na pedra. A pedra da zona fica **na cor da equipe dona** (dourada embaixo, verde em cima): o adversário não a derruba (nem com o canhão, só com o tiro demolidor), mas **qualquer tiro de jogador da própria equipe a derruba**, como os tijolos da própria muralha. O defensor abre o caminho que quiser em casa, por exemplo para tirar um atacante escondido atrás de uma pedra; o tiro dos bots de reforço e da torreta não derruba. O dono é decidido pela **parede inteira** (blocos de pedra ligados lado com lado): a parede toda dentro da zona é da equipe; a que cruza a borda é pedra comum (cinza, o canhão quebra), então nenhuma parede fica metade de cada jeito. A muralha da águia é sempre da equipe.
 - **Tiro demolidor (segundo estágio do tanque):** quem pega o **canhão já tendo estrela** (na mesma vida) ganha o tiro demolidor. Ele derruba a **pedra da base inimiga** (a frente, a pá e a base toda de pedra do 1 contra 3), mas **só disparado de dentro da zona dela**: abre o ataque por cima para quem chega perto, sem tiro de longe, de uma base para a outra. Quem tem o tiro demolidor dá um brilho branco rápido a cada segundo e aparece com o ícone do canhão no painel; **a pedra colorida da base ameaçada pisca junto com ele**, no mesmo ritmo, avisando o defensor. Morrer faz perdê-lo. Quantas estrelas são exigidas fica em `AppConfig::duel_demolisher_stars` (padrão 1).
 - **Cadência:** no duelo, cada jogador dispara no máximo **3 tiros por segundo** (`AppConfig::duel_max_shots_per_second`), para que uma rajada não derrube a base inimiga sem chance de defesa.
@@ -266,7 +266,7 @@ cd build/bin
 ```
 
 A IA não joga como uma pessoa, então os números indicam tendências (um bônus que decide a rodada sozinho, um mapa que favorece um lado), não o resultado exato entre jogadores.
-- Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
+- Enter / Start pausa; com o jogo pausado, Esc / Select abandona a partida (a caixa da pausa mostra os dois). Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
 
 ## 🛡️ Modo Sobrevivência (Extra Modes)
 
@@ -290,11 +290,18 @@ A IA não joga como uma pessoa, então os números indicam tendências (um bônu
 
 Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os símbolos das fases em `resources/survival_levels/`, uma linha `arquivo;Nome` no `maps.txt` da pasta e `make check-maps`. O jogo monta a águia e a muralha de tijolos dela; o mapa precisa deixar livres os pontos onde os inimigos surgem (no topo) e onde os jogadores nascem, e ligar todos eles e a muralha da águia por caminhos da largura de um tanque. Mapas que não passam são recusados ao iniciar o jogo, com o motivo no terminal.
 
-- O mapa vai se desgastando de onda em onda.
 - Cada onda tem mais inimigos (6, 8, 10... até 40), mais deles no mapa ao mesmo tempo (4 na primeira onda, +1 por jogador extra e +1 a cada 3 ondas, até 10) e mais blindados (a onda N usa a dificuldade da fase 2N + 1 da campanha, até a 35).
-- Entre as ondas há uma pausa com o aviso **WAVE N** (os jogadores já podem se posicionar) e a muralha de tijolos da águia é refeita.
-- A cada **5 ondas**, todos ganham uma vida e quem já tinha caído **volta ao jogo**.
+- Entre as ondas há uma pausa com o aviso **WAVE N** (os jogadores já podem se posicionar), e sobreviver a uma onda é recompensado:
+  - **o mapa inteiro regenera**: os tijolos, a pedra e os arbustos destruídos voltam, e a muralha da águia é refeita. Só volta o que era do mapa: as barricadas que os jogadores puseram ficam, nada nasce em cima de um tanque, torreta, mina ou bônus, e a pedra da pá fica até o tempo dela acabar;
+  - **quem tinha caído volta ao jogo** com uma vida (o aviso mostra **P2 IS BACK**, na cor do jogador);
+  - a cada **3 ondas**, todos ganham uma vida (**+1 LIFE**).
 - Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia). Os jogadores têm cores diferentes, mas são **uma equipe só**: todo bônus é **cinza**, com o ícone original, e qualquer jogador pega (as cores de equipe nos bônus são só do duelo).
+- **Loja:** os 8 bônus originais continuam caindo dos tanques que piscam, como na campanha; os 9 poderes novos são **comprados**, com as **moedas da equipe**: cada 100 pontos de qualquer jogador valem uma moeda (um inimigo básico dá 1, o blindado 4), e o painel mostra o saldo no bloco dourado **$**. A loja de cada jogador fica no **seu ponto de nascimento**, ao lado da base, marcado no chão com cantoneiras na cor dele:
+  - parado no ponto, com o espaço de poder vazio, o **botão de poder** abre a loja e passa para o próximo item; o **tiro compra** (o preço fica vermelho sem moedas suficientes); andar fecha, e ela fecha sozinha depois de 6 s sem apertar nada;
+  - parado no ponto **sem abrir a loja, o tiro atira normalmente**: quem defende a base dali não compra sem querer. A dica **POWER: SHOP** aparece só nos primeiros 3 s, para não tapar o mapa;
+  - com a loja aberta o tanque não atira: comprar é um momento de risco, e a hora boa é entre as ondas;
+  - com um poder guardado, o botão de poder o usa, como em qualquer lugar (uma torreta comprada pode ir logo na frente da base);
+  - preços: barricada e turbo 8, mina e retorno 10, reparo 12, reviver 15, torreta, trégua e escudo de equipe 20. A lista, a ordem e os preços ficam em `AppConfig::survival_shop_items`; `AppConfig::survival_shop = false` volta ao sorteio de todos os poderes no mapa.
 - Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só.
 - Os números ficam em `AppConfig::survival_*`.
 
@@ -329,7 +336,7 @@ Além dos 8 bônus originais, os modos extras têm 9 poderes novos, com pixel ar
 
 **No painel lateral**, abaixo das vidas de cada jogador, aparece o poder guardado (um quadrado vazio quando não há nenhum). No duelo, de 1 contra 1 até 4 jogadores, o painel de cada equipe cresce para mostrar uma linha por jogador; na sobrevivência, o ícone fica ao lado das vidas.
 
-**Na sobrevivência** os mesmos 5 poderes também são guardáveis (`AppConfig::survival_store_powers = true`). Os bônus surgem em lugares aleatórios do mapa, então uma mina ou uma torreta usada na hora quase sempre cairia num canto sem inimigos; guardada, vira defesa da águia. Com `survival_store_powers = false`, todo poder é usado na hora em que é pego.
+**Na sobrevivência** os poderes novos são comprados na loja (ver acima), e os mesmos 5 poderes também são guardáveis (`AppConfig::survival_store_powers = true`). Os bônus surgem em lugares aleatórios do mapa, então uma mina ou uma torreta usada na hora quase sempre cairia num canto sem inimigos; guardada, vira defesa da águia. Com `survival_store_powers = false`, todo poder é usado na hora em que é pego.
 
 **Sorteio:** no duelo, os poderes novos dividem o sorteio com os originais; os mais fortes (torreta, reviver e escudo de equipe) são raros como a granada e o canhão (em 1 contra 1 o reviver vira só uma vida extra). As chances ficam em `Powers::duelTable()` e `Powers::survivalTable()` (`src/app_state/powers.cpp`); os tempos e alcances, em `AppConfig::power_*`.
 
@@ -354,12 +361,12 @@ O jogo possui 8 tipos diferentes de power-ups que aparecem aleatoriamente quando
 
 O sistema de estrelas (0-3 níveis) melhora progressivamente o tanque:
 
-- **0 estrelas**: Velocidade e poder de fogo padrão, máximo de 2 projéteis simultâneos
-- **1 estrela**: Velocidade aumentada em 30%, projéteis 30% mais rápidos
-- **2 estrelas**: Velocidade aumentada, máximo de 3 projéteis simultâneos
-- **3 estrelas**: Velocidade aumentada, máximo de 3 projéteis, projéteis causam dano extra
+- **0 estrelas**: tanque básico, 1 tiro por vez
+- **1 estrela**: tanque e tiro 30% mais rápidos
+- **2 estrelas**: 2 tiros por vez (rajada dupla)
+- **3 estrelas**: 3 tiros por vez, e o tiro quebra pedra
 
-**Nota**: Se você tem 3 estrelas e é atingido, perde apenas 1 estrela. Com menos de 3 estrelas, perde todas as estrelas ao ser destruído.
+O tanque muda de desenho a cada estágio, do leve ao pesado. **Ser atingido com estrela não mata: o tanque volta um estágio** (do pesado para o médio, para o leve, para o básico); só o tanque básico é destruído, e aí perde também o poder guardado. Vale na campanha e na sobrevivência. No Battle City original qualquer tiro mata; esta é uma regra deste jogo.
 
 ## 🎮 Controles
 
@@ -378,7 +385,7 @@ como reserva de quem não tiver controle. Não há nada para configurar.
 - **Mover**: D-pad ou analógico esquerdo
 - **Atirar**: qualquer botão frontal (A, B, X ou Y)
 - **Usar o poder guardado** (duelo e sobrevivência): LB
-- **Start**: pausa · **Back/Select**: volta ao menu
+- **Start**: pausa · **Back/Select**: volta ao menu (nos modos extras, só com o jogo pausado)
 - **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
 **No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`, poder no

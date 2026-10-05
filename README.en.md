@@ -249,7 +249,7 @@ The validator limits map makers as little as possible. An **error** (the map is 
 - **Reinforcement AI:** the bot plans a route across the map (grid pathfinding, like a GPS), going around stone and water and shooting its way through bricks, so it works on any map, including custom ones. It fires when an enemy or the enemy base is in its line of fire, turns to shoot anyone who shows up beside it and **holds its aim** while the target stays in line (it used to turn back and forth several times a second); it doesn't do a U-turn right after turning; it chases enemies with hysteresis (starts at 10 tiles, gives up at 14); defenders guard the base (one in the yard, the same distance from both flanks), each at its own post, without blocking whoever spawns behind them; and, if it gets stuck, it sidesteps and plans again. The AI never fires toward its own base.
 - **Friendly fire:** bullets don't hurt teammates. A **player's** shot destroys **your own base** (the round goes to the opponent) and breaks the bricks around it, as in the original, as well as the painted stone of your own zone (see below): you can open a firing angle, but mind your aim. Reinforcement bots' shots don't hurt their own base.
 - **Power-ups:** after 10 s with no power-up on the map, the next one appears. Only players can pick them up (reinforcements can't).
-- Duel effects: **grenade** blows up the enemy tanks on the field, even with a shield or a boat (it's an explosion, not a shot; teammates are safe); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **3 stars don't absorb a hit** (in the campaign a hit only removes one star): the gun breaks stone but isn't worth an extra life.
+- Duel effects: **grenade** blows up the enemy tanks on the field, even with a shield or a boat (it's an explosion, not a shot; teammates are safe); **helmet** gives a shield for **6 s** (10 s in the campaign); **clock** pins the enemy team in place for 4 s (humans can still turn and shoot); **shovel** fortifies **your** base with stone; **gun** (3 stars) breaks the map's stone, but not near the bases (see below). Grenade and gun are the rarest. In the duel, **stars don't absorb hits** (in the campaign and in survival a hit only drops the tank one stage): the gun breaks stone but isn't worth extra lives.
 - **Base zone:** near each eagle (columns 9 to 16, on the 7 rows on the base's side) the gun has no effect: bullets act like regular ones, wearing down bricks and stopping at stone. The zone's stone is **painted in the owning team's color** (gold at the bottom, green at the top): the opponent can't break it (not even with the gun, only with the demolisher shot), but **any shot from a player of the owning team breaks it**, like the bricks of your own wall. The defender can open whatever path they want at home, for instance to flush out an attacker hiding behind a stone; reinforcement bots' and turrets' shots don't break it. Ownership is decided by the **whole wall** (stone blocks joined side by side): a wall entirely inside the zone belongs to the team; one crossing the edge is ordinary stone (gray, the gun breaks it), so no wall ends up half one way and half the other. The eagle's wall always belongs to the team.
 - **Demolisher shot (the tank's second stage):** picking up the **gun while already holding a star** (in the same life) gives the demolisher shot. It breaks the **enemy base's stone** (the front, the shovel's stone and the all-stone base of 1 vs 3), but **only when fired from inside that base's zone**: it opens an attack over the top for whoever gets close, with no long-range shots from one base to the other. A demolisher tank gives a quick white glint every second and shows the gun icon in the side panel; **the threatened base's painted stone flashes along with it**, at the same pace, warning the defender. Dying loses it. The stars required are in `AppConfig::duel_demolisher_stars` (default 1).
 - **Fire rate:** in duel mode each player fires at most **3 shots per second** (`AppConfig::duel_max_shots_per_second`), so a barrage can't take down the enemy base with no chance to defend.
@@ -265,7 +265,7 @@ cd build/bin
 ```
 
 The AI doesn't play like a person, so the numbers show trends (a power-up that decides the round on its own, a map that favors one side), not the exact result between players.
-- Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
+- Enter / Start pauses; while paused, Esc / Select leaves the match (the pause box shows both). Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
 
 ## 🛡️ Survival Mode (Extra Modes)
 
@@ -289,11 +289,18 @@ The AI doesn't play like a person, so the numbers show trends (a power-up that d
 
 Adding a map works like in the duel: a **26×26** grid using the level symbols in `resources/survival_levels/`, a `file;Name` line in that folder's `maps.txt`, and `make check-maps`. The game builds the eagle and its brick wall; the map must keep clear the spots where enemies appear (at the top) and where players spawn, and connect all of them and the eagle's wall with tank-wide paths. Maps that fail are rejected when the game starts, with the reason printed in the terminal.
 
-- The map wears down from wave to wave.
 - Each wave has more enemies (6, 8, 10... up to 40), more of them on the map at once (4 on the first wave, +1 per extra player and +1 every 3 waves, up to 10) and tougher ones (wave N uses the difficulty of campaign stage 2N + 1, up to 35).
-- Between waves there's a pause with a **WAVE N** banner (players can already get into position) and the eagle's brick wall is rebuilt.
-- Every **5 waves**, everyone gets an extra life and anyone who had fallen **comes back**.
+- Between waves there's a pause with a **WAVE N** banner (players can already get into position), and surviving a wave is rewarded:
+  - **the whole map regenerates**: destroyed bricks, stone and bushes come back, and the eagle's wall is rebuilt. Only what belongs to the map comes back: barricades placed by players stay, nothing grows on top of a tank, turret, mine or power-up, and the shovel's stone stays until its time runs out;
+  - **anyone who had fallen comes back** with one life (the banner shows **P2 IS BACK**, in the player's color);
+  - every **3 waves**, everyone gets an extra life (**+1 LIFE**).
 - Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle). Players have different colors but are **one team**: every power-up is **gray**, with the original icon, and any player can pick it up (team-colored power-ups are duel-only).
+- **Shop:** the 8 original power-ups still drop from flashing tanks, as in the campaign; the 9 new powers are **bought** with the **team's coins**: every 100 points from any player are worth one coin (a basic enemy gives 1, an armored one 4), and the side panel shows the balance in the gold **$** block. Each player's shop is at **their spawn point**, next to the base, marked on the floor with corner brackets in their color:
+  - standing still on the spot, with an empty power slot, the **power button** opens the shop and moves to the next item; **fire buys** (the price turns red without enough coins); moving closes it, and it closes by itself after 6 s without input;
+  - standing on the spot **without opening the shop, fire shoots as usual**: whoever defends the base from there never buys by accident. The **POWER: SHOP** hint shows only for the first 3 s, so it doesn't cover the map;
+  - with the shop open the tank doesn't shoot: buying is a risky moment, and the best time is between waves;
+  - holding a power, the power button uses it, as anywhere (a bought turret can go right in front of the base);
+  - prices: barricade and turbo 8, mine and recall 10, repair 12, revive 15, turret, truce and team shield 20. The list, order and prices live in `AppConfig::survival_shop_items`; `AppConfig::survival_shop = false` goes back to every power dropping on the map.
 - It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
 - The numbers live in `AppConfig::survival_*`.
 
@@ -328,7 +335,7 @@ On top of the 8 original bonuses, the extra modes have 9 new powers, with their 
 
 **In the side panel**, below each player's lives, the held power is shown (an empty square when there is none). In the duel, from 1 vs 1 up to 4 players, each team's panel grows to show one line per player; in survival, the icon sits next to the lives.
 
-**In survival** the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
+**In survival** the new powers are bought at the shop (see above), and the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
 
 **Draw:** in the duel, the new powers share the draw with the originals; the strongest ones (turret, revive and team shield) are as rare as the grenade and the gun (in 1 vs 1, revive is just an extra life). The odds are in `Powers::duelTable()` and `Powers::survivalTable()` (`src/app_state/powers.cpp`); durations and ranges in `AppConfig::power_*`.
 
@@ -353,13 +360,12 @@ Eight power-ups appear at random when you destroy enemy tanks:
 
 Stars (levels 0-3) progressively upgrade the tank:
 
-- **0 stars**: default speed and firepower, at most 2 bullets at once
-- **1 star**: 30% faster movement, 30% faster bullets
-- **2 stars**: faster movement, at most 3 bullets at once
-- **3 stars**: faster movement, at most 3 bullets, bullets deal extra damage
+- **0 stars**: basic tank, 1 bullet at a time
+- **1 star**: 30% faster tank and bullets
+- **2 stars**: 2 bullets at a time (double burst)
+- **3 stars**: 3 bullets at a time, and bullets break stone
 
-**Note**: with 3 stars, getting hit costs you only 1 star. With fewer than 3,
-you lose all of them when destroyed.
+The tank's look changes at each stage, from light to heavy. **Getting hit with a star doesn't kill you: the tank drops one stage** (heavy to medium, to light, to basic); only the basic tank is destroyed, and then it also loses the held power. This applies to the campaign and to survival. In the original Battle City any hit kills; this is a rule of this game.
 
 ## 🎮 Controls
 
@@ -378,7 +384,7 @@ automatically backs up anyone without one. There is nothing to configure.
 - **Move**: D-pad or left stick
 - **Fire**: any face button (A, B, X or Y)
 - **Use the held power** (duel and survival): LB
-- **Start**: pause · **Back/Select**: back to the menu
+- **Start**: pause · **Back/Select**: back to the menu (in the extra modes, only while paused)
 - **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
 **On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`,

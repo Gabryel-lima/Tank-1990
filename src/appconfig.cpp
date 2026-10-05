@@ -158,9 +158,10 @@ unsigned AppConfig::duel_bonus_interval = 10000;
 // (tools/duel_sim), quem pegava o capacete cinza no 1 contra 1 vencia 78% das rodadas
 // (65% com 6 s)
 unsigned AppConfig::duel_helmet_time = 6000;
-// Com 3 estrelas, um tiro só tira uma estrela em vez de destruir o tanque? No duelo, não:
-// essa "armadura" fazia do canhão uma vida extra que ainda quebra pedra (quem pegava
-// vencia 70-74% das rodadas; sem ela, 49-68%). O barco e o capacete continuam protegendo
+// Com estrela, um tiro só rebaixa o tanque um estágio em vez de destruí-lo (como na campanha
+// e na sobrevivência)? No duelo, não: quando a armadura valia só com 3 estrelas, ela já fazia
+// do canhão uma vida extra que ainda quebra pedra (quem pegava vencia 70-74% das rodadas; sem
+// ela, 49-68%), e agora ela vale em todo estágio. O barco e o capacete continuam protegendo
 bool AppConfig::duel_star_armor = false;
 // A equipe menor ganha base de pedra se a outra tiver pelo menos esta proporção de tanques
 int AppConfig::duel_stone_wall_ratio = 2;
@@ -190,6 +191,17 @@ unsigned AppConfig::power_turbo_time = 8000;
 double AppConfig::power_turbo_factor = 1.5;
 unsigned AppConfig::power_truce_time = 10000;
 bool AppConfig::survival_store_powers = true;
+// Loja da sobrevivência: os poderes novos são comprados no ponto de nascimento, com moedas
+// da equipe (cada 100 pontos de qualquer jogador valem uma; um inimigo básico dá 1, o
+// blindado 4). Os preços seguem o peso do poder: o que segura a onda inteira custa mais
+bool AppConfig::survival_shop = true;
+vector<pair<string, int>> AppConfig::survival_shop_items =
+{
+    {"barricade", 8}, {"mine", 10}, {"turbo", 8}, {"recall", 10}, {"turret", 20},
+    {"repair", 12}, {"revive", 15}, {"truce", 20}, {"teamshield", 20},
+};
+int AppConfig::survival_points_per_coin = 100;
+unsigned AppConfig::survival_shop_idle_time = 6000;
 
 // Modo sobrevivência: ondas cada vez maiores, com inimigos mais blindados (a dificuldade
 // segue a escala das fases da campanha: onda N ~ fase 2N + 1, até a 35)
@@ -202,7 +214,8 @@ int AppConfig::survival_max_on_map = 10;
 unsigned AppConfig::survival_first_spawn_delay = 1500;
 unsigned AppConfig::survival_min_spawn_delay = 500;
 unsigned AppConfig::survival_wave_intro_time = 3000;
-int AppConfig::survival_life_every_waves = 5;
+// A cada 3 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
+int AppConfig::survival_life_every_waves = 3;
 
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;

@@ -76,6 +76,13 @@ public:
     virtual Bullet* fire();
 
     /**
+     * Balas que contam para o limite de tiros simultâneos (m_bullet_max_size). Nos inimigos,
+     * todas, inclusive a que já bateu e ainda mostra a explosão; o jogador conta só as que
+     * estão voando (ver Player::bulletsInUse).
+     */
+    virtual unsigned bulletsInUse() const;
+
+    /**
      * Retorna o retângulo de colisão previsto para o próximo frame,
      * considerando a velocidade e direção atuais.
      * @param dt - tempo previsto para o próximo frame
@@ -135,7 +142,7 @@ public:
      * @param flag - flag a ser verificada
      * @return true se a flag está ativa, false caso contrário
      */
-    bool testFlag(TankStateFlag flag);
+    bool testFlag(TankStateFlag flag) const;
 
     /**
      * Velocidade padrão do tanque.

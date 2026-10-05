@@ -67,7 +67,7 @@ private:
         PHASE_RESULTS     ///< fim de jogo: onda alcançada e pontos de cada jogador
     };
 
-    /** Começa a onda @a wave: aviso, muralha refeita, vida extra a cada N ondas. */
+    /** Começa a onda @a wave: aviso, mapa regenerado, quem caiu volta, vida extra a cada N ondas. */
     void startWave(int wave);
 
     /** Dificuldade da onda na escala das fases da campanha (1 a 35). */
@@ -76,8 +76,50 @@ private:
     /** Refaz os tijolos em volta da águia (sem cobrir tanques, nem a pedra da pá). */
     void rebuildBaseWalls();
 
-    /** Vida extra para todos; quem tinha caído volta ao mapa. */
-    void rewardLives();
+    /** Dá o poder ao jogador: guardável vai para o espaço de poder; os outros valem na hora. */
+    void givePower(Player* player, SpriteType type);
+
+    // ===== Loja (AppConfig::survival_shop) =====
+
+    /** Estado da loja de cada jogador. */
+    struct Shop
+    {
+        bool open = false;
+        int item = 0;      ///< índice em shopItems()
+        Uint32 idle = 0;   ///< tempo sem apertar nada na loja aberta (ms)
+        Uint32 parked = 0; ///< tempo parado no ponto podendo comprar (a dica só aparece no começo)
+    };
+    Shop m_shop[4];
+    int m_coins_spent = 0;
+
+    /** Itens da loja (poder e preço), de AppConfig::survival_shop_items. */
+    static std::vector<std::pair<SpriteType, int>> shopItems();
+
+    /** Moedas da equipe: os pontos de todos os jogadores, em moedas, menos o que já foi gasto. */
+    int coins() const;
+
+    /** Ponto de compra do jogador: o ponto onde ele nasce. */
+    SDL_Point padOf(const Player* player) const;
+    bool onPad(const Player* player) const;
+
+    /** Dá para abrir a loja: parado no próprio ponto, vivo e com o espaço de poder vazio. */
+    bool canShop(const Player* player) const;
+
+    /** Poder abre a loja e troca o item, tiro compra, andar fecha; fora dela, poder usa o guardado. */
+    void updateShop(Uint32 dt);
+
+    /** Compra com as moedas da equipe. @return false sem moedas ou com o espaço ocupado */
+    bool buy(Player* player, SpriteType type, int price);
+
+    void drawFloor() override;
+    void drawShop(const Player* player);
+    static std::string shopName(SpriteType type);
+
+    /** Tiles da muralha da águia ({coluna, linha}): laterais e frente. */
+    std::vector<SDL_Point> baseWallTiles() const;
+
+    /** O mapa volta ao do arquivo (o que foi destruído), e a muralha da águia é refeita. */
+    void regenerateMap();
 
     /** Um jogador que caiu volta com uma vida. @return false se ninguém caiu */
     bool reviveOne();
@@ -98,6 +140,7 @@ private:
     int m_map;                 ///< mapa em jogo (índice em AppConfig::survival_maps)
     int m_destroyed;           ///< inimigos destruídos na partida
     bool m_life_reward;        ///< o aviso desta onda inclui a vida extra
+    std::vector<int> m_revived; ///< jogadores que voltaram nesta onda (índices), para o aviso
     Uint32 m_truce_time = 0;   ///< tempo restante da trégua (ms): sem inimigos novos
 };
 
