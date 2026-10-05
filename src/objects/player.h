@@ -193,7 +193,13 @@ public:
      */
     bool takeFirePress();
 
-    /** Loja aberta (sobrevivência): o tiro não dispara, só conta o aperto (takeFirePress). */
+    /**
+     * Passos na loja desde a última chamada: -1 por aperto do LB, +1 por aperto do RB ou do
+     * botão de poder do teclado (que só avança).
+     */
+    int takeShopStep();
+
+    /** Na loja (sobrevivência): o tiro não dispara, só conta o aperto (takeFirePress). */
     bool shop_mode = false;
 
     /** Turbo: velocidade multiplicada por AppConfig::power_turbo_factor por @a ms. */
@@ -213,6 +219,9 @@ private:
     bool m_power_pressed = false;  ///< aperto ainda não consumido por takePowerPress
     bool m_fire_down = false;      ///< botão de tiro segurado no quadro anterior
     bool m_fire_pressed = false;   ///< aperto ainda não consumido por takeFirePress
+    bool m_shop_left_down = false;  ///< LB segurado no quadro anterior
+    bool m_shop_right_down = false; ///< RB (ou poder do teclado) segurado no quadro anterior
+    int m_shop_step = 0;            ///< passos na loja ainda não consumidos por takeShopStep
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
     bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 

@@ -46,6 +46,7 @@ void Player::update(Uint32 dt)
     if(!testFlag(TSF_MENU))
     {
         bool up = false, down = false, left = false, right = false, shoot = false, power = false;
+        bool shop_left = false, shop_right = false; // navegação na loja (sobrevivência)
 
         // Jogador do computador: a IA do modo de jogo decide no lugar do teclado
         if(cpu)
@@ -70,6 +71,7 @@ void Player::update(Uint32 dt)
             right = key_state[keys->right];
             shoot = key_state[keys->fire];
             power = key_state[keys->power];
+            shop_right = power; // no teclado, o botão de poder avança na loja
         }
 
         // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira
@@ -86,8 +88,12 @@ void Player::update(Uint32 dt)
                           || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B)
                           || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_X)
                           || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y);
-            // LB usa o poder guardado (modos extras)
-            power = power || SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+            // LB usa o poder guardado (modos extras); na loja, LB e RB escolhem o item
+            bool lb = SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+            bool rb = SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+            power = power || lb;
+            shop_left = lb;
+            shop_right = shop_right || rb;
         }
 
         // Movimentação: uma direção por vez, na ordem cima/baixo/esquerda/direita
@@ -99,6 +105,10 @@ void Player::update(Uint32 dt)
         // Botão de poder: conta só o momento em que é apertado
         if(power && !m_power_down) m_power_pressed = true;
         m_power_down = power;
+        if(shop_left && !m_shop_left_down) m_shop_step--;
+        if(shop_right && !m_shop_right_down) m_shop_step++;
+        m_shop_left_down = shop_left;
+        m_shop_right_down = shop_right;
 
         if(up || down || left || right)
             speed = default_speed * (m_turbo_time > 0 ? AppConfig::power_turbo_factor : 1.0);
@@ -260,6 +270,13 @@ void Player::changeStarCountBy(int c)
 void Player::setReloadTime(Uint32 ms)
 {
     m_reload_time = ms;
+}
+
+int Player::takeShopStep()
+{
+    int step = m_shop_step;
+    m_shop_step = 0;
+    return step;
 }
 
 bool Player::takeFirePress()

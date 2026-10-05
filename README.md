@@ -291,17 +291,16 @@ A IA não joga como uma pessoa, então os números indicam tendências (um bônu
 Criar um mapa novo segue o mesmo caminho do duelo: grade de **26×26** com os símbolos das fases em `resources/survival_levels/`, uma linha `arquivo;Nome` no `maps.txt` da pasta e `make check-maps`. O jogo monta a águia e a muralha de tijolos dela; o mapa precisa deixar livres os pontos onde os inimigos surgem (no topo) e onde os jogadores nascem, e ligar todos eles e a muralha da águia por caminhos da largura de um tanque. Mapas que não passam são recusados ao iniciar o jogo, com o motivo no terminal.
 
 - Cada onda tem mais inimigos (6, 8, 10... até 40), mais deles no mapa ao mesmo tempo (4 na primeira onda, +1 por jogador extra e +1 a cada 3 ondas, até 10) e mais blindados (a onda N usa a dificuldade da fase 2N + 1 da campanha, até a 35).
-- Entre as ondas há uma pausa com o aviso **WAVE N** (os jogadores já podem se posicionar), e sobreviver a uma onda é recompensado:
+- Entre as ondas há um **intervalo de 15 s**, sem inimigos, com a contagem **NEXT WAVE IN N** no alto do mapa; os últimos 3 s são o aviso **WAVE N** da próxima onda. Sobreviver a uma onda é recompensado logo no começo do intervalo:
   - **o mapa inteiro regenera**: os tijolos, a pedra e os arbustos destruídos voltam, e a muralha da águia é refeita. Só volta o que era do mapa: as barricadas que os jogadores puseram ficam, nada nasce em cima de um tanque, torreta, mina ou bônus, e a pedra da pá fica até o tempo dela acabar;
-  - **quem tinha caído volta ao jogo** com uma vida (o aviso mostra **P2 IS BACK**, na cor do jogador);
+  - **quem tinha caído volta ao jogo** com uma vida (o aviso mostra **P2 IS BACK**, na cor do jogador), a tempo de usar a loja;
   - a cada **3 ondas**, todos ganham uma vida (**+1 LIFE**).
 - Bônus, pontos e fogo amigo como na campanha (o tiro do jogador também derruba a própria águia). Os jogadores têm cores diferentes, mas são **uma equipe só**: todo bônus é **cinza**, com o ícone original, e qualquer jogador pega (as cores de equipe nos bônus são só do duelo).
-- **Loja:** os 8 bônus originais continuam caindo dos tanques que piscam, como na campanha; os 9 poderes novos são **comprados**, com as **moedas da equipe**: cada 100 pontos de qualquer jogador valem uma moeda (um inimigo básico dá 1, o blindado 4), e o painel mostra o saldo no bloco dourado **$**. A loja de cada jogador fica no **seu ponto de nascimento**, ao lado da base, marcado no chão com cantoneiras na cor dele:
-  - parado no ponto, com o espaço de poder vazio, o **botão de poder** abre a loja e passa para o próximo item; o **tiro compra** (o preço fica vermelho sem moedas suficientes); andar fecha, e ela fecha sozinha depois de 6 s sem apertar nada;
-  - parado no ponto **sem abrir a loja, o tiro atira normalmente**: quem defende a base dali não compra sem querer. A dica **POWER: SHOP** aparece só nos primeiros 3 s, para não tapar o mapa;
-  - com a loja aberta o tanque não atira: comprar é um momento de risco, e a hora boa é entre as ondas;
-  - com um poder guardado, o botão de poder o usa, como em qualquer lugar (uma torreta comprada pode ir logo na frente da base);
-  - preços: barricada e turbo 8, mina e retorno 10, reparo 12, reviver 15, torreta, trégua e escudo de equipe 20. A lista, a ordem e os preços ficam em `AppConfig::survival_shop_items`; `AppConfig::survival_shop = false` volta ao sorteio de todos os poderes no mapa.
+- **Loja:** os 8 bônus originais continuam caindo dos tanques que piscam, como na campanha; os 9 poderes novos são **comprados**, com as **moedas da equipe**: cada 100 pontos de qualquer jogador valem uma moeda (um inimigo básico dá 1, o blindado 4). O saldo fica no painel, no bloco dourado **$**, e na própria loja. É **uma loja só, da equipe**, que aparece **só no intervalo**, ao lado da base (à esquerda ou à direita, sorteado), como um quadrado dourado com **$** no chão, e some quando vem o aviso da próxima onda:
+  - quem para em cima dela é atendido: **LB e RB** escolhem o item (no teclado, o botão de poder avança), e o **tiro compra**, sem disparar. O preço fica vermelho sem moedas suficientes, e **SLOT FULL** avisa que o espaço de poder já está ocupado (os poderes imediatos continuam à venda);
+  - **um jogador por vez**: o tanque de quem está comprando ocupa o lugar inteiro e barra os outros; quando ele sai, o próximo entra;
+  - os itens vão do mais barato ao mais caro: barricada e turbo 8, mina e retorno 10, reparo 12, reviver 15, torreta, trégua e escudo de equipe 20. A lista e os preços ficam em `AppConfig::survival_shop_items`, o intervalo em `survival_break_time`; `AppConfig::survival_shop = false` volta ao sorteio de todos os poderes no mapa (e a próxima onda vem logo);
+  - o lugar da loja é o mais perto da águia, em chão à vista e com caminho para os tanques; mapa novo não precisa marcar nada.
 - Acaba quando a águia cai ou todos perdem as vidas: a tela final mostra a onda alcançada, os tanques destruídos e os pontos de cada jogador. Tiro / Enter / A volta para a escolha de mapa, com o último selecionado: jogar de novo é um botão só.
 - Os números ficam em `AppConfig::survival_*`.
 
@@ -336,7 +335,7 @@ Além dos 8 bônus originais, os modos extras têm 9 poderes novos, com pixel ar
 
 **No painel lateral**, abaixo das vidas de cada jogador, aparece o poder guardado (um quadrado vazio quando não há nenhum). No duelo, de 1 contra 1 até 4 jogadores, o painel de cada equipe cresce para mostrar uma linha por jogador; na sobrevivência, o ícone fica ao lado das vidas.
 
-**Na sobrevivência** os poderes novos são comprados na loja (ver acima), e os mesmos 5 poderes também são guardáveis (`AppConfig::survival_store_powers = true`). Os bônus surgem em lugares aleatórios do mapa, então uma mina ou uma torreta usada na hora quase sempre cairia num canto sem inimigos; guardada, vira defesa da águia. Com `survival_store_powers = false`, todo poder é usado na hora em que é pego.
+**Na sobrevivência** os poderes novos são comprados na loja do intervalo (ver acima), e os mesmos 5 poderes também são guardáveis (`AppConfig::survival_store_powers = true`). Os bônus surgem em lugares aleatórios do mapa, então uma mina ou uma torreta usada na hora quase sempre cairia num canto sem inimigos; guardada, vira defesa da águia. Com `survival_store_powers = false`, todo poder é usado na hora em que é pego.
 
 **Sorteio:** no duelo, os poderes novos dividem o sorteio com os originais; os mais fortes (torreta, reviver e escudo de equipe) são raros como a granada e o canhão (em 1 contra 1 o reviver vira só uma vida extra). As chances ficam em `Powers::duelTable()` e `Powers::survivalTable()` (`src/app_state/powers.cpp`); os tempos e alcances, em `AppConfig::power_*`.
 

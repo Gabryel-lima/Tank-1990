@@ -22,7 +22,8 @@ struct MessageLine
 /**
  * Caixa preta com borda dupla, do tamanho do texto, centralizada no mapa. Assim a mensagem
  * fica legível em qualquer mapa (texto branco direto sobre gelo ou pedra dava ~1,7:1).
+ * Com @a top >= 0, a caixa fica nessa altura em vez de no meio (para não tapar a ação).
  */
-void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border);
+void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border, int top = -1);
 
 #endif // MESSAGE_BOX_H

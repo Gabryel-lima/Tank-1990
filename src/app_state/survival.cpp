@@ -21,8 +21,6 @@ namespace
     const SDL_Color GRAY = {150, 150, 150, 255};
     const SDL_Color RED = {255, 70, 70, 255};
     const SDL_Color GOLD = {255, 215, 0, 255};
-    // Tempo (ms) que a dica da loja fica visível depois de parar no ponto de compra
-    const Uint32 SHOP_HINT_TIME = 3000;
 
     const Uint32 RESULTS_INPUT_DELAY = 1500;
     const Uint32 RESULTS_TIMEOUT = 30000;
@@ -100,25 +98,29 @@ void Survival::startWave(int wave)
     m_enemy_to_kill = waveEnemies(wave);
     m_enemy_redy_time = 0;
     m_level_end_time = 0;
+}
 
+void Survival::startBreak()
+{
     // Recompensa por sobreviver a uma onda: o mapa inteiro regenera (a muralha da águia
     // também), quem tinha caído volta e, a cada N ondas, todos ganham uma vida
+    m_phase = PHASE_BREAK;
+    m_phase_time = 0;
+    m_level_end_time = 0;
     m_revived.clear();
-    if(wave > 1)
+    regenerateMap();
+    while(!m_killed_players.empty())
     {
-        regenerateMap();
-        while(!m_killed_players.empty())
-        {
-            m_revived.push_back(m_killed_players.front()->playerIndex());
-            reviveOne();
-        }
+        m_revived.push_back(m_killed_players.front()->playerIndex());
+        reviveOne();
     }
-    m_life_reward = (wave > 1 && (wave - 1) % AppConfig::survival_life_every_waves == 0);
+    m_life_reward = (m_wave % AppConfig::survival_life_every_waves == 0);
     if(m_life_reward)
     {
         for(Player* player : m_players) player->addLife();
         SoundManager::getInstance().playSound("life");
     }
+    placeShop();
 }
 
 std::vector<SDL_Point> Survival::baseWallTiles() const
@@ -235,6 +237,8 @@ std::vector<std::pair<SpriteType, int>> Survival::shopItems()
         for(int t = ST_BONUS_MINE; t <= ST_BONUS_TEAM_SHIELD; t++)
             if(entry.first == Powers::name(static_cast<SpriteType>(t)))
                 items.push_back({static_cast<SpriteType>(t), entry.second});
+    // Do mais barato ao mais caro (empate: a ordem da lista)
+    std::stable_sort(items.begin(), items.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
     return items;
 }
 
@@ -246,63 +250,99 @@ int Survival::coins() const
     return std::max(0, points / std::max(1, AppConfig::survival_points_per_coin) - m_coins_spent);
 }
 
-SDL_Point Survival::padOf(const Player* player) const
+Uint32 Survival::breakTime() const
 {
-    // O ponto de nascimento do jogador: livre em todo mapa (o validador exige) e reservado
-    // (sem barricada nem torreta em cima, ver reservedTile)
-    if(player->spawn_point.x >= 0) return player->spawn_point;
-    return AppConfig::player_starting_point.at(player->playerIndex());
+    // O intervalo inteiro (survival_break_time) termina com o aviso da onda; sem loja, não há
+    // o que esperar e o aviso vem logo
+    if(!AppConfig::survival_shop || m_shop_pad.x < 0) return 0;
+    Uint32 total = AppConfig::survival_break_time, intro = AppConfig::survival_wave_intro_time;
+    return total > intro ? total - intro : 0;
 }
 
-bool Survival::onPad(const Player* player) const
+bool Survival::shopOpen() const
 {
-    SDL_Point pad = padOf(player);
-    return std::abs(player->pos_x - pad.x) <= 8 && std::abs(player->pos_y - pad.y) <= 8;
+    return AppConfig::survival_shop && m_phase == PHASE_BREAK && m_shop_pad.x >= 0 && !shopItems().empty();
 }
 
-bool Survival::canShop(const Player* player) const
+void Survival::placeShop()
 {
-    // Parado no próprio ponto, vivo e com o espaço de poder vazio (com um poder guardado, o
-    // botão de poder o usa, como fora da loja)
-    return AppConfig::survival_shop && player->testFlag(TSF_LIFE) && !player->to_erase &&
-           player->held_power == ST_NONE && player->speed == 0 && onPad(player);
+    // Ao lado da base, de um lado sorteado; o lugar mais perto da águia desse lado que não
+    // esteja ocupado por barricada, torreta ou mina (as barricadas ficam depois de regenerar)
+    m_shop_pad = {-1, -1};
+    m_shop_user = -1;
+    if(!AppConfig::survival_shop) return;
+    std::string path = AppConfig::survival_levels_path + AppConfig::survival_maps.at(m_map).first;
+    std::vector<SurvivalLayout::Tile> spots = SurvivalLayout::shopSpots(DuelLayout::readMap(path));
+    const int t = AppConfig::tile_rect.w;
+    int first_side = rand() % 2; // 0: esquerda, 1: direita
+    for(int pass = 0; pass < 2 && m_shop_pad.x < 0; pass++)
+    {
+        bool want_left = (pass == 0) == (first_side == 0);
+        for(const SurvivalLayout::Tile& spot : spots)
+        {
+            bool left = spot.column + 1 < 11;
+            if(left != want_left) continue;
+            bool free = true;
+            for(int r = spot.row; r < spot.row + 2; r++)
+                for(int c = spot.column; c < spot.column + 2; c++)
+                    if(m_level.at(r).at(c) != nullptr && m_level.at(r).at(c)->type != ST_ICE) free = false;
+            SDL_Rect area = {spot.column * t, spot.row * t, 2 * t, 2 * t};
+            for(Turret* turret : m_turrets) if(!turret->to_erase && intersects(turret->collision_rect, area)) free = false;
+            for(Mine* mine : m_mines) if(!mine->to_erase && intersects(mine->collision_rect, area)) free = false;
+            if(!free) continue;
+            m_shop_pad = {spot.column * t, spot.row * t};
+            break;
+        }
+    }
 }
 
-void Survival::updateShop(Uint32 dt)
+bool Survival::onShop(const Player* player) const
+{
+    return std::abs(player->pos_x - m_shop_pad.x) <= 8 && std::abs(player->pos_y - m_shop_pad.y) <= 8;
+}
+
+void Survival::updateShop()
 {
     std::vector<std::pair<SpriteType, int>> items = shopItems();
+    bool open = shopOpen();
+
+    // Quem está em cima é o único na loja: o tanque dele ocupa o lugar inteiro e barra os
+    // outros (os tanques dos jogadores não se atravessam)
+    if(m_shop_user >= 0)
+    {
+        bool still = false;
+        for(Player* p : m_players)
+            if(p->playerIndex() == m_shop_user && open && p->testFlag(TSF_LIFE) && !p->to_erase && onShop(p)) still = true;
+        if(!still) m_shop_user = -1;
+    }
+    if(open && m_shop_user < 0)
+        for(Player* p : m_players)
+            if(p->testFlag(TSF_LIFE) && !p->to_erase && onShop(p)) { m_shop_user = p->playerIndex(); break; }
+
     for(Player* player : m_players)
     {
-        Shop& shop = m_shop[player->playerIndex()];
+        bool shopping = (player->playerIndex() == m_shop_user);
         bool power = player->takePowerPress();
         bool fire = player->takeFirePress();
-
-        bool can = !items.empty() && canShop(player);
-        shop.parked = can ? shop.parked + dt : 0;
-        if(!can) shop.open = false;
-        else if(power)
+        int step = player->takeShopStep();
+        player->shop_mode = shopping;
+        if(shopping)
         {
-            // Poder abre a loja e passa para o próximo item
-            if(shop.open) shop.item = (shop.item + 1) % static_cast<int>(items.size());
-            shop.open = true;
-            shop.idle = 0;
-            power = false;
-            SoundManager::getInstance().playSound("bonus");
-        }
-        else if(shop.open)
-        {
-            // Tiro compra; sem apertar nada, a loja fecha sozinha
-            shop.idle += dt;
+            // LB / RB escolhem o item (dando a volta), tiro compra
+            int n = static_cast<int>(items.size());
+            if(step != 0)
+            {
+                m_shop_item = ((m_shop_item + step) % n + n) % n;
+                SoundManager::getInstance().playSound("bonus");
+            }
             if(fire)
             {
-                shop.idle = 0;
-                const auto& item = items.at(shop.item % items.size());
+                const auto& item = items.at(m_shop_item % n);
                 buy(player, item.first, item.second);
             }
-            if(shop.idle > AppConfig::survival_shop_idle_time) shop.open = false;
+            continue;
         }
-        player->shop_mode = shop.open;
-
+        // Fora da loja: o botão de poder usa o poder guardado (sem espaço, continua guardado)
         if(power && player->held_power != ST_NONE && player->testFlag(TSF_LIFE) && usePower(player))
             player->held_power = ST_NONE;
     }
@@ -396,7 +436,6 @@ bool Survival::reviveOne()
     m_killed_players.erase(m_killed_players.begin());
     player->to_erase = false;
     player->shop_mode = false;
-    m_shop[player->playerIndex()].open = false;
     player->lives_count = 2; // respawn() gasta uma ao entrar no mapa
     player->respawn();
     m_players.push_back(player);
@@ -509,19 +548,23 @@ void Survival::update(Uint32 dt)
     m_truce_time = m_truce_time > dt ? m_truce_time - dt : 0;
 
     // Loja e botão de poder (fora da loja, usa o poder guardado; sem espaço, continua guardado)
-    updateShop(dt);
+    updateShop();
 
     if(m_phase == PHASE_WAVE_INTRO && m_phase_time > AppConfig::survival_wave_intro_time)
     {
         m_phase = PHASE_PLAY;
         m_phase_time = 0;
     }
+    // Fim do intervalo: a loja some e vem o aviso da próxima onda
+    if(m_phase == PHASE_BREAK && m_phase_time >= breakTime())
+        startWave(m_wave + 1);
 
-    // O Game encerra a fase quando os inimigos acabam; aqui isso só encerra a onda
+    // O Game encerra a fase quando os inimigos acabam; aqui isso só encerra a onda. No
+    // intervalo continua sem inimigos, e o Game repete o aviso: não é outra onda vencida
     if(m_finished && !m_game_over)
     {
         m_finished = false;
-        startWave(m_wave + 1);
+        if(m_phase == PHASE_PLAY) startBreak();
     }
     // Fim de jogo (águia destruída ou todos sem vidas), depois do "GAME OVER" do Game
     else if(m_finished && m_game_over)
@@ -592,101 +635,120 @@ void Survival::drawStatus()
         row++;
     }
 
-    // Moedas da equipe para a loja: texto preto sobre bloco dourado (V5)
+    // Moedas da equipe para a loja: texto preto sobre bloco dourado (V5), com o número na
+    // fonte média (na pequena ele se confundia com as vidas logo acima)
     if(AppConfig::survival_shop)
     {
-        SDL_Rect box = {x + 2, 334, w - 4, 30};
+        SDL_Rect box = {x + 2, 330, w - 4, 40};
         renderer->drawRect(&box, GOLD, true);
-        renderer->drawTextCentered(box.x + box.w / 2, box.y + 4, "$", BLACK, 3);
-        renderer->drawTextCentered(box.x + box.w / 2, box.y + 17, Engine::intToString(std::min(coins(), 9999)), BLACK, 3);
+        renderer->drawTextCentered(box.x + box.w / 2, box.y + 4, "$", BLACK, 2);
+        int value = std::min(coins(), 99999);
+        renderer->drawTextCentered(box.x + box.w / 2, box.y + 22, Engine::intToString(value), BLACK, value < 1000 ? 2 : 3);
     }
 }
 
 void Survival::drawFloor()
 {
-    // Ponto de compra de cada jogador: cantoneiras na cor dele em volta do ponto de nascimento
-    if(!AppConfig::survival_shop) return;
+    // Lugar da loja no intervalo: quadrado dourado com "$" no chão (o tanque em cima o cobre)
+    if(!shopOpen()) return;
     Renderer* renderer = Engine::getEngine().getRenderer();
-    std::vector<Player*> all(m_players.begin(), m_players.end());
-    all.insert(all.end(), m_killed_players.begin(), m_killed_players.end());
-    const int size = 2 * AppConfig::tile_rect.w, arm = 7;
-    for(Player* player : all)
+    const int size = 2 * AppConfig::tile_rect.w;
+    SDL_Rect pad = {m_shop_pad.x, m_shop_pad.y, size, size};
+    const SDL_Color dark_gold = {90, 70, 0, 255};
+    renderer->drawRect(&pad, dark_gold, true);
+    for(int k = 0; k < 2; k++)
     {
-        SDL_Point pad = padOf(player);
-        for(int corner = 0; corner < 4; corner++)
-        {
-            int cx = pad.x + (corner % 2 ? size - arm : 0), cy = pad.y + (corner / 2 ? size - 2 : 0);
-            SDL_Rect horizontal = {cx, cy, arm, 2};
-            renderer->drawRect(&horizontal, player->color, true);
-            int vx = pad.x + (corner % 2 ? size - 2 : 0), vy = pad.y + (corner / 2 ? size - arm : 0);
-            SDL_Rect vertical = {vx, vy, 2, arm};
-            renderer->drawRect(&vertical, player->color, true);
-        }
+        SDL_Rect border = {pad.x + k, pad.y + k, pad.w - 2 * k, pad.h - 2 * k};
+        renderer->drawRect(&border, GOLD, false);
     }
+    SDL_Point text = renderer->textSize("$", 2);
+    SDL_Point p = {pad.x + (pad.w - text.x) / 2, pad.y + (pad.h - text.y) / 2};
+    renderer->drawText(&p, "$", GOLD, 2);
 }
 
-void Survival::drawShop(const Player* player)
+void Survival::drawShop()
 {
-    // Caixa ao lado do ponto de compra, do lado de fora (P1 e P3 à esquerda, P2 e P4 à
-    // direita): duas lojas abertas nunca se cobrem nem tapam a águia
-    if(!canShop(player)) return;
+    // Caixa ao lado da loja, do lado de fora (loja à esquerda da base: caixa à esquerda), para
+    // não tapar a águia. Sem ninguém em cima, só o nome e o saldo; com alguém, o item escolhido
+    if(!shopOpen()) return;
     Renderer* renderer = Engine::getEngine().getRenderer();
-    const Shop& shop = m_shop[player->playerIndex()];
     std::vector<std::pair<SpriteType, int>> items = shopItems();
-    if(items.empty()) return;
+    const Player* user = nullptr;
+    for(const Player* p : m_players) if(p->playerIndex() == m_shop_user) user = p;
 
-    std::vector<std::pair<std::string, SDL_Color>> lines;
+    struct Line { std::string text; SDL_Color color; };
+    std::vector<Line> lines;
     SpriteType icon = ST_NONE;
-    if(shop.open)
+    if(user != nullptr)
     {
-        const auto& item = items.at(shop.item % items.size());
+        const auto& item = items.at(m_shop_item % items.size());
         icon = item.first;
         lines.push_back({"$" + Engine::intToString(item.second), coins() >= item.second ? GOLD : RED});
         lines.push_back({shopName(item.first), WHITE});
-        lines.push_back({"FIRE: BUY", LIGHT_GRAY});
+        lines.push_back({"COINS " + Engine::intToString(coins()), GOLD});
+        if(Powers::storable(item.first) && user->held_power != ST_NONE)
+            lines.push_back({"SLOT FULL", RED});
+        else
+            lines.push_back({"FIRE: BUY", LIGHT_GRAY});
     }
-    else if(shop.parked < SHOP_HINT_TIME)
-        lines.push_back({"POWER: SHOP", LIGHT_GRAY}); // só no começo: não tapa o mapa de quem defende
     else
-        return;
+    {
+        lines.push_back({"SHOP", GOLD});
+        lines.push_back({"COINS " + Engine::intToString(coins()), GOLD});
+    }
 
-    const int pad_x = 4, pad_y = 4, gap = 4, icon_size = 16;
+    // Primeira linha com o item: "◀ ícone ▶  $8"
+    const int pad_x = 5, pad_y = 5, gap = 4, icon_size = 16, arrow = 5;
+    const int icon_w = icon != ST_NONE ? arrow + 3 + icon_size + 3 + arrow + 6 : 0;
     int width = 0, height = pad_y;
     for(size_t i = 0; i < lines.size(); i++)
     {
-        SDL_Point size = renderer->textSize(lines[i].first, 3);
-        int line_w = size.x + (i == 0 && icon != ST_NONE ? icon_size + 4 : 0);
+        SDL_Point size = renderer->textSize(lines[i].text, 3);
+        int line_w = size.x + (i == 0 ? icon_w : 0);
         width = std::max(width, line_w);
         height += std::max(size.y, i == 0 && icon != ST_NONE ? icon_size : 0) + gap;
     }
     width += 2 * pad_x;
     height += pad_y - gap;
 
-    SDL_Point pad = padOf(player);
     const int tank = 2 * AppConfig::tile_rect.w;
-    bool left = pad.x + tank / 2 < AppConfig::map_rect.w / 2;
-    SDL_Rect box = {left ? pad.x - 3 - width : pad.x + tank + 3, pad.y + tank - height, width, height};
+    bool left = m_shop_pad.x + tank / 2 < AppConfig::map_rect.w / 2;
+    SDL_Rect box = {left ? m_shop_pad.x - 3 - width : m_shop_pad.x + tank + 3, m_shop_pad.y + tank - height, width, height};
     box.x = std::max(0, std::min(box.x, AppConfig::map_rect.w - box.w));
     box.y = std::max(0, box.y);
+    SDL_Color border_color = user != nullptr ? user->color : GOLD;
     SDL_Rect border = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
-    renderer->drawRect(&border, player->color, true);
+    renderer->drawRect(&border, border_color, true);
     renderer->drawRect(&box, BLACK, true);
 
     int y = box.y + pad_y;
     for(size_t i = 0; i < lines.size(); i++)
     {
-        SDL_Point size = renderer->textSize(lines[i].first, 3);
+        SDL_Point size = renderer->textSize(lines[i].text, 3);
         int x = box.x + pad_x, line_h = size.y;
         if(i == 0 && icon != ST_NONE)
         {
-            SDL_Rect src = Engine::getEngine().getSpriteConfig()->getSpriteData(icon)->rect;
-            SDL_Rect dst = {x, y, icon_size, icon_size};
-            renderer->drawObject(&src, &dst);
-            x += icon_size + 4;
             line_h = icon_size;
+            // Setas de LB (esquerda) e RB (direita) em volta do ícone: a ponta é a coluna de
+            // 1 px (k = 0), do lado de fora
+            for(int k = 0; k < arrow; k++)
+            {
+                SDL_Rect l = {x + k, y + icon_size / 2 - k, 1, 2 * k + 1};
+                renderer->drawRect(&l, LIGHT_GRAY, true);
+            }
+            SDL_Rect src = Engine::getEngine().getSpriteConfig()->getSpriteData(icon)->rect;
+            SDL_Rect dst = {x + arrow + 3, y, icon_size, icon_size};
+            renderer->drawObject(&src, &dst);
+            int rx = dst.x + icon_size + 3;
+            for(int k = 0; k < arrow; k++)
+            {
+                SDL_Rect r = {rx + arrow - 1 - k, y + icon_size / 2 - k, 1, 2 * k + 1};
+                renderer->drawRect(&r, LIGHT_GRAY, true);
+            }
+            x = rx + arrow + 6;
         }
         SDL_Point p = {x, y + (line_h - size.y) / 2};
-        renderer->drawText(&p, lines[i].first, lines[i].second, 3);
+        renderer->drawText(&p, lines[i].text, lines[i].color, 3);
         y += line_h + gap;
     }
 }
@@ -712,8 +774,21 @@ void Survival::drawOverlay()
 {
     Renderer* renderer = Engine::getEngine().getRenderer();
 
-    if(!m_pause && m_phase != PHASE_RESULTS)
-        for(Player* player : m_players) drawShop(player);
+    if(!m_pause) drawShop();
+
+    // Intervalo: onda vencida, recompensas e contagem até a próxima, no alto do mapa (a loja
+    // e a base ficam embaixo)
+    if(m_phase == PHASE_BREAK && !m_pause)
+    {
+        Uint32 left = (breakTime() > m_phase_time ? breakTime() - m_phase_time : 0) + AppConfig::survival_wave_intro_time;
+        std::vector<MessageLine> lines = {{"WAVE " + Engine::intToString(m_wave) + " CLEAR", GOLD, 2, 6}};
+        for(int idx : m_revived)
+            lines.push_back({"P" + Engine::intToString(idx + 1) + " IS BACK", Player::getPlayerColor(idx), 3, 4});
+        if(m_life_reward) lines.push_back({"+1 LIFE", GOLD, 3, 4});
+        lines.back().gap = 6;
+        lines.push_back({"NEXT WAVE IN " + Engine::intToString(static_cast<int>((left + 999) / 1000)), WHITE, 3, 0});
+        drawMessageBox(renderer, lines, GOLD, 12);
+    }
 
     // Trégua: contagem no alto do mapa enquanto os inimigos não surgem
     if(m_truce_time > 0 && m_phase == PHASE_PLAY)
@@ -734,12 +809,6 @@ void Survival::drawOverlay()
             lines.insert(lines.begin(), {AppConfig::survival_maps.at(m_map).second, LIGHT_GRAY, 2, 10});
             lines.insert(lines.begin(), {"SURVIVAL", GOLD, 2, 6});
         }
-        // Quem voltou (na cor de cada um) e a vida extra
-        if(!m_revived.empty() || m_life_reward) lines.back().gap = 8;
-        for(int idx : m_revived)
-            lines.push_back({"P" + Engine::intToString(idx + 1) + " IS BACK", Player::getPlayerColor(idx), 2, 2});
-        if(m_life_reward)
-            lines.push_back({"+1 LIFE", GOLD, 2, 0});
         drawMessageBox(renderer, lines, GRAY);
     }
     else if(m_phase == PHASE_RESULTS)

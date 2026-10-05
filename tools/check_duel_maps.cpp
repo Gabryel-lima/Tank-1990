@@ -38,6 +38,18 @@ static bool check(const std::string& path, const std::string& name, const Valida
             std::printf("ok    %-12s %s\n", name.c_str(), path.c_str());
         if(duel)
             for(const std::string& w : DuelLayout::advise(grid)) std::printf("        aviso: %s\n", w.c_str());
+        else
+        {
+            // A loja do intervalo precisa de um 2x2 de chão à vista ao lado da base; sem ele, o
+            // jogo segue sem loja nesse mapa
+            std::vector<SurvivalLayout::Tile> spots = SurvivalLayout::shopSpots(grid);
+            bool left = false, right = false;
+            for(const auto& t : spots) (t.column < 11 ? left : right) = true;
+            if(spots.empty())
+                std::printf("        aviso: sem lugar para a loja ao lado da base (2x2 de chão à vista com caminho): sem loja neste mapa\n");
+            else if(!left || !right)
+                std::printf("        aviso: a loja só cabe do lado %s da base\n", left ? "esquerdo" : "direito");
+        }
         return true;
     }
     std::printf("ERRO  %-12s %s\n", name.c_str(), path.c_str());
