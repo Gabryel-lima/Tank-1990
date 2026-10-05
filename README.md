@@ -637,7 +637,7 @@ A documentação será gerada no diretório `doc/` e pode ser visualizada abrind
 ### `install.cmd` para logo no começo, ou aparece `warning: in the working copy of ... CRLF`
 O projeto é escrito no Linux, onde as linhas terminam em LF; o Git para Windows
 costuma trocá-las por CRLF ao clonar (`core.autocrlf=true`), e com CRLF o `sh`
-do WSL e o `make` param. O `.gitattributes` fixa o fim de linha de cada tipo de
+do WSL para nos scripts (`set: Illegal option -`). O `.gitattributes` fixa o fim de linha de cada tipo de
 arquivo: LF nos `.sh` e no `Makefile`, CRLF nos `.cmd`, qualquer que seja a
 configuração de quem clonou. O aviso do Git só diz que ele vai fazer essa troca.
 O `install.cmd` e o `wsl-setup.sh` também tiram o CR sozinhos, então um clone

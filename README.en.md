@@ -630,7 +630,7 @@ Open `doc/html/index.html` in a browser.
 ### `install.cmd` stops right away, or you see `warning: in the working copy of ... CRLF`
 The project is written on Linux, where lines end in LF; Git for Windows usually
 turns them into CRLF on clone (`core.autocrlf=true`), and with CRLF WSL's `sh`
-and `make` stop. `.gitattributes` pins each file type's line ending: LF for
+stops on the scripts (`set: Illegal option -`). `.gitattributes` pins each file type's line ending: LF for
 `.sh` and the `Makefile`, CRLF for `.cmd`, whatever the cloner's settings. Git's
 warning only says it is going to do that conversion. `install.cmd` and
 `wsl-setup.sh` also strip the CR on their own, so an old clone works; to turn it

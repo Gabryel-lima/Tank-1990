@@ -2,8 +2,9 @@
 #
 # No repositório tudo fica em LF. Na cópia de trabalho, cada tipo de arquivo ganha o fim de
 # linha que o programa que o lê exige, qualquer que seja o core.autocrlf de quem clonou:
-#  - scripts de shell e Makefile: sempre LF. Com CRLF o sh do WSL lê "set -e\r" e para,
-#    e o make passa o "\r" para cada comando da receita
+#  - scripts de shell: sempre LF. Com CRLF o sh lê "set -e\r" e para (o wsl-setup.sh no
+#    install.cmd, o pad-selftest.sh no make). O Makefile também fica em LF: o GNU make 4.3
+#    aceita CRLF, mas não vale depender da versão
 #  - .cmd: sempre CRLF. Com LF o cmd.exe erra os saltos (goto, call :rotulo) quando uma
 #    linha cruza o limite de 512 bytes que ele lê por vez
 #  - o resto do texto: LF no repositório, o que o sistema preferir na cópia de trabalho (o
