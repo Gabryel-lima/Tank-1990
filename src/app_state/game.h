@@ -293,10 +293,13 @@ protected:
      */
     bool areaFree(int row, int column, int rows, int columns);
 
+    /** Como areaFree, para uma área em pixels fora da grade (cada tile que ela toca conta). */
+    bool rectFree(SDL_Rect area);
+
     /** Bloco reservado pelo modo (pontos de nascimento...): nada é colocado em cima. */
     virtual bool reservedTile(int row, int column);
 
-    /** Célula (canto de uma área 2x2, em tiles) logo à frente do tanque, na direção dele. */
+    /** Célula (canto de uma área 2x2, em tiles) à frente do tanque, na direção dele (barricada). */
     void frontCell(Tank* tank, int* row, int* column) const;
 
     /** Barricada: 4 tijolos (2x2) logo à frente do tanque. @return false se não há espaço */

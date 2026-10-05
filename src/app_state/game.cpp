@@ -1312,12 +1312,19 @@ bool Game::reservedTile(int, int)
 bool Game::areaFree(int row, int column, int rows, int columns)
 {
     const int t = AppConfig::tile_rect.w;
-    if(row < 0 || column < 0 || row + rows > m_level_rows_count || column + columns > m_level_columns_count) return false;
-    for(int r = row; r < row + rows; r++)
-        for(int c = column; c < column + columns; c++)
+    return rectFree({column * t, row * t, columns * t, rows * t});
+}
+
+bool Game::rectFree(SDL_Rect area)
+{
+    const int t = AppConfig::tile_rect.w;
+    if(area.x < 0 || area.y < 0 || area.x + area.w > m_level_columns_count * t || area.y + area.h > m_level_rows_count * t)
+        return false;
+    // Todos os tiles que a área toca, mesmo em parte
+    for(int r = area.y / t; r <= (area.y + area.h - 1) / t; r++)
+        for(int c = area.x / t; c <= (area.x + area.w - 1) / t; c++)
             if(m_level.at(r).at(c) != nullptr || reservedTile(r, c)) return false;
 
-    SDL_Rect area = {column * t, row * t, columns * t, rows * t};
     auto overlaps = [&](SDL_Rect r) {
         SDL_Rect i = intersectRect(&r, &area);
         return i.w > 0 && i.h > 0;
@@ -1410,11 +1417,29 @@ void Game::restoreTerrain(const std::vector<std::string>& grid, const std::vecto
 
 bool Game::placeTurret(Player* player)
 {
-    int row, column;
-    frontCell(player, &row, &column);
-    if(!areaFree(row, column, 2, 2)) return false;
-    const int t = AppConfig::tile_rect.w;
-    Turret* turret = new Turret(column * t, row * t, player->team, player->playerIndex(), player->color);
+    // Encostada no tanque, na direção dele e alinhada com ele. A torreta é um tanque parado
+    // e não precisa da grade de tiles como a barricada: com frontCell, quem parava no meio
+    // de um bloco (o tanque anda de 8 em 8 px) a via surgir com um vão de meio bloco ou mais
+    const int size = 2 * AppConfig::tile_rect.w;
+    SDL_Rect area = {static_cast<int>(std::lround(player->pos_x)), static_cast<int>(std::lround(player->pos_y)), size, size};
+    switch(player->direction)
+    {
+    case D_UP: area.y -= area.h; break;
+    case D_DOWN: area.y += area.h; break;
+    case D_LEFT: area.x -= area.w; break;
+    default: area.x += area.w; break;
+    }
+    if(!rectFree(area))
+    {
+        // Encostada não cabe (o tanque passa rente a uma parede, meio bloco ao lado dela):
+        // vale a área da grade à frente, como a barricada, para não recusar onde antes cabia
+        int row, column;
+        frontCell(player, &row, &column);
+        if(!areaFree(row, column, 2, 2)) return false;
+        area.x = column * AppConfig::tile_rect.w;
+        area.y = row * AppConfig::tile_rect.w;
+    }
+    Turret* turret = new Turret(area.x, area.y, player->team, player->playerIndex(), player->color);
     turret->direction = player->direction;
     m_turrets.push_back(turret);
     SoundManager::getInstance().playSound("bonus");
