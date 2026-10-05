@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border)
+void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Color border, int top)
 {
     const SDL_Color BLACK = {0, 0, 0, 255};
     const int PAD_X = 18, PAD_Y = 14;
@@ -20,6 +20,7 @@ void drawMessageBox(Renderer* r, const std::vector<MessageLine>& lines, SDL_Colo
     SDL_Rect box = {AppConfig::map_rect.x + (AppConfig::map_rect.w - width - 2 * PAD_X) / 2,
                     AppConfig::map_rect.y + (AppConfig::map_rect.h - height - 2 * PAD_Y) / 2,
                     width + 2 * PAD_X, height + 2 * PAD_Y};
+    if(top >= 0) box.y = AppConfig::map_rect.y + top;
     r->drawRect(&box, BLACK, true);
     r->drawRect(&box, border, false);
     SDL_Rect inner = {box.x + 1, box.y + 1, box.w - 2, box.h - 2};

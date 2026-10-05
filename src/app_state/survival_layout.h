@@ -37,6 +37,15 @@ namespace SurvivalLayout
     std::vector<std::string> validate(const std::vector<std::string>& grid);
 
     /**
+     * Lugares para a loja entre as ondas (canto superior esquerdo de um 2x2), do mais perto
+     * para o mais longe da águia: na metade de baixo do mapa, ao lado da base (à esquerda ou
+     * à direita, nunca na frente), em chão à vista (vazio ou gelo), alcançáveis por um tanque
+     * a partir do nascimento dos jogadores e sem cobrir pontos de nascimento. Vazio se o mapa
+     * não tem esse lugar (sem loja).
+     */
+    std::vector<Tile> shopSpots(const std::vector<std::string>& grid);
+
+    /**
      * Carrega a lista de mapas de survival_levels/maps.txt ("arquivo;Nome" por linha, '#'
      * para comentário) em AppConfig::survival_maps, deixando de fora, com aviso no terminal,
      * os mapas que não passam em validate. Sem o arquivo, mantém a lista padrão de AppConfig.

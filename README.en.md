@@ -290,17 +290,16 @@ The AI doesn't play like a person, so the numbers show trends (a power-up that d
 Adding a map works like in the duel: a **26×26** grid using the level symbols in `resources/survival_levels/`, a `file;Name` line in that folder's `maps.txt`, and `make check-maps`. The game builds the eagle and its brick wall; the map must keep clear the spots where enemies appear (at the top) and where players spawn, and connect all of them and the eagle's wall with tank-wide paths. Maps that fail are rejected when the game starts, with the reason printed in the terminal.
 
 - Each wave has more enemies (6, 8, 10... up to 40), more of them on the map at once (4 on the first wave, +1 per extra player and +1 every 3 waves, up to 10) and tougher ones (wave N uses the difficulty of campaign stage 2N + 1, up to 35).
-- Between waves there's a pause with a **WAVE N** banner (players can already get into position), and surviving a wave is rewarded:
+- Between waves there's a **15 s break**, with no enemies and a **NEXT WAVE IN N** countdown at the top of the map; the last 3 s are the next wave's **WAVE N** banner. Surviving a wave is rewarded right when the break starts:
   - **the whole map regenerates**: destroyed bricks, stone and bushes come back, and the eagle's wall is rebuilt. Only what belongs to the map comes back: barricades placed by players stay, nothing grows on top of a tank, turret, mine or power-up, and the shovel's stone stays until its time runs out;
-  - **anyone who had fallen comes back** with one life (the banner shows **P2 IS BACK**, in the player's color);
+  - **anyone who had fallen comes back** with one life (the banner shows **P2 IS BACK**, in the player's color), in time to use the shop;
   - every **3 waves**, everyone gets an extra life (**+1 LIFE**).
 - Power-ups, scoring and friendly fire work as in the campaign (a player's shot can also take down the eagle). Players have different colors but are **one team**: every power-up is **gray**, with the original icon, and any player can pick it up (team-colored power-ups are duel-only).
-- **Shop:** the 8 original power-ups still drop from flashing tanks, as in the campaign; the 9 new powers are **bought** with the **team's coins**: every 100 points from any player are worth one coin (a basic enemy gives 1, an armored one 4), and the side panel shows the balance in the gold **$** block. Each player's shop is at **their spawn point**, next to the base, marked on the floor with corner brackets in their color:
-  - standing still on the spot, with an empty power slot, the **power button** opens the shop and moves to the next item; **fire buys** (the price turns red without enough coins); moving closes it, and it closes by itself after 6 s without input;
-  - standing on the spot **without opening the shop, fire shoots as usual**: whoever defends the base from there never buys by accident. The **POWER: SHOP** hint shows only for the first 3 s, so it doesn't cover the map;
-  - with the shop open the tank doesn't shoot: buying is a risky moment, and the best time is between waves;
-  - holding a power, the power button uses it, as anywhere (a bought turret can go right in front of the base);
-  - prices: barricade and turbo 8, mine and recall 10, repair 12, revive 15, turret, truce and team shield 20. The list, order and prices live in `AppConfig::survival_shop_items`; `AppConfig::survival_shop = false` goes back to every power dropping on the map.
+- **Shop:** the 8 original power-ups still drop from flashing tanks, as in the campaign; the 9 new powers are **bought** with the **team's coins**: every 100 points from any player are worth one coin (a basic enemy gives 1, an armored one 4). The balance shows in the side panel, in the gold **$** block, and at the shop itself. There is **one shop for the whole team**, which appears **only during the break**, next to the base (left or right, at random), as a gold square with a **$** on the floor, and disappears when the next wave's banner shows up:
+  - whoever stops on it gets served: **LB and RB** pick the item (on the keyboard, the power button moves forward), and **fire buys**, without shooting. On the shop, LB picks instead of using: to use a held power (a turbo you just bought, say), step off the shop; the box says **USE OUTSIDE**. The price turns red without enough coins, and **SLOT FULL** warns that the power slot is taken (immediate powers are still for sale);
+  - **one player at a time**: the buyer's tank fills the spot and blocks the others; when they leave, the next one steps in;
+  - items go from cheapest to most expensive: barricade and turbo 8, mine and recall 10, repair 12, revive 15, turret, truce and team shield 20. The list and prices live in `AppConfig::survival_shop_items`, the break in `survival_break_time`; `AppConfig::survival_shop = false` goes back to every power dropping on the map (and the next wave comes right away);
+  - the shop goes to the spot closest to the eagle with visible floor and a path for tanks; a new map doesn't need to mark anything.
 - It ends when the eagle falls or everyone runs out of lives: the final screen shows the wave reached, the tanks destroyed and each player's score. Fire / Enter / A goes back to the map selection with the last map highlighted: playing again is one button away.
 - The numbers live in `AppConfig::survival_*`.
 
@@ -317,7 +316,7 @@ On top of the 8 original bonuses, the extra modes have 9 new powers, with their 
 | **Barricade** | storable | Raises a 2×2 brick block right ahead. It can't be placed on a tank, base, scenery, bush or spawn point; with no room, the power stays held. |
 | **Turret** | storable | Sets up a fixed cannon ahead, in the owner's color, facing where the tank faces. It turns and fires on its own at enemies lined up within 12 tiles, **never towards its own base**. One shot destroys it. It ends with whichever comes first: **10 shots or 20 s**. When it is running out (last 3 shots or last quarter of its time), a white haze pulses over it, faster near the end. |
 | **Recall** | storable | Teleports the tank to its spawn point, next to its base (if taken, to another one of the team). Keeps the boat and stars. The answer to an invasion when you are far from home. |
-| **Turbo** | storable | Speed ×1.5 for 8 s. |
+| **Turbo** | storable | Speed ×1.5 for 8 s. While it lasts, its icon stays in the side panel's power slot; in the last quarter, the white haze pulses over it and over the tank. |
 | **Revive** | immediate | A fallen teammate comes back with one life; if nobody fell, an extra life for the teammate with the fewest. |
 | **Repair** | immediate | Rebuilds your own base wall. |
 | **Team shield** | immediate | Shield for every player of the team at once. |
@@ -335,7 +334,7 @@ On top of the 8 original bonuses, the extra modes have 9 new powers, with their 
 
 **In the side panel**, below each player's lives, the held power is shown (an empty square when there is none). In the duel, from 1 vs 1 up to 4 players, each team's panel grows to show one line per player; in survival, the icon sits next to the lives.
 
-**In survival** the new powers are bought at the shop (see above), and the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
+**In survival** the new powers are bought at the break shop (see above), and the same 5 powers are storable too (`AppConfig::survival_store_powers = true`). Bonuses appear at random spots on the map, so a mine or turret used on pickup would almost always land in a corner with no enemies; stored, it becomes a defense for the eagle. With `survival_store_powers = false`, every power is used the moment it is picked up.
 
 **Draw:** in the duel, the new powers share the draw with the originals; the strongest ones (turret, revive and team shield) are as rare as the grenade and the gun (in 1 vs 1, revive is just an extra life). The odds are in `Powers::duelTable()` and `Powers::survivalTable()` (`src/app_state/powers.cpp`); durations and ranges in `AppConfig::power_*`.
 
@@ -394,7 +393,7 @@ never move or fire another tank.
 
 ### Which device goes to which player
 
-1. **Controllers first**: the 1st connected controller goes to Player 1, the 2nd to Player 2, and so on.
+1. **Controllers first, in the order buttons are pressed**: the controller that presses a button first goes to Player 1, the next one to Player 2, and so on. Connection order doesn't matter: a controller the system still sees as connected but nobody uses (a forgotten paired one left on, a wireless receiver with no controller) stays behind and **never takes the slot** of whoever picked up a controller. A controller that has pressed a button never changes slots mid-match.
 2. **Keyboard as backup**: players left without a controller get `WASD`, then `ARROWS`, in order.
 3. Layouts nobody needed stay with Player 1 (`WASD`) and Player 2 (`ARROWS`), so a solo player can still use the keyboard with a controller plugged in.
 

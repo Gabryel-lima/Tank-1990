@@ -110,6 +110,13 @@ protected:
     void drawHaze(double level);
 
 public:
+    /**
+     * Opacidade da névoa branca de "acabando" (V1) no instante @a time (ms), para o
+     * @a level de 0 a 1. A mesma conta de drawHaze, para quem desenha a névoa fora do
+     * objeto (o ícone do poder no painel).
+     */
+    static Uint8 hazeAlpha(double level, Uint32 time);
+
     /** Relógio dos efeitos visuais (ms), para sincronizar outro desenho com este objeto. */
     Uint32 effectTime() const { return m_effect_time; }
 

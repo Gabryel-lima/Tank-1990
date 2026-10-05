@@ -193,7 +193,13 @@ public:
      */
     bool takeFirePress();
 
-    /** Loja aberta (sobrevivência): o tiro não dispara, só conta o aperto (takeFirePress). */
+    /**
+     * Passos na loja desde a última chamada: -1 por aperto do LB, +1 por aperto do RB ou do
+     * botão de poder do teclado (que só avança).
+     */
+    int takeShopStep();
+
+    /** Na loja (sobrevivência): o tiro não dispara, só conta o aperto (takeFirePress). */
     bool shop_mode = false;
 
     /** Turbo: velocidade multiplicada por AppConfig::power_turbo_factor por @a ms. */
@@ -201,6 +207,21 @@ public:
 
     /** Turbo ativo. */
     bool boosted() const { return m_turbo_time > 0; }
+
+    /**
+     * Quanto falta para o turbo acabar, para a névoa de "acabando" (V1): 0 longe do fim (ou
+     * sem turbo), subindo até 1 no último quarto do tempo.
+     */
+    double turboEnding() const;
+
+    /**
+     * Poder com duração em uso pelo jogador (hoje, o turbo): o painel mostra o ícone dele no
+     * espaço de poder enquanto dura, com a névoa de "acabando" (W8, V1). Poder novo com
+     * duração que fica no jogador responde aqui, e o painel funciona sem código novo.
+     * @param ending - recebe de 0 (longe do fim) a 1 (no fim), como turboEnding
+     * @return o tipo do poder, ou ST_NONE se nenhum está valendo
+     */
+    SpriteType activePower(double* ending) const;
 
     /**
      * Retorno: reaparece em (x, y) com a animação de nascimento (sem gastar vida, mantendo
@@ -213,6 +234,9 @@ private:
     bool m_power_pressed = false;  ///< aperto ainda não consumido por takePowerPress
     bool m_fire_down = false;      ///< botão de tiro segurado no quadro anterior
     bool m_fire_pressed = false;   ///< aperto ainda não consumido por takeFirePress
+    bool m_shop_left_down = false;  ///< LB segurado no quadro anterior
+    bool m_shop_right_down = false; ///< RB (ou poder do teclado) segurado no quadro anterior
+    int m_shop_step = 0;            ///< passos na loja ainda não consumidos por takeShopStep
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
     bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 

@@ -64,11 +64,18 @@ private:
     {
         PHASE_WAVE_INTRO, ///< aviso "WAVE N": jogadores andam, inimigos ainda não surgem
         PHASE_PLAY,       ///< onda em andamento
+        PHASE_BREAK,      ///< intervalo entre ondas: recompensas, loja aberta, contagem
         PHASE_RESULTS     ///< fim de jogo: onda alcançada e pontos de cada jogador
     };
 
-    /** Começa a onda @a wave: aviso, mapa regenerado, quem caiu volta, vida extra a cada N ondas. */
+    /** Começa a onda @a wave: aviso "WAVE N" e, depois dele, os inimigos. */
     void startWave(int wave);
+
+    /**
+     * Onda vencida: intervalo (AppConfig::survival_break_time) com as recompensas (mapa
+     * regenerado, quem caiu volta, vida extra a cada N ondas) e a loja aberta ao lado da base.
+     */
+    void startBreak();
 
     /** Dificuldade da onda na escala das fases da campanha (1 a 35). */
     int difficulty() const;
@@ -79,40 +86,42 @@ private:
     /** Dá o poder ao jogador: guardável vai para o espaço de poder; os outros valem na hora. */
     void givePower(Player* player, SpriteType type);
 
-    // ===== Loja (AppConfig::survival_shop) =====
+    // ===== Loja (AppConfig::survival_shop): uma só, da equipe, aberta nos intervalos =====
 
-    /** Estado da loja de cada jogador. */
-    struct Shop
-    {
-        bool open = false;
-        int item = 0;      ///< índice em shopItems()
-        Uint32 idle = 0;   ///< tempo sem apertar nada na loja aberta (ms)
-        Uint32 parked = 0; ///< tempo parado no ponto podendo comprar (a dica só aparece no começo)
-    };
-    Shop m_shop[4];
+    SDL_Point m_shop_pad = {-1, -1}; ///< canto do 2x2 da loja (pixels); x < 0: sem loja
+    int m_shop_item = 0;             ///< item escolhido (índice em shopItems())
+    int m_shop_user = -1;            ///< jogador em cima da loja (índice) ou -1
     int m_coins_spent = 0;
 
-    /** Itens da loja (poder e preço), de AppConfig::survival_shop_items. */
+    /** Itens da loja (poder e preço), de AppConfig::survival_shop_items, do mais barato ao mais caro. */
     static std::vector<std::pair<SpriteType, int>> shopItems();
 
     /** Moedas da equipe: os pontos de todos os jogadores, em moedas, menos o que já foi gasto. */
     int coins() const;
 
-    /** Ponto de compra do jogador: o ponto onde ele nasce. */
-    SDL_Point padOf(const Player* player) const;
-    bool onPad(const Player* player) const;
+    /** Duração da fase de intervalo (ms): o intervalo menos o aviso da próxima onda. */
+    Uint32 breakTime() const;
 
-    /** Dá para abrir a loja: parado no próprio ponto, vivo e com o espaço de poder vazio. */
-    bool canShop(const Player* player) const;
+    /** Loja aberta: no intervalo, antes do aviso da próxima onda, e com lugar no mapa. */
+    bool shopOpen() const;
 
-    /** Poder abre a loja e troca o item, tiro compra, andar fecha; fora dela, poder usa o guardado. */
-    void updateShop(Uint32 dt);
+    /** Escolhe o lugar da loja: ao lado da base, de um lado sorteado (SurvivalLayout::shopSpots). */
+    void placeShop();
+
+    /** O tanque está em cima da loja (até 8 px fora do lugar). */
+    bool onShop(const Player* player) const;
+
+    /**
+     * Quem está em cima da loja: LB e RB escolhem o item, tiro compra (sem disparar); os
+     * outros usam o poder guardado com o botão de poder, como sempre.
+     */
+    void updateShop();
 
     /** Compra com as moedas da equipe. @return false sem moedas ou com o espaço ocupado */
     bool buy(Player* player, SpriteType type, int price);
 
     void drawFloor() override;
-    void drawShop(const Player* player);
+    void drawShop();
     static std::string shopName(SpriteType type);
 
     /** Tiles da muralha da águia ({coluna, linha}): laterais e frente. */

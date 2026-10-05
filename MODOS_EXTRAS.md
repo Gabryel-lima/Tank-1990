@@ -62,6 +62,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | W5 | Barricada e torreta só vão em área livre: dentro do mapa, sem cenário, **arbusto**, base, tanque ou torreta, e fora dos blocos que o modo reserva (pontos de nascimento). | `Game::areaFree`, `reservedTile()` do modo |
 | W6 | Torreta e mina acabam sozinhas (tempo; a torreta também por munição). | `AppConfig::power_*` |
 | W7 | Competitivo: as proteções do jogador (**escudo, barco**) valem contra os poderes do adversário. Contra os inimigos da IA, o poder pode ser total. | `Duel::hitTank`, `Game::killEnemy` |
+| W8 | **Poder com duração** (tempo ou munição) avisa que está acabando com a **névoa branca** do V1, a partir do último quarto, sobre o que o representa no mapa (o objeto, como a mina e a torreta; o tanque, como no turbo). O que fica no jogador também aparece no **espaço de poder do painel enquanto dura**, com a mesma névoa. **Vale para todo poder novo, em qualquer modo.** Hoje seguem: mina, torreta e turbo. Ainda sem a névoa (só mudam quando pedido): trégua (tem a contagem em texto), escudo de equipe e os originais da campanha (capacete, relógio, pá). | `Object::drawHaze`, `Object::hazeAlpha`, `Player::activePower`, `Game::drawPowerSlot` |
 
 ## 6. Sinais visuais
 
@@ -102,6 +103,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 - [ ] Tabela de poderes própria, sem poder inútil no modo; painel com `drawPowerSlot` (W2, W4).
 - [ ] `reservedTile` protege os pontos de nascimento (W5).
 - [ ] Sinais visuais com `drawHaze` e caixas de mensagem (V1, V3, V4).
+- [ ] Poder novo com duração: névoa branca no fim, no mapa e no painel enquanto dura (W8).
 - [ ] A campanha continua idêntica pixel a pixel (K1).
 - [ ] README em português e em inglês.
 
@@ -115,6 +117,6 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | Mina | respeita escudo e barco | destrói qualquer inimigo | W7: escudo é proteção entre jogadores |
 | Trégua | fora do sorteio | existe | W2: no duelo nada surge |
 | Tiro demolidor e pedra colorida | existem | não existem | estrutura com dono só existe com adversário humano (C3) |
-| Poderes novos | caem como bônus, no sorteio | comprados na loja do ponto de nascimento, com as moedas da equipe (`survival_shop`) | com adversário humano o bônus no mapa é disputa; contra a IA, a loja vira decisão da equipe (onde e quando usar) |
+| Poderes novos | caem como bônus, no sorteio | comprados na loja da equipe, ao lado da base, no intervalo entre as ondas, com as moedas da equipe (`survival_shop`) | com adversário humano o bônus no mapa é disputa; contra a IA, a loja vira decisão da equipe (onde e quando usar) |
 | Tiro em tanque com estrela | destrói (`duel_star_armor`) | rebaixa um estágio, como na campanha | no duelo a armadura virava vidas extras para quem pega o canhão (desequilíbrio medido) |
 | Quando dá para pausar | durante a rodada | durante a onda e o aviso dela (os jogadores já se movem) | M4 |

@@ -31,6 +31,11 @@ make pad-selftest # ponte de controles de ponta a ponta (controle de mentira)
 A CI (`.github/workflows/build.yml`) roda isso no Linux, no macOS, no Windows (MSYS2) e o
 `tools/wsl-setup.sh` num Alpine, como o `install.cmd`.
 
+Poder novo com duração (tempo ou munição), em qualquer modo: avisa que está acabando com a
+névoa branca (`Object::drawHaze`), no mapa e no espaço de poder do painel enquanto dura
+(`Player::activePower`); regra W8 do `MODOS_EXTRAS.md`. Os poderes que já existem sem ela só
+mudam quando pedido.
+
 Controles: o jogo só conhece o gamepad padronizado do SDL; o transporte (USB, Bluetooth, ponte)
 fica abaixo (ver `CONTROLES.md`). Fonte nova de controles entra como joystick virtual do SDL,
 como o `NetPad`, sem mudar o `Controllers` nem o jogo.
