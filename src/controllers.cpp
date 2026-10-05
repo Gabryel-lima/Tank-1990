@@ -7,6 +7,8 @@
 
 std::vector<SDL_GameController*> Controllers::m_controllers;
 int Controllers::m_player_count = 1;
+std::map<SDL_JoystickID, int> Controllers::m_first_input;
+int Controllers::m_inputs = 0;
 
 // Abre o controle do índice de dispositivo informado, se ainda não estiver aberto
 static SDL_GameController* openDevice(int device_index)
@@ -63,6 +65,8 @@ void Controllers::handleEvent(const SDL_Event* ev)
         SDL_GameController* c = openDevice(ev->cdevice.which);
         if(c != nullptr) addToSlot(m_controllers, c);
     }
+    else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
+        noteInput(ev->cbutton.which);
     else if(ev->type == SDL_CONTROLLERDEVICEREMOVED)
     {
         // Em DEVICEREMOVED, "which" é o instance id do joystick. A vaga fica vazia
@@ -74,8 +78,33 @@ void Controllers::handleEvent(const SDL_Event* ev)
             SDL_GameControllerClose(c);
             *it = nullptr;
         }
+        m_first_input.erase(ev->cdevice.which); // reconectado, volta ao fim até apertar algo
         while(!m_controllers.empty() && m_controllers.back() == nullptr) m_controllers.pop_back();
     }
+}
+
+void Controllers::noteInput(SDL_JoystickID id)
+{
+    // Só botões contam (não o analógico): um controle parado na mesa com folga no
+    // analógico não pode passar na frente de quem está jogando
+    if(m_first_input.count(id)) return;
+    m_first_input[id] = ++m_inputs;
+
+    // Troca de vaga com o primeiro controle parado (que nunca apertou nada) que esteja
+    // antes dele. Quem já apertou nunca muda de vaga: reordenar tudo trocaria de jogador
+    // quem está no meio da partida
+    auto used = [](SDL_GameController* c) {
+        return m_first_input.count(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(c))) > 0;
+    };
+    size_t mine = m_controllers.size();
+    for(size_t k = 0; k < m_controllers.size(); k++)
+        if(m_controllers[k] != nullptr && SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(m_controllers[k])) == id) mine = k;
+    for(size_t k = 0; k < mine; k++)
+        if(m_controllers[k] != nullptr && !used(m_controllers[k]))
+        {
+            std::swap(m_controllers[k], m_controllers[mine]);
+            break;
+        }
 }
 
 void Controllers::setPlayerCount(int count)
