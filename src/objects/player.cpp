@@ -246,6 +246,17 @@ void Player::drawEffects()
     if(testFlag(TSF_LIFE)) drawHaze(turboEnding());
 }
 
+SpriteType Player::activePower(double* ending) const
+{
+    if(m_turbo_time > 0)
+    {
+        if(ending != nullptr) *ending = turboEnding();
+        return ST_BONUS_TURBO;
+    }
+    if(ending != nullptr) *ending = 0;
+    return ST_NONE;
+}
+
 double Player::turboEnding() const
 {
     double quarter = AppConfig::power_turbo_time / 4.0;

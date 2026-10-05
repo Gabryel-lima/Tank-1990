@@ -1000,13 +1000,15 @@ void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
         SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
         engine.getRenderer()->drawObject(&icon, &slot);
     }
-    else if(player != nullptr && player->boosted())
+    else if(player != nullptr && player->activePower(nullptr) != ST_NONE)
     {
-        // Turbo em uso: o ícone fica no espaço enquanto dura, com a névoa no fim (V1).
-        // Sem isso, o espaço esvaziava ao usar e nada mostrava que o turbo estava valendo
-        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(ST_BONUS_TURBO)->rect;
+        // Poder com duração em uso (o turbo): o ícone fica no espaço enquanto dura, com a
+        // névoa no fim (W8, V1). Sem isso, o espaço esvaziava ao usar e nada mostrava que
+        // o poder estava valendo
+        double ending = 0;
+        SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->activePower(&ending))->rect;
         engine.getRenderer()->drawObject(&icon, &slot);
-        engine.getRenderer()->drawWhite(&icon, &slot, Object::hazeAlpha(player->turboEnding(), SDL_GetTicks()));
+        engine.getRenderer()->drawWhite(&icon, &slot, Object::hazeAlpha(ending, SDL_GetTicks()));
     }
     else
         engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);

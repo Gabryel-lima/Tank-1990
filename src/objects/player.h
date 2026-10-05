@@ -215,6 +215,15 @@ public:
     double turboEnding() const;
 
     /**
+     * Poder com duração em uso pelo jogador (hoje, o turbo): o painel mostra o ícone dele no
+     * espaço de poder enquanto dura, com a névoa de "acabando" (W8, V1). Poder novo com
+     * duração que fica no jogador responde aqui, e o painel funciona sem código novo.
+     * @param ending - recebe de 0 (longe do fim) a 1 (no fim), como turboEnding
+     * @return o tipo do poder, ou ST_NONE se nenhum está valendo
+     */
+    SpriteType activePower(double* ending) const;
+
+    /**
      * Retorno: reaparece em (x, y) com a animação de nascimento (sem gastar vida, mantendo
      * estrelas e barco; durante a animação o tanque não leva tiro).
      */
