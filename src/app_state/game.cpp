@@ -528,7 +528,7 @@ void Game::loadLevel(std::string path)
 // Retorna se o jogo terminou
 bool Game::finished() const
 {
-    return m_finished;
+    return m_finished || m_quit;
 }
 
 // Retorna o próximo estado do jogo (menu ou placar)
@@ -947,9 +947,11 @@ void Game::drawPause()
 void Game::drawPauseBox()
 {
     const SDL_Color pause_red = {255, 70, 70, 255};   // 6,2:1 sobre preto
+    const SDL_Color hint = {150, 150, 150, 255};
     drawMessageBox(Engine::getEngine().getRenderer(), {
-        {"PAUSE", pause_red, 1, 8},
-        {"ENTER / START", {150, 150, 150, 255}, 3, 0},
+        {"PAUSE", pause_red, 1, 10},
+        {"ENTER / START: PLAY", hint, 3, 6},
+        {"ESC / SELECT: MENU", hint, 3, 0},
     }, pause_red);
 }
 
@@ -958,8 +960,12 @@ void Game::extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause)
     if(ev->type == SDL_KEYDOWN)
     {
         SDL_Keycode key = ev->key.keysym.sym;
+        // Esc só sai com o jogo pausado (a caixa da pausa diz): sem querer, no meio da
+        // partida, não perde nada
         if(key == SDLK_ESCAPE)
-            m_finished = true;
+        {
+            if(m_pause) m_quit = true;
+        }
         else if(results_ready)
         {
             // Qualquer tecla de tiro ou Enter volta ao menu
@@ -973,8 +979,11 @@ void Game::extraModeInput(SDL_Event* ev, bool results_ready, bool can_pause)
     }
     else if(ev->type == SDL_CONTROLLERBUTTONDOWN)
     {
+        // Select, como o Esc: só na pausa
         if(ev->cbutton.button == SDL_CONTROLLER_BUTTON_BACK)
-            m_finished = true;
+        {
+            if(m_pause) m_quit = true;
+        }
         else if(results_ready && (ev->cbutton.button == SDL_CONTROLLER_BUTTON_A ||
                                   ev->cbutton.button == SDL_CONTROLLER_BUTTON_START))
             m_finished = true;

@@ -447,6 +447,11 @@ protected:
      * Indica se o estado atual do jogo deve ser finalizado e transitar para a tela de resultados ou menu.
      */
     bool m_finished;
+    /**
+     * Modos extras: o jogador saiu pela pausa (Esc / Select). Separado de m_finished, que a
+     * sobrevivência usa como "a onda acabou": antes, o Select avançava a onda.
+     */
+    bool m_quit = false;
 
     /**
      * Indica se o jogo está pausado.

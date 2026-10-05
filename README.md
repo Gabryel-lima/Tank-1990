@@ -266,7 +266,7 @@ cd build/bin
 ```
 
 A IA não joga como uma pessoa, então os números indicam tendências (um bônus que decide a rodada sozinho, um mapa que favorece um lado), não o resultado exato entre jogadores.
-- Enter / Start pausa; Esc / Back abandona a partida. Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
+- Enter / Start pausa; com o jogo pausado, Esc / Select abandona a partida (a caixa da pausa mostra os dois). Ao sair ou no fim da partida (tiro / Enter / A), o jogo volta para a escolha de mapa, com o último já selecionado: revanche com um botão.
 
 ## 🛡️ Modo Sobrevivência (Extra Modes)
 
@@ -385,7 +385,7 @@ como reserva de quem não tiver controle. Não há nada para configurar.
 - **Mover**: D-pad ou analógico esquerdo
 - **Atirar**: qualquer botão frontal (A, B, X ou Y)
 - **Usar o poder guardado** (duelo e sobrevivência): LB
-- **Start**: pausa · **Back/Select**: volta ao menu
+- **Start**: pausa · **Back/Select**: volta ao menu (nos modos extras, só com o jogo pausado)
 - **No menu**: D-pad ou analógico para escolher, A/Start para confirmar, B/Back para sair
 
 **No teclado** há dois layouts: `WASD` (`W` `A` `S` `D` + `Espaço`, poder no

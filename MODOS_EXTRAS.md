@@ -24,8 +24,8 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 |---|-------|------|
 | M1 | Fluxo: Extra Modes → configuração → **Next** → escolha de mapa (com miniatura e **Random**) → partida. | `Menu` |
 | M2 | No fim da partida, volta para a **escolha de mapa com o último selecionado**: jogar de novo é um botão só. | `nextState()` do modo |
-| M3 | Teclas: **Esc / Back** sai; **Enter / Start** pausa; na tela final, **tiro / Enter / A / Start** volta ao menu, liberado depois de 1,5 s (para não pular a tela sem querer). | `Game::extraModeInput` |
-| M4 | A pausa é a **caixa padrão** ("PAUSE" e "ENTER / START"). O modo decide quando dá para pausar: sempre que os jogadores controlam os tanques. | `Game::drawPauseBox`, `drawPause()` |
+| M3 | Teclas: **Enter / Start** pausa; **Esc / Select** sai para o menu, **só com o jogo pausado** (nunca avança nem encerra nada no meio da partida); na tela final, **tiro / Enter / A / Start** volta ao menu, liberado depois de 1,5 s (para não pular a tela sem querer). | `Game::extraModeInput` |
+| M4 | A pausa é a **caixa padrão** ("PAUSE", "ENTER / START: PLAY" e "ESC / SELECT: MENU"). O modo decide quando dá para pausar: sempre que os jogadores controlam os tanques. | `Game::drawPauseBox`, `drawPause()` |
 | M5 | **Botão de poder:** LB no controle, Shift esquerdo no `WASD`, Shift direito no `ARROWS`. | `PlayerKeys::power`, `Player::takePowerPress` |
 
 ## 3. Mapas

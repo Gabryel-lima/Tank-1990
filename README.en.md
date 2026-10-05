@@ -265,7 +265,7 @@ cd build/bin
 ```
 
 The AI doesn't play like a person, so the numbers show trends (a power-up that decides the round on its own, a map that favors one side), not the exact result between players.
-- Enter / Start pauses; Esc / Back leaves the match. Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
+- Enter / Start pauses; while paused, Esc / Select leaves the match (the pause box shows both). Leaving, or pressing fire / Enter / A when the match ends, takes you back to the map selection with the last map highlighted: a rematch is one button away.
 
 ## 🛡️ Survival Mode (Extra Modes)
 
@@ -384,7 +384,7 @@ automatically backs up anyone without one. There is nothing to configure.
 - **Move**: D-pad or left stick
 - **Fire**: any face button (A, B, X or Y)
 - **Use the held power** (duel and survival): LB
-- **Start**: pause · **Back/Select**: back to the menu
+- **Start**: pause · **Back/Select**: back to the menu (in the extra modes, only while paused)
 - **In the menu**: D-pad or stick to choose, A/Start to confirm, B/Back to quit
 
 **On the keyboard** there are two layouts: `WASD` (`W` `A` `S` `D` + `Space`,
