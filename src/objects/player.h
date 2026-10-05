@@ -73,6 +73,12 @@ public:
     Bullet* fire();
 
     /**
+     * Só as balas que ainda voam: a que bateu libera o tiro na hora, sem esperar os 240 ms
+     * da animação da explosão (que segurava o tiro seguinte, mais ainda atirando de perto).
+     */
+    unsigned bulletsInUse() const override;
+
+    /**
      * Altera a quantidade de estrelas do jogador.
      * Se o número de estrelas for maior que zero, aumenta a velocidade padrão do tanque.
      * Para duas ou mais estrelas e para cada incremento positivo, aumenta o número máximo de projéteis.

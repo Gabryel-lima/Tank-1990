@@ -105,12 +105,11 @@ void Player::update(Uint32 dt)
         else if(!testFlag(TSF_ON_ICE) || m_slip_time == 0)
             speed = 0.0; // Para o tanque, exceto se estiver escorregando no gelo
 
-        // Disparo: respeita o tempo de recarga
-        if(shoot && m_fire_time > m_reload_time)
-        {
-            fire();
+        // Disparo: respeita o tempo de recarga. O relógio só volta a zero quando sai um tiro:
+        // antes, a tentativa que falhava (bala ainda na tela) também o zerava, e o tiro seguinte
+        // esperava uma recarga inteira a mais, um atraso que variava conforme o encaixe
+        if(shoot && m_fire_time > m_reload_time && fire() != nullptr)
             m_fire_time = 0;
-        }
     }
 
     m_fire_time += dt; // Atualiza tempo desde o último tiro
@@ -219,6 +218,11 @@ Bullet* Player::fire()
         b->demolisher = m_demolisher;
     }
     return b;
+}
+
+unsigned Player::bulletsInUse() const
+{
+    return static_cast<unsigned>(std::count_if(bullets.begin(), bullets.end(), [](const Bullet* b) { return !b->collide; }));
 }
 
 void Player::drawEffects()

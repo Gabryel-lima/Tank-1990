@@ -182,11 +182,16 @@ void Tank::update(Uint32 dt)
     }), bullets.end());
 }
 
+unsigned Tank::bulletsInUse() const
+{
+    return static_cast<unsigned>(bullets.size());
+}
+
 // Cria e dispara um novo projétil, se permitido.
 Bullet* Tank::fire()
 {
     if(!testFlag(TSF_LIFE)) return nullptr;
-    if(bullets.size() < m_bullet_max_size)
+    if(bulletsInUse() < m_bullet_max_size)
     {
 
         // sound
