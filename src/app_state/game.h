@@ -293,11 +293,27 @@ protected:
      */
     bool areaFree(int row, int column, int rows, int columns);
 
+    /** Como areaFree, para uma área em pixels fora da grade (cada tile que ela toca conta). */
+    bool rectFree(SDL_Rect area);
+
     /** Bloco reservado pelo modo (pontos de nascimento...): nada é colocado em cima. */
     virtual bool reservedTile(int row, int column);
 
-    /** Célula (canto de uma área 2x2, em tiles) logo à frente do tanque, na direção dele. */
+    /**
+     * Célula (canto de uma área 2x2, em tiles) à frente do tanque, na direção dele: a primeira
+     * fileira de blocos que não toca nele (o vão é sempre menor que um bloco).
+     */
     void frontCell(Tank* tank, int* row, int* column) const;
+
+    /**
+     * Onde vai um poder colocado à frente do tanque (2x2 tiles), regra W9 do MODOS_EXTRAS.md:
+     * logo à frente, nunca com um bloco vazio inteiro no meio. Fora da grade (@a on_grid
+     * false, a torreta): encostada no tanque e alinhada com ele; rente a uma parede, encostada
+     * com o lado na grade; por último, a área da grade (frontCell). Na grade (a barricada,
+     * que vira tijolos): só a área de frontCell.
+     * @return false se nenhuma das áreas está livre (rectFree)
+     */
+    bool frontArea(Tank* tank, bool on_grid, SDL_Rect* area);
 
     /** Barricada: 4 tijolos (2x2) logo à frente do tanque. @return false se não há espaço */
     bool placeBarricade(Tank* tank);

@@ -23,14 +23,26 @@ void Turret::update(Uint32 dt)
     speed = 0;
     stop = true;
     Tank::update(dt);
-    if(!testFlag(TSF_LIFE)) return;
+    if(testFlag(TSF_LIFE))
+    {
+        m_reload_left = m_reload_left > dt ? m_reload_left - dt : 0;
+        if(dt >= m_time_left) destroy(); // tempo acabou: explode, como um tanque
+        else m_time_left -= dt;
+    }
 
-    // Um quadro só, virado para a direção atual (as direções ficam lado a lado na textura)
-    src_rect = moveRect(m_sprite->rect, direction, 0);
+    // Viva: um quadro só, virado para a direção atual (as direções ficam lado a lado na
+    // textura). Surgindo ou explodindo: o quadro da animação, como os tanques. Sem isso, a
+    // explosão desenhava o último quadro da torreta esticado no retângulo de 64x64 dela
+    if(testFlag(TSF_LIFE)) src_rect = moveRect(m_sprite->rect, direction, 0);
+    else src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
+}
 
-    m_reload_left = m_reload_left > dt ? m_reload_left - dt : 0;
-    if(dt >= m_time_left) destroy(); // tempo acabou: explode, como um tanque
-    else m_time_left -= dt;
+void Turret::destroy()
+{
+    Tank::destroy();
+    // Atingida entre um update e o desenho: sem isso, aquele quadro ainda saía com a torreta
+    // esticada no retângulo da explosão
+    if(testFlag(TSF_DESTROYED)) src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
 }
 
 void Turret::drawEffects()

@@ -59,10 +59,11 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | W2 | Cada modo tem a **sua tabela de sorteio**, sem poder que não faça nada nele (a trégua não entra no duelo, onde nada surge). | `Powers::duelTable`, `Powers::survivalTable` |
 | W3 | Guardando um poder, o jogador **não pega outro bônus** (os bônus continuam no mapa). **Morrer perde** o poder guardado. | `Player::held_power`, `Player::destroy` |
 | W4 | O painel mostra o **espaço do poder de cada jogador**: o ícone, ou uma moldura vazia. | `Game::drawPowerSlot` |
-| W5 | Barricada e torreta só vão em área livre: dentro do mapa, sem cenário, **arbusto**, base, tanque ou torreta, e fora dos blocos que o modo reserva (pontos de nascimento). | `Game::areaFree`, `reservedTile()` do modo |
+| W5 | Barricada e torreta só vão em área livre: dentro do mapa, sem cenário, **arbusto**, base, tanque ou torreta, e fora dos blocos que o modo reserva (pontos de nascimento). | `Game::areaFree`, `Game::rectFree`, `reservedTile()` do modo |
 | W6 | Torreta e mina acabam sozinhas (tempo; a torreta também por munição). | `AppConfig::power_*` |
 | W7 | Competitivo: as proteções do jogador (**escudo, barco**) valem contra os poderes do adversário. Contra os inimigos da IA, o poder pode ser total. | `Duel::hitTank`, `Game::killEnemy` |
 | W8 | **Poder com duração** (tempo ou munição) avisa que está acabando com a **névoa branca** do V1, a partir do último quarto, sobre o que o representa no mapa (o objeto, como a mina e a torreta; o tanque, como no turbo). O que fica no jogador também aparece no **espaço de poder do painel enquanto dura**, com a mesma névoa. **Vale para todo poder novo, em qualquer modo.** Hoje seguem: mina, torreta e turbo. Ainda sem a névoa (só mudam quando pedido): trégua (tem a contagem em texto), escudo de equipe e os originais da campanha (capacete, relógio, pá). | `Object::drawHaze`, `Object::hazeAlpha`, `Player::activePower`, `Game::drawPowerSlot` |
+| W9 | **Poder colocado à frente** (barricada, torreta e os próximos) vai **logo à frente do tanque, na direção dele, nunca com um bloco vazio inteiro no meio**. O tanque para em qualquer pixel (anda `speed * dt`; só o lado se encaixa na grade ao virar). O que não precisa da grade (a torreta, que é um tanque parado) fica **encostado** no tanque e alinhado com ele; o que vira bloco do mapa (a barricada) vai na **primeira fileira de blocos que não toca o tanque**, com um vão menor que um bloco. Sem espaço ali, o poder **não procura outro lugar mais longe**: continua guardado. A mina é deixada **debaixo** do tanque (fica para trás quando ele anda), não à frente. Poder novo colocado à frente usa `frontArea`. | `Game::frontArea`, `Game::frontCell` |
 
 ## 6. Sinais visuais
 
@@ -104,6 +105,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 - [ ] `reservedTile` protege os pontos de nascimento (W5).
 - [ ] Sinais visuais com `drawHaze` e caixas de mensagem (V1, V3, V4).
 - [ ] Poder novo com duração: névoa branca no fim, no mapa e no painel enquanto dura (W8).
+- [ ] Poder novo colocado à frente: `frontArea`, logo à frente do tanque, sem bloco vazio no meio (W9).
 - [ ] A campanha continua idêntica pixel a pixel (K1).
 - [ ] README em português e em inglês.
 

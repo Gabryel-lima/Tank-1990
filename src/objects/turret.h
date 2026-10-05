@@ -26,6 +26,9 @@ public:
 
     void update(Uint32 dt) override;
 
+    /** Explode como um tanque (a explosão grande), já no primeiro quadro. */
+    void destroy() override;
+
     /**
      * Escolhe a direção (a atual primeiro) em que @a worth diz que vale atirar, vira para ela
      * e atira quando a recarga permitir.
