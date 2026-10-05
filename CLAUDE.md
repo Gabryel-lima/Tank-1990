@@ -18,6 +18,9 @@ em mais de um modo, ele vira regra lá e sobe para um ponto comum no código.
 - A campanha não muda: os modos extras usam ganchos virtuais do `Game` cujo padrão é o
   comportamento da campanha.
 - README em português (`README.md`) e em inglês (`README.en.md`), sempre os dois.
+- Fins de linha no `.gitattributes`: LF nos `.sh` e no `Makefile`, CRLF nos `.cmd`. Script
+  que o Windows manda rodar no WSL roda numa cópia sem `\r` (como o `install.cmd`), para
+  funcionar também num clone antigo com CRLF.
 
 ## Verificar
 

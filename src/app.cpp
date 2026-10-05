@@ -39,18 +39,27 @@ void App::run()
     is_running = true;
     // Inicialização do SDL e criação da janela
 
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
+    // Os controles iniciam à parte: juntos no mesmo SDL_Init, uma falha deles (no WSL, sem
+    // udev, com o controle repassado pela metade) derrubava o SDL inteiro, e o jogo fechava
+    // sem abrir a janela e sem dizer nada
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
+        std::cerr << "Falha ao iniciar o SDL: " << SDL_GetError() << "\n";
+    else
     {
-
         // Inicializa e carrega sons. Sem áudio o jogo continua, só que mudo.
         if (SoundManager::getInstance().init())
             SoundManager::getInstance().loadSounds();
 
-        // Abre os controles já conectados (os demais chegam por hotplug)
-        Controllers::init();
-        // Controles que chegam pela rede (ponte do Windows para o WSL): só se o ambiente
-        // pedir (TANK_NETPAD=porta). Eles viram controles virtuais do SDL (CONTROLES.md)
-        NetPad::startFromEnvironment();
+        if(SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0)
+            std::cerr << "Controles indisponíveis (" << SDL_GetError() << "): o jogo segue só com o teclado\n";
+        else
+        {
+            // Abre os controles já conectados (os demais chegam por hotplug)
+            Controllers::init();
+            // Controles que chegam pela rede (ponte do Windows para o WSL): só se o ambiente
+            // pedir (TANK_NETPAD=porta). Eles viram controles virtuais do SDL (CONTROLES.md)
+            NetPad::startFromEnvironment();
+        }
 
         // Lista de mapas do duelo (duel_levels/maps.txt), sem os que não passam na validação
         DuelLayout::loadMapList();

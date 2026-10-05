@@ -627,11 +627,34 @@ A documentação será gerada no diretório `doc/` e pode ser visualizada abrind
    (`mesa-gl`, `mesa-egl`).
 3. Por fim, atualize o WSL com `wsl --update`.
 
+### A janela não abre e o terminal mostra um erro do SDL (Windows)
+- `Falha ao iniciar o SDL: ...`: o vídeo ou o áudio do WSL não iniciou; veja o
+  item anterior (`play.cmd --reset`, `wsl --update`).
+- `Controles indisponíveis (...)`: os controles não iniciaram, mas o jogo abre
+  assim mesmo, só com o teclado. Feche o jogo, desconecte e reconecte o
+  controle e abra de novo pelo `play.cmd`.
+
+### `install.cmd` para logo no começo, ou aparece `warning: in the working copy of ... CRLF`
+O projeto é escrito no Linux, onde as linhas terminam em LF; o Git para Windows
+costuma trocá-las por CRLF ao clonar (`core.autocrlf=true`), e com CRLF o `sh`
+do WSL para nos scripts (`set: Illegal option -`). O `.gitattributes` fixa o fim de linha de cada tipo de
+arquivo: LF nos `.sh` e no `Makefile`, CRLF nos `.cmd`, qualquer que seja a
+configuração de quem clonou. O aviso do Git só diz que ele vai fazer essa troca.
+O `install.cmd` e o `wsl-setup.sh` também tiram o CR sozinhos, então um clone
+antigo funciona. Para deixá-lo como um clone novo (**com tudo commitado**: o
+`reset --hard` descarta as mudanças que não foram commitadas):
+```
+git rm --cached -r -q .
+git reset --hard
+```
+
 ### Controles não funcionam
 - Pelo `play.cmd` (WSL): o controle precisa estar **no cabo** e autorizado pelo
   `gamepads.cmd` (confira com `gamepads.cmd --list`). O registro do repasse fica
   em `%LOCALAPPDATA%\Tank1990\gamepads.log`
-- Controle por Bluetooth não funciona no WSL; use o cabo
+- Controle por Bluetooth: pareie no Windows (não no WSL) e abra pelo `play.cmd`,
+  que leva o controle ao jogo pela ponte (`bridge\padbridge.exe`, ver
+  [Controles por Bluetooth](#controles-por-bluetooth))
 - Confira a tabela de distribuição: o 1º controle conectado é sempre do Player 1; no modo duelo, a tela de configuração mostra o dispositivo de cada jogador
 - No Linux, o usuário precisa de acesso a `/dev/input/event*` (grupo `input`)
 - Certifique-se de que o SDL2 está instalado corretamente

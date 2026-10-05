@@ -178,6 +178,13 @@ trap 'rm -rf "$WORK" "$TMP_PROG"' EXIT
 cp -r "$SRC_DIR/src" "$SRC_DIR/resources" "$SRC_DIR/tools" "$SRC_DIR/Makefile" "$WORK/"
 cd "$WORK"
 
+# Clone feito no Windows com CRLF (antes do .gitattributes, ou com core.autocrlf=true): o sh
+# para nos scripts que o make chama. O compilador e o jogo aceitam CRLF nos .cpp e nos
+# mapas; os scripts de shell, nao (o Makefile vai junto, para nao depender da versao do make)
+find . \( -name Makefile -o -name '*.sh' \) -type f | while read -r _f; do
+    tr -d '\r' < "$_f" > "$_f.lf" && mv "$_f.lf" "$_f"
+done
+
 # Progresso = arquivos .o gerados + 1 passo de linkagem (o executavel)
 N_SRC=$(find src -name '*.cpp' | wc -l)
 make_probe() {

@@ -99,6 +99,10 @@ void Controllers::noteInput(SDL_JoystickID id)
     size_t mine = m_controllers.size();
     for(size_t k = 0; k < m_controllers.size(); k++)
         if(m_controllers[k] != nullptr && SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(m_controllers[k])) == id) mine = k;
+    // Botão de um controle que já não está na lista: o aperto ficou na fila e chegou depois
+    // do DEVICEREMOVED (o controle repassado pelo usbipd ou pela ponte caiu e voltou). Sem
+    // isto, a troca abaixo escrevia em m_controllers[size()], fora do vetor
+    if(mine == m_controllers.size()) return;
     for(size_t k = 0; k < mine; k++)
         if(m_controllers[k] != nullptr && !used(m_controllers[k]))
         {

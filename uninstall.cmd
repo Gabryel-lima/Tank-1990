@@ -68,7 +68,8 @@ rem ---------------------------------------------------------------------------
 if "%TEM_DISTRO%"=="0" goto nada_a_fazer
 echo.
 echo  Removendo o jogo de dentro do WSL...
-wsl.exe -d %DISTRO% --cd "%PROJECT_DIR%" -- /bin/sh tools/wsl-uninstall.sh
+rem  Copia sem os "\r", como no install.cmd (clone com CRLF)
+wsl.exe -d %DISTRO% --cd "%PROJECT_DIR%" -e /bin/sh -c "tr -d '\r' < tools/wsl-uninstall.sh > /tmp/tank1990-uninstall.sh && exec /bin/sh /tmp/tank1990-uninstall.sh"
 if !errorlevel! neq 0 (
     echo  [ERRO] Falha ao remover o jogo.
     goto fim_erro

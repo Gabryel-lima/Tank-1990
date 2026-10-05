@@ -620,11 +620,34 @@ Open `doc/html/index.html` in a browser.
    `libxscrnsaver`) and OpenGL (`mesa-gl`, `mesa-egl`).
 3. Finally, update WSL with `wsl --update`.
 
+### The window doesn't open and the terminal shows an SDL error (Windows)
+- `Falha ao iniciar o SDL: ...` ("SDL failed to start"): WSL's video or audio
+  didn't start; see the previous item (`play.cmd --reset`, `wsl --update`).
+- `Controles indisponíveis (...)` ("controllers unavailable"): controllers
+  didn't start, but the game opens anyway, keyboard only. Close the game,
+  unplug and replug the controller and open it again with `play.cmd`.
+
+### `install.cmd` stops right away, or you see `warning: in the working copy of ... CRLF`
+The project is written on Linux, where lines end in LF; Git for Windows usually
+turns them into CRLF on clone (`core.autocrlf=true`), and with CRLF WSL's `sh`
+stops on the scripts (`set: Illegal option -`). `.gitattributes` pins each file type's line ending: LF for
+`.sh` and the `Makefile`, CRLF for `.cmd`, whatever the cloner's settings. Git's
+warning only says it is going to do that conversion. `install.cmd` and
+`wsl-setup.sh` also strip the CR on their own, so an old clone works; to turn it
+into a fresh clone (**with everything committed**: `reset --hard` discards
+uncommitted changes):
+```
+git rm --cached -r -q .
+git reset --hard
+```
+
 ### Controllers don't work
 - Through `play.cmd` (WSL): the controller must be **on a cable** and
   authorized by `gamepads.cmd` (check with `gamepads.cmd --list`). The
   forwarding log is at `%LOCALAPPDATA%\Tank1990\gamepads.log`
-- Bluetooth controllers don't work in WSL; use the cable
+- Bluetooth controller: pair it in Windows (not in WSL) and start with
+  `play.cmd`, which brings it into the game through the bridge
+  (`bridge\padbridge.exe`, see [Bluetooth controllers](#bluetooth-controllers))
 - Check the assignment table: the 1st connected controller always belongs to Player 1; in duel mode, the setup screen shows each player's device
 - On Linux your user needs access to `/dev/input/event*` (the `input` group)
 - Make sure SDL2 is installed correctly
