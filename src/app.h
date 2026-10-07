@@ -38,6 +38,13 @@ private:
     void cleanup();
 
     /**
+     * Lê o tamanho real da janela e ajusta a escala do renderizador (Renderer::setScale).
+     * Chamada logo depois de criar o renderizador e a cada evento de janela: não depende
+     * de o sistema mandar um evento (no console a janela já nasce em tela cheia).
+     */
+    void updateScale();
+
+    /**
      * Variável que mantém o loop principal do programa em execução.
      * Quando false, o loop principal é encerrado e a aplicação termina.
      */

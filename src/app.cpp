@@ -9,6 +9,7 @@
 #include "app_state/duel_layout.h"
 #include "app_state/survival_layout.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
@@ -73,8 +74,17 @@ void App::run()
         const char* fullscreen = std::getenv("TANK_FULLSCREEN");
         if(fullscreen != nullptr && fullscreen[0] != '\0' && fullscreen[0] != '0')
             window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+        // Em janela, abre no maior múltiplo inteiro do tamanho lógico que cabe na área útil
+        // da tela (menos uma folga para a borda da janela), em vez do 1x minúsculo
+        int window_w = AppConfig::windows_rect.w, window_h = AppConfig::windows_rect.h;
+        SDL_Rect usable;
+        if(!(window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) && SDL_GetDisplayUsableBounds(0, &usable) == 0)
+        {
+            int zoom = std::min((usable.w - 32) / window_w, (usable.h - 64) / window_h);
+            if(zoom > 1) { window_w *= zoom; window_h *= zoom; }
+        }
         m_window = SDL_CreateWindow("TANKS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                    AppConfig::windows_rect.w, AppConfig::windows_rect.h, window_flags);
+                                    window_w, window_h, window_flags);
 
         // Confere a janela e inicializa imagens PNG e fontes TrueType;
         // se algo falhar, libera o que já foi criado e sai.
@@ -95,6 +105,7 @@ void App::run()
         engine.initModules();
         engine.getRenderer()->loadTexture(m_window);
         engine.getRenderer()->loadFont();
+        updateScale();
 
         // Estado inicial do aplicativo é o menu principal
         m_app_state = new Menu;
@@ -192,16 +203,17 @@ void App::eventProces()
                event.window.event == SDL_WINDOWEVENT_RESTORED ||
                event.window.event == SDL_WINDOWEVENT_SHOWN)
             {
-                // Atualiza as dimensões da janela no AppConfig. Só o RESIZED
-                // traz o tamanho em data1/data2; nos outros eventos eles vêm
-                // zerados, então lê o tamanho direto da janela.
-                SDL_GetWindowSize(m_window, &AppConfig::windows_rect.w, &AppConfig::windows_rect.h);
-                // Ajusta a escala do renderizador conforme o novo tamanho da janela
-                Engine::getEngine().getRenderer()->setScale(
-                    (float)AppConfig::windows_rect.w / (AppConfig::map_rect.w + AppConfig::status_rect.w),
-                    (float)AppConfig::windows_rect.h / AppConfig::map_rect.h
-                );
+                updateScale();
             }
+        }
+
+        else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F11 && !event.key.repeat)
+        {
+            // F11 alterna entre janela e tela cheia; a escala se ajusta no evento de janela
+            bool full = SDL_GetWindowFlags(m_window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+            SDL_SetWindowFullscreen(m_window, full ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+            updateScale();
+            continue;
         }
 
         // Conexão/desconexão de controles
@@ -210,4 +222,16 @@ void App::eventProces()
         // Encaminha o evento para o estado atual do aplicativo
         m_app_state->eventProcess(&event);
     }
+}
+
+void App::updateScale()
+{
+    // Atualiza as dimensões da janela no AppConfig. Só o RESIZED traz o tamanho em
+    // data1/data2; nos outros eventos eles vêm zerados, então lê direto da janela.
+    SDL_GetWindowSize(m_window, &AppConfig::windows_rect.w, &AppConfig::windows_rect.h);
+    // Ajusta a escala do renderizador conforme o tamanho da janela
+    Engine::getEngine().getRenderer()->setScale(
+        (float)AppConfig::windows_rect.w / (AppConfig::map_rect.w + AppConfig::status_rect.w),
+        (float)AppConfig::windows_rect.h / AppConfig::map_rect.h
+    );
 }

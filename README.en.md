@@ -434,6 +434,10 @@ power on `Left Shift`) and `ARROWS` (arrow keys + `Right Ctrl`, `Right Alt` on M
 power on `Right Shift`). Each layout drives a single player: one player's keys
 never move or fire another tank.
 
+**Fullscreen**: `F11` toggles between window and fullscreen. To start in fullscreen,
+run with `TANK_FULLSCREEN=1` (e.g. `TANK_FULLSCREEN=1 ./Tanks`). In a window, the game
+opens at the largest size that fits the screen.
+
 ### Which device goes to which player
 
 1. **Controllers first, in the order buttons are pressed**: the controller that presses a button first goes to Player 1, the next one to Player 2, and so on. Connection order doesn't matter: a controller the system still sees as connected but nobody uses (a forgotten paired one left on, a wireless receiver with no controller) stays behind and **never takes the slot** of whoever picked up a controller. A controller that has pressed a button never changes slots mid-match.

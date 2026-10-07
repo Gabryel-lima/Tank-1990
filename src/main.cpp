@@ -23,10 +23,26 @@
 
 #include "app.h"
 
+#ifdef _WIN32
+#include <direct.h>
+#define chdir _chdir
+#else
+#include <unistd.h>
+#endif
+
 // Função principal do programa.
 // Inicializa a aplicação e executa o loop principal do jogo.
 int main(int argc, char* args[])
 {
+    // Os arquivos do jogo (texture.png, fonte, levels/...) são lidos por caminho relativo:
+    // entra na pasta do executável, para funcionar rodado de qualquer pasta
+    // (ex.: ./build/bin/Tanks a partir da raiz do projeto)
+    if(char* base = SDL_GetBasePath())
+    {
+        if(chdir(base) != 0) SDL_Log("Nao consegui entrar em %s", base);
+        SDL_free(base);
+    }
+
     // Cria a instância principal da aplicação
     App app;
     // Inicia o loop principal do jogo

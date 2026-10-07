@@ -423,6 +423,10 @@ como reserva de quem não tiver controle. Não há nada para configurar.
 `Shift direito`). Cada layout controla um único jogador: apertar a tecla de um nunca
 move ou faz atirar outro.
 
+**Tela cheia**: `F11` alterna entre janela e tela cheia. Para já abrir em tela cheia,
+rode com `TANK_FULLSCREEN=1` (ex.: `TANK_FULLSCREEN=1 ./Tanks`). Em janela, o jogo abre
+no maior tamanho que cabe na tela.
+
 ### Qual dispositivo fica com qual jogador
 
 1. **Controle primeiro, na ordem de quem aperta**: o controle que apertar um botão primeiro vai para o Player 1, o próximo para o Player 2, e assim por diante. Não importa a ordem em que foram conectados: um controle que o sistema ainda vê conectado mas ninguém usa (um pareado e esquecido ligado, um receptor sem fio sem controle) fica para trás e **não rouba a vaga** de quem pegou o controle. Quem já apertou nunca muda de vaga no meio da partida.
