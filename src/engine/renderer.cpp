@@ -87,6 +87,7 @@ void Renderer::loadFont()
 // Limpa o buffer de renderização com uma cor de fundo padrão
 void Renderer::clear()
 {
+    if(m_composing) return;
     SDL_SetRenderDrawColor(m_renderer, 110, 110, 110, 255); // Define cor de fundo (cinza)
     SDL_RenderClear(m_renderer); // Limpa o buffer de renderização (back buffer)
 }
@@ -94,6 +95,7 @@ void Renderer::clear()
 // Apresenta o conteúdo do buffer de renderização na tela
 void Renderer::flush()
 {
+    if(m_composing) return;
     SDL_RenderPresent(m_renderer); // Troca os buffers (apresenta o back buffer)
 }
 
@@ -236,6 +238,14 @@ void Renderer::drawText(const SDL_Point* start, string text, SDL_Color text_colo
 }
 
 // Desenha um retângulo na tela, preenchido ou apenas contornado
+void Renderer::dim(const SDL_Rect* rect, Uint8 alpha)
+{
+    SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, alpha);
+    SDL_RenderFillRect(m_renderer, rect);
+    SDL_SetRenderDrawBlendMode(m_renderer, SDL_BLENDMODE_NONE);
+}
+
 void Renderer::drawRect(const SDL_Rect *rect, SDL_Color rect_color, bool fill)
 {
     SDL_SetRenderDrawColor(m_renderer, rect_color.r, rect_color.g, rect_color.b, rect_color.a);

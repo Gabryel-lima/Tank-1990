@@ -28,11 +28,15 @@ public:
     /** Explode (encostou num inimigo ou levou um tiro): some do mapa. */
     void detonate();
 
+    /** Sobrevivência: fica até explodir (sem tempo, sem a névoa de "acabando"). */
+    void setPermanent() { m_permanent = true; }
+
     int team;
     int owner;
 
 private:
     Uint32 m_time_left;
+    bool m_permanent = false;
 };
 
 #endif // MINE_H

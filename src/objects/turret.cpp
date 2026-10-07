@@ -10,6 +10,7 @@ Turret::Turret(double x, double y, int team, int owner, SDL_Color color)
     this->color = color;
     m_time_left = AppConfig::power_turret_time;
     m_reload_left = 0;
+    m_reload = AppConfig::power_turret_reload;
     m_ammo = AppConfig::power_turret_ammo;
     m_bullet_max_size = 1;
     direction = (team == 1 ? D_DOWN : D_UP);
@@ -26,7 +27,8 @@ void Turret::update(Uint32 dt)
     if(testFlag(TSF_LIFE))
     {
         m_reload_left = m_reload_left > dt ? m_reload_left - dt : 0;
-        if(dt >= m_time_left) destroy(); // tempo acabou: explode, como um tanque
+        if(m_permanent) {}
+        else if(dt >= m_time_left) destroy(); // tempo acabou: explode, como um tanque
         else m_time_left -= dt;
     }
 
@@ -45,9 +47,30 @@ void Turret::destroy()
     if(testFlag(TSF_DESTROYED)) src_rect = moveRect(m_sprite->rect, 0, m_current_frame);
 }
 
+void Turret::setPermanent(Uint32 reload)
+{
+    m_permanent = true;
+    m_reload = reload;
+}
+
+SDL_Rect Turret::hitRect() const
+{
+    if(!testFlag(TSF_LIFE)) return {0, 0, 0, 0};
+    // O corpo no sprite de 32x32 (ver resources/png/texture.png): 24 px de largura por 20 de
+    // profundidade, do lado oposto ao cano (o cano ocupa os 8 px da frente)
+    const int x = dest_rect.x, y = dest_rect.y;
+    switch(direction)
+    {
+    case D_UP: return {x + 4, y + 10, 24, 20};
+    case D_RIGHT: return {x + 2, y + 4, 20, 24};
+    case D_DOWN: return {x + 4, y + 2, 24, 20};
+    default: return {x + 10, y + 4, 20, 24};
+    }
+}
+
 void Turret::drawEffects()
 {
-    if(!testFlag(TSF_LIFE)) return;
+    if(!testFlag(TSF_LIFE) || m_permanent) return;
     // Acabando: no último quarto do tempo ou nos últimos 3 tiros; vale o que estiver
     // mais perto do fim
     double warn = AppConfig::power_turret_time / 4.0;
@@ -65,12 +88,12 @@ void Turret::think(const std::function<bool(Direction)>& worth)
         Direction d = static_cast<Direction>((direction + k) % 4);
         if(!worth(d)) continue;
         direction = d;
-        if(m_reload_left == 0 && m_ammo > 0 && fire() != nullptr)
+        if(m_reload_left == 0 && (m_permanent || m_ammo > 0) && fire() != nullptr)
         {
             SoundManager::getInstance().playSound("shoot");
-            m_reload_left = AppConfig::power_turret_reload;
+            m_reload_left = m_reload;
             // Último tiro: some logo depois (o tempo de o projétil seguir e a névoa avisar)
-            if(--m_ammo == 0) m_time_left = std::min<Uint32>(m_time_left, 800);
+            if(!m_permanent && --m_ammo == 0) m_time_left = std::min<Uint32>(m_time_left, 800);
         }
         return;
     }

@@ -16,16 +16,22 @@
  * @li a cada AppConfig::survival_life_every_waves ondas, todos ganham uma vida e quem
  *     já tinha caído volta ao jogo;
  * @li cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho);
+ * @li nos intervalos, a loja ao lado da base vende poderes, estrelas, espaços de poder e
+ *     a tropa de reforço, com as moedas da equipe ou de cada um (escolha no menu);
+ * @li raramente, um inimigo rompe a parede de pedra em que bateu e passa
+ *     (AppConfig::survival_wall_breach_chance);
  * @li acaba quando a águia cai ou todos os jogadores perdem as vidas: vale a onda alcançada.
  */
 class Survival : public Game
 {
+    friend struct SurvivalTest; // tools/survival_test.cpp: monta cenários e confere o estado
 public:
     /**
      * @param players - quantidade de jogadores (1 a 4)
      * @param map - mapa (índice em AppConfig::survival_maps), ou -1 para sortear
+     * @param shared_coins - moedas da equipe (true) ou de cada jogador (false)
      */
-    explicit Survival(int players, int map = -1);
+    explicit Survival(int players, int map = -1, bool shared_coins = true);
 
     /** Libera também os jogadores que caíram (na campanha eles vão para a tela de pontos). */
     ~Survival();
@@ -51,6 +57,17 @@ public:
 protected:
     void generateEnemy() override;
     SpriteType randomBonusType() override;
+    bool bonusSpot(SDL_Point* spot) override;
+
+public:
+    /**
+     * Onde um bônus pode surgir: as posições de tanque (2x2 tiles) sem bloco nenhum (só chão,
+     * gelo ou arbusto), fora da águia, das torretas e da loja, e aonde os tanques chegam
+     * andando a partir do nascimento dos jogadores. Pública para o teste (tools/survival_test).
+     */
+    std::vector<SDL_Point> bonusSpots() const;
+
+protected:
     void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus) override;
     bool reservedTile(int row, int column) override;
     int enemyLimit() const override;
@@ -58,6 +75,8 @@ protected:
     void drawStatus() override;
     void drawOverlay() override;
     void drawPause() override { drawPauseBox(); }
+    /** Tiro de torreta ou de aliado na águia (passou do alvo): some, sem ferir (G1). */
+    void onBaseHit(Eagle* base, Bullet* bullet) override;
 
 private:
     enum Phase
@@ -83,7 +102,13 @@ private:
     /** Refaz os tijolos em volta da águia (sem cobrir tanques, nem a pedra da pá). */
     void rebuildBaseWalls();
 
-    /** Dá o poder ao jogador: guardável vai para o espaço de poder; os outros valem na hora. */
+    /** Poder novo (mina, trégua, reparo...): na sobrevivência, todos ficam guardados até o botão. */
+    static bool storesPower(SpriteType type);
+
+    /** A muralha da águia está inteira (sem bloco faltando nem tijolo rachado). */
+    bool baseWallIntact() const;
+
+    /** Dá o poder novo ao jogador: vai para o espaço de poder (ver storesPower). */
     void givePower(Player* player, SpriteType type);
 
     // ===== Loja (AppConfig::survival_shop): uma só, da equipe, aberta nos intervalos =====
@@ -91,13 +116,46 @@ private:
     SDL_Point m_shop_pad = {-1, -1}; ///< canto do 2x2 da loja (pixels); x < 0: sem loja
     int m_shop_item = 0;             ///< item escolhido (índice em shopItems())
     int m_shop_user = -1;            ///< jogador em cima da loja (índice) ou -1
-    int m_coins_spent = 0;
+    bool m_shared_coins = true;      ///< moedas da equipe (true) ou de cada jogador
+    int m_coins_spent[4] = {0, 0, 0, 0}; ///< moedas gastas por cada jogador (índice)
 
-    /** Itens da loja (poder e preço), de AppConfig::survival_shop_items, do mais barato ao mais caro. */
-    static std::vector<std::pair<SpriteType, int>> shopItems();
+    /**
+     * Um item da loja. type: o poder (Powers), ST_BONUS_STAR (um nível de tiro),
+     * ST_BONUS_TANK (tropa de reforço) ou ST_NONE (mais um espaço de poder).
+     */
+    struct ShopItem
+    {
+        SpriteType type;
+        int price; ///< preço da lista (a estrela e o espaço sobem a partir dele, ver price())
+    };
 
-    /** Moedas da equipe: os pontos de todos os jogadores, em moedas, menos o que já foi gasto. */
-    int coins() const;
+    /** Itens da loja, de AppConfig::survival_shop_items, do mais barato ao mais caro. */
+    static std::vector<ShopItem> shopItems();
+
+    /** Preço do item para o jogador agora (a estrela e o espaço sobem a cada compra). */
+    int price(const ShopItem& item, const Player* player) const;
+
+    /** Por que o jogador não pode comprar o item agora (o texto da loja), ou "" se pode. */
+    std::string cannotBuy(const ShopItem& item, const Player* player) const;
+
+    /**
+     * Moedas que o jogador pode gastar: compartilhadas, as da equipe (os pontos de todos,
+     * em moedas, mais as iniciais, menos o que todos gastaram); individuais, as dele.
+     */
+    int coins(const Player* player) const;
+
+    /** Moedas da equipe toda (a soma, nas individuais). */
+    int teamCoins() const;
+
+    /**
+     * Quanto falta (ms) para os inimigos da próxima onda começarem a surgir: no intervalo e no
+     * aviso "WAVE N" (0 durante a onda). A contagem na tela sai daqui, então ela termina
+     * exatamente quando a onda começa.
+     */
+    Uint32 timeToWave() const;
+
+    /** timeToWave em segundos inteiros, arredondado para cima (o número mostrado). */
+    int countdown() const;
 
     /** Duração da fase de intervalo (ms): o intervalo menos o aviso da próxima onda. */
     Uint32 breakTime() const;
@@ -117,8 +175,42 @@ private:
      */
     void updateShop();
 
-    /** Compra com as moedas da equipe. @return false sem moedas ou com o espaço ocupado */
-    bool buy(Player* player, SpriteType type, int price);
+    /** Compra o item. @return false se não deu (cannotBuy) */
+    bool buy(Player* player, const ShopItem& item);
+
+    // ===== Tropa de reforço: aliados do computador (Game::m_allies) =====
+
+    /** Ponto de nascimento livre para um aliado (os dos jogadores, ao lado da base), ou x < 0. */
+    SDL_Point allySpawn() const;
+
+    /** Chama um aliado na cor do jogador. @return false sem lugar ou no limite */
+    bool callReinforcement(Player* player);
+
+    /** Decide o comando de cada aliado (Game::hunt). */
+    void steerAllies(Uint32 dt);
+
+    // ===== Rompimento da pedra (AppConfig::survival_wall_breach_chance) =====
+
+    std::vector<Enemy*> m_pushing_stone; ///< inimigos que empurravam pedra no quadro anterior
+    /** Explosões dos blocos rompidos e o tempo de cada uma (ms). */
+    std::vector<std::pair<Object*, Uint32>> m_breach_effects;
+
+    /**
+     * Blocos de pedra que o tanque empurra de frente agora (a fileira logo à frente, na
+     * largura dele). Vazio se não empurra pedra ou se a fileira toca a muralha da águia.
+     * @param r - retângulo de colisão do tanque
+     * @param line - recebe a fileira (linha ou coluna, conforme a direção)
+     */
+    std::vector<SDL_Point> stoneAhead(SDL_Rect r, Direction direction, int* line) const;
+
+    /** A cada batida nova de um inimigo na pedra, sorteia o rompimento. */
+    void breachWalls(Uint32 dt);
+
+    /** Anima e tira as explosões dos blocos rompidos. */
+    void updateBreachEffects(Uint32 dt);
+
+    /** Rompe a parede de pedra na frente do inimigo (até 4 fileiras), com a explosão em cada bloco. */
+    void breach(Enemy* enemy);
 
     void drawFloor() override;
     void drawShop();
@@ -136,12 +228,9 @@ private:
     /** Usa o poder guardado do jogador. @return false se não deu (sem espaço, ponto ocupado) */
     bool usePower(Player* player);
 
-    /**
-     * A torreta acerta um inimigo atirando na direção @a d: inimigo alinhado, a até
-     * AppConfig::power_turret_range tiles, sem pedra no caminho e sem a águia ou a muralha
-     * dela no meio (o tiro destruiria a própria base).
-     */
-    bool turretShot(Turret* turret, Direction d);
+    /** Torreta permanente (AppConfig::survival_turret_*): a mais antiga do jogador além do limite sai. */
+    bool placePermanentTurret(Player* player);
+
 
     Phase m_phase;
     Uint32 m_phase_time;

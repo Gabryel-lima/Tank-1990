@@ -94,7 +94,7 @@ private:
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
-        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS,
+        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS, ITEM_SURVIVAL_COINS,
         // linhas informativas da sobrevivência: dispositivo de cada jogador (não selecionáveis)
         ITEM_SURVIVAL_PLAYER_1, ITEM_SURVIVAL_PLAYER_2, ITEM_SURVIVAL_PLAYER_3, ITEM_SURVIVAL_PLAYER_4,
         ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i da lista da tela (duelo ou sobrevivência)
@@ -204,10 +204,21 @@ private:
     /** Mapa do modo sobrevivência (índice em AppConfig::survival_maps, -1 = aleatório). */
     static int s_survival_map;
 
+    /** Sobrevivência: moedas da equipe (true) ou de cada jogador (false). */
+    static bool s_survival_shared_coins;
+
     /**
      * Ponteiro para o objeto Player que representa o tanque usado como ponteiro visual no menu.
      */
     Player* m_tank_pointer;
+
+    /** Partida de demonstração no fundo (ver Demo), ou nullptr se desligada. */
+    AppState* m_demo = nullptr;
+    /** Tempo (ms) da demonstração atual. */
+    Uint32 m_demo_time = 0;
+
+    /** Troca a demonstração por uma nova, de um modo sorteado (sem som). */
+    void nextDemo();
 
     /**
      * Indica se o menu deve ser finalizado e o estado deve ser trocado (iniciar jogo ou sair).

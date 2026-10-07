@@ -40,6 +40,19 @@ public:
     /** Tiros que ainda restam. */
     int ammo() const { return m_ammo; }
 
+    /**
+     * Sobrevivência: fica até ser destruída (sem tempo nem munição contados, sem a névoa de
+     * "acabando") e atira a cada @a reload ms.
+     */
+    void setPermanent(Uint32 reload);
+
+    /**
+     * Onde o tiro fere a torreta: o corpo, sem o cano nem o vão dos lados dele (o retângulo
+     * de colisão é o do tanque, 28x28, e incluía o vazio ao lado do cano). Viva, segue a
+     * direção do cano; sem vida, vazio.
+     */
+    SDL_Rect hitRect() const;
+
 protected:
     /** Névoa branca quando o tempo ou a munição estão acabando. */
     void drawEffects() override;
@@ -47,7 +60,9 @@ protected:
 private:
     Uint32 m_time_left;
     Uint32 m_reload_left;
+    Uint32 m_reload;
     int m_ammo;
+    bool m_permanent = false;
 };
 
 #endif // TURRET_H

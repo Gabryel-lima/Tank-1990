@@ -29,7 +29,10 @@ make build        # compila (sem warnings)
 make check-maps   # valida os mapas de todos os modos extras
 make duel-sim     # simulação do duelo sem janela (equilíbrio e partidas travadas)
 make pad-selftest # ponte de controles de ponta a ponta (controle de mentira)
+make survival-test # regras da sobrevivência que já quebraram (bônus, contagem, compras)
 ```
+
+Bug corrigido num modo vira caso no teste dele (`tools/survival_test.cpp`), para não voltar.
 
 A CI (`.github/workflows/build.yml`) roda isso no Linux, no macOS, no Windows (MSYS2) e o
 `tools/wsl-setup.sh` num Alpine, como o `install.cmd`.
@@ -45,6 +48,9 @@ com um bloco vazio inteiro no meio; use `Game::frontArea` (regra W9 do `MODOS_EX
 Controles: o jogo só conhece o gamepad padronizado do SDL; o transporte (USB, Bluetooth, ponte)
 fica abaixo (ver `CONTROLES.md`). Fonte nova de controles entra como joystick virtual do SDL,
 como o `NetPad`, sem mudar o `Controllers` nem o jogo.
+
+Modo novo entra na demonstração do fundo do menu: uma linha em `Demo::modes()`, com os
+jogadores no computador (regra M6 do `MODOS_EXTRAS.md`).
 
 Telas: desenhe sempre em coordenadas lógicas (`map_rect` + `status_rect`, 464x416); o
 `Renderer::setScale` amplia e centraliza na janela. `AppConfig::windows_rect` é a janela real em

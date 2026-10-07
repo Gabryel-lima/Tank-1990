@@ -3,6 +3,8 @@
 
 #include "tank.h"
 
+#include <vector>
+
 /**
  * @brief Classe responsável pelo comportamento dos tanques controlados pelo jogador.
  * Herda de Tank e adiciona lógica de input, pontuação e evolução do jogador.
@@ -180,6 +182,24 @@ public:
      * guarda um poder, o jogador não pega outros bônus (ver Powers). Perde-o ao morrer.
      */
     SpriteType held_power = ST_NONE;
+
+    /**
+     * Sobrevivência: os poderes guardados depois do held_power, na ordem em que serão usados
+     * (cada um ocupa um espaço). O duelo não usa: lá o jogador guarda um poder só.
+     */
+    std::vector<SpriteType> power_stock;
+
+    /** Espaços de poder: quantos poderes o jogador guarda ao mesmo tempo (sobrevivência). */
+    int power_slots = 1;
+
+    /** Poderes guardados: o held_power e o estoque. */
+    int storedPowers() const;
+
+    /** Guarda um poder: no held_power, se vazio; senão, no fim do estoque. */
+    void storePower(SpriteType type);
+
+    /** O held_power foi usado: o próximo do estoque toma o lugar dele. */
+    void consumeHeldPower();
 
     /**
      * O botão de poder foi apertado desde a última chamada (Shift do layout de teclado, LB

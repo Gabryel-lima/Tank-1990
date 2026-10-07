@@ -38,6 +38,16 @@ public:
     void flush();
 
     /**
+     * Compõe uma tela dentro de outra: enquanto true, clear() e flush() não fazem nada, e o
+     * draw() de um estado (a partida de demonstração) desenha por cima do que já está no
+     * buffer, sem apresentá-lo. Quem compõe limpa antes e apresenta depois.
+     */
+    void setComposing(bool composing) { m_composing = composing; }
+
+    /** Escurece a área com preto translúcido (alpha de 0 a 255). */
+    void dim(const SDL_Rect* rect, Uint8 alpha);
+
+    /**
      * Desenha um fragmento da textura principal em uma região específica do buffer de renderização.
      * @param texture_src Retângulo fonte na textura.
      * @param window_dest Retângulo de destino no buffer de renderização.
@@ -141,6 +151,7 @@ private:
      * Fonte de tamanho 10 (pequena).
      */
     TTF_Font* m_font3;
+    bool m_composing = false;
 };
 
 #endif // RENDERER_H

@@ -25,6 +25,8 @@ jobs:
         run: make build -j"$(nproc)"
       - name: Mapas
         run: make check-maps
+      - name: Testes da sobrevivência
+        run: make survival-test
       - name: Simulação do duelo (compila)
         run: make duel-sim
       - name: Ponte de controles de ponta a ponta
@@ -40,6 +42,8 @@ jobs:
         run: make build -j"$(sysctl -n hw.ncpu)"
       - name: Mapas
         run: make check-maps
+      - name: Testes da sobrevivência
+        run: make survival-test
       - name: Ponte de controles de ponta a ponta
         run: make pad-selftest
 
@@ -66,6 +70,8 @@ jobs:
         run: make build -j"$(nproc)"
       - name: Mapas
         run: make check-maps
+      - name: Testes da sobrevivência
+        run: make survival-test
       - name: Ponte de controles de ponta a ponta
         run: make pad-selftest
 

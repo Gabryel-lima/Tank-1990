@@ -11,6 +11,7 @@
 #include "../objects/bonus.h"
 #include "../objects/mine.h"
 #include "../objects/turret.h"
+#include "../objects/bot.h"
 #include <vector>
 #include <string>
 
@@ -198,6 +199,12 @@ protected:
     virtual SpriteType randomBonusType();
 
     /**
+     * Onde o próximo bônus surge (canto do sprite de 32x32, em pixels). @return false para o
+     * sorteio da campanha: qualquer lugar fora da águia, como no original (até sobre paredes)
+     */
+    virtual bool bonusSpot(SDL_Point* spot);
+
+    /**
      * Verifica se o tanque pode se mover livremente para frente; caso contrário, o tanque é parado. Não permite sair do tabuleiro.
      * Se o tanque entrar no gelo, escorrega. Se possuir o bônus "Barco", pode atravessar água. Tanques não podem passar pela águia.
      * @param tank - tanque a ser verificado
@@ -339,12 +346,29 @@ protected:
      */
     bool recall(Player* player, const std::vector<SDL_Point>& points);
 
+    /**
+     * O tiro de @a shooter na direção @a d acerta um inimigo (m_enemies): inimigo alinhado, a
+     * até AppConfig::power_turret_range tiles, sem pedra no caminho e sem passar pela base nem
+     * pelos blocos em volta dela (a muralha: o tiro destruiria a própria base). Usado pela
+     * torreta e pelos tanques do computador do lado dos jogadores.
+     */
+    bool clearShot(Tank* shooter, Direction d);
+
+    /**
+     * IA simples de um tanque do lado dos jogadores contra os inimigos (o aliado da
+     * sobrevivência, os jogadores da demonstração do menu): inimigo na mira (clearShot), vira
+     * e atira parado; senão, anda atrás do inimigo mais perto, como os inimigos da campanha
+     * atrás do alvo, trocando de direção de tempos em tempos e quando bate em algo.
+     */
+    void hunt(Tank* tank, TankCommand& command, Uint32 dt);
+
     /** Destrói o inimigo de vez (mina, granada), dando o bônus que ele carregava e os pontos. */
     void killEnemy(Enemy* enemy, Player* by);
 
     /**
-     * Minas e torretas do lado dos jogadores contra os inimigos da campanha (m_enemies):
-     * usado pela sobrevivência dentro de Game::update. O duelo trata as dele por equipe.
+     * Minas, torretas e aliados (m_allies) do lado dos jogadores contra os inimigos da
+     * campanha (m_enemies): usado pela sobrevivência dentro de Game::update. O duelo trata
+     * os dele por equipe.
      */
     void updateFriendlyPowers(Uint32 dt);
 
@@ -393,6 +417,14 @@ protected:
     /** Minas e torretas dos modos extras. */
     std::vector<Mine*> m_mines;
     std::vector<Turret*> m_turrets;
+
+    /**
+     * Tanques aliados do computador do lado dos jogadores (a tropa de reforço da
+     * sobrevivência). Quem decide o que fazem (Bot::command) é o modo; o Game cuida das
+     * colisões em updateFriendlyPowers, como nas torretas. O duelo guarda os bots dele
+     * entre os inimigos, por equipe, e não usa esta lista.
+     */
+    std::vector<Bot*> m_allies;
 
     /**
      * Ponteiro para o objeto águia.
@@ -468,6 +500,12 @@ protected:
      * sobrevivência usa como "a onda acabou": antes, o Select avançava a onda.
      */
     bool m_quit = false;
+
+    /**
+     * Partida de demonstração (fundo do menu, ver Demo): não desenha as mensagens nem as
+     * caixas do modo (pausa, avisos, loja), que brigariam com as opções do menu por cima.
+     */
+    bool m_demo = false;
 
     /**
      * Indica se o jogo está pausado.

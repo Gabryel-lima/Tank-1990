@@ -43,6 +43,7 @@ void SoundManager::loadSounds() {
 }
 
 void SoundManager::playSound(const std::string& name, int loops) {
+    if (m_muted) return;
     auto it = m_sounds.find(name);
     if (it != m_sounds.end() && it->second) {
         Mix_PlayChannel(-1, it->second, loops);
