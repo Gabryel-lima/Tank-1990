@@ -17,6 +17,7 @@ DuelConfig Menu::s_duel_config;
 bool Menu::s_duel_custom = false;
 int Menu::s_survival_players = 1;
 int Menu::s_survival_map = 0;
+bool Menu::s_survival_shared_coins = true;
 
 namespace
 {
@@ -88,6 +89,8 @@ void Menu::buildItems()
         m_items = {ITEM_SURVIVAL_PLAYERS};
         for(int i = 0; i < s_survival_players; i++)
             m_items.push_back(static_cast<Item>(ITEM_SURVIVAL_PLAYER_1 + i));
+        // Moedas da equipe ou de cada um: só faz diferença com mais de um jogador (e a loja)
+        if(s_survival_players > 1 && AppConfig::survival_shop) m_items.push_back(ITEM_SURVIVAL_COINS);
         m_items.push_back(ITEM_NEXT);
         m_items.push_back(ITEM_BACK);
         break;
@@ -191,7 +194,7 @@ void Menu::drawScrollArrow(int y, bool up)
 
 bool Menu::isValueItem(Item item) const
 {
-    return item == ITEM_HUMANS || item == ITEM_SURVIVAL_PLAYERS || (item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM);
+    return item == ITEM_HUMANS || item == ITEM_SURVIVAL_PLAYERS || item == ITEM_SURVIVAL_COINS || (item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM);
 }
 
 std::string Menu::itemText(Item item) const
@@ -208,6 +211,7 @@ std::string Menu::itemText(Item item) const
     case ITEM_DUEL_MODE: return "Duel Mode";
     case ITEM_SURVIVAL: return "Survival";
     case ITEM_SURVIVAL_PLAYERS: return "Players   < " + Engine::intToString(s_survival_players) + " >";
+    case ITEM_SURVIVAL_COINS: return std::string("Coins     < ") + (s_survival_shared_coins ? "Team" : "Each") + " >";
     case ITEM_FORMAT_1V1: return "1 vs 1";
     case ITEM_FORMAT_2V2: return "2 vs 2";
     case ITEM_FORMAT_CUSTOM: return "Custom Teams";
@@ -302,6 +306,11 @@ void Menu::changeValue(int delta)
     Item item = m_items.at(m_menu_index);
     if(!isValueItem(item)) return;
 
+    if(item == ITEM_SURVIVAL_COINS)
+    {
+        s_survival_shared_coins = !s_survival_shared_coins;
+        return;
+    }
     if(item == ITEM_SURVIVAL_PLAYERS)
     {
         // 1 a 4 jogadores, dando a volta nos extremos
@@ -718,7 +727,7 @@ AppState* Menu::nextState()
     case RESULT_DUEL:
         return new Duel(s_duel_config);
     case RESULT_SURVIVAL:
-        return new Survival(s_survival_players, s_survival_map);
+        return new Survival(s_survival_players, s_survival_map, s_survival_players == 1 || s_survival_shared_coins);
     default:
         // "Exit" ou Esc na tela principal: encerra o app
         return nullptr;

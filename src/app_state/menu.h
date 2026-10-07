@@ -94,7 +94,7 @@ private:
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
-        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS,
+        ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS, ITEM_SURVIVAL_COINS,
         // linhas informativas da sobrevivência: dispositivo de cada jogador (não selecionáveis)
         ITEM_SURVIVAL_PLAYER_1, ITEM_SURVIVAL_PLAYER_2, ITEM_SURVIVAL_PLAYER_3, ITEM_SURVIVAL_PLAYER_4,
         ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i da lista da tela (duelo ou sobrevivência)
@@ -203,6 +203,9 @@ private:
 
     /** Mapa do modo sobrevivência (índice em AppConfig::survival_maps, -1 = aleatório). */
     static int s_survival_map;
+
+    /** Sobrevivência: moedas da equipe (true) ou de cada jogador (false). */
+    static bool s_survival_shared_coins;
 
     /**
      * Ponteiro para o objeto Player que representa o tanque usado como ponteiro visual no menu.

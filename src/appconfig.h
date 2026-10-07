@@ -313,14 +313,61 @@ public:
     static bool survival_shop;
 
     /**
-     * Itens da loja: o nome do poder (Powers::name) e o preço em moedas. Aparecem do mais
-     * barato ao mais caro. Só os poderes novos (mina, barricada, torreta...); nomes
-     * desconhecidos são ignorados.
+     * Itens da loja: o nome e o preço em moedas. Aparecem do mais barato ao mais caro. Os
+     * poderes novos pelo nome (Powers::name: "mine", "turret"...) e três itens da loja:
+     * "star" (um nível de tiro, ver survival_star_price_step), "slot" (mais um espaço de
+     * poder, ver survival_max_slots) e "reinforce" (tropa de reforço). Nomes desconhecidos
+     * são ignorados.
      */
     static std::vector<std::pair<std::string, int>> survival_shop_items;
 
-    /** Pontos da equipe que valem uma moeda da loja (a soma dos pontos de todos os jogadores). */
+    /**
+     * Pontos que valem uma moeda da loja. Moedas compartilhadas: a soma dos pontos de todos
+     * os jogadores; individuais: os pontos de cada um (escolha no menu, antes da partida).
+     */
     static int survival_points_per_coin;
+
+    /** Moedas com que cada jogador começa (compartilhadas: todas vão para o caixa da equipe). */
+    static int survival_start_coins;
+
+    /**
+     * Preço da estrela na loja: o 1º nível custa o preço da lista (survival_shop_items, "star")
+     * e cada nível que o tanque já tem soma este valor (com 2 estrelas: preço + 2 x passo).
+     */
+    static int survival_star_price_step;
+
+    /**
+     * Espaços de poder: cada um guarda uma unidade (torreta, mina, barricada...). O jogador
+     * começa com 1; a loja vende mais ("slot") até este máximo. O 2º custa o preço da lista e
+     * cada espaço comprado depois soma survival_slot_price_step.
+     */
+    static int survival_max_slots;
+    static int survival_slot_price_step;
+
+    /**
+     * Torreta da sobrevivência: fica até ser destruída (sem tempo nem munição). Cada jogador
+     * tem no máximo esta quantidade no mapa; colocar mais uma desmonta a mais antiga dele.
+     */
+    static int survival_turret_max_per_player;
+
+    /** Intervalo (ms) entre os tiros da torreta na sobrevivência (no duelo: power_turret_reload). */
+    static unsigned survival_turret_reload;
+
+    /**
+     * Tropa de reforço ("reinforce" na loja): um tanque aliado do computador que nasce ao lado
+     * da base e caça os inimigos, com estas vidas. No máximo survival_reinforce_max no mapa
+     * (a equipe toda). Fica de onda em onda até perder as vidas.
+     */
+    static int survival_reinforce_lives;
+    static int survival_reinforce_max;
+
+    /**
+     * Rompimento da pedra: chance (0 a 1), a cada vez que um inimigo bate de frente numa
+     * parede de pedra, de ele a romper e passar (a parede inteira na frente dele, até 4
+     * blocos de espessura). Raro de propósito: a pedra continua sendo a parede que segura.
+     * A muralha da águia nunca rompe. 0 desliga.
+     */
+    static double survival_wall_breach_chance;
 
     /**
      * Intervalo entre as ondas (ms), com a loja aberta. Inclui o aviso "WAVE N" da próxima

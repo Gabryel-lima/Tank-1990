@@ -192,16 +192,35 @@ double AppConfig::power_turbo_factor = 1.5;
 unsigned AppConfig::power_truce_time = 10000;
 bool AppConfig::survival_store_powers = true;
 // Loja da sobrevivência: uma só, da equipe, ao lado da base, aberta no intervalo entre as
-// ondas. Os poderes novos são comprados com moedas da equipe (cada 100 pontos de qualquer
-// jogador valem uma; um inimigo básico dá 1, o blindado 4). Os preços seguem o peso do
-// poder: o que segura a onda inteira custa mais. Na loja, do mais barato ao mais caro
+// ondas. Os poderes novos são comprados com moedas (cada 100 pontos valem uma; um inimigo
+// básico dá 1, o blindado 2,5). Os preços seguem o peso do item: o que segura a onda inteira
+// custa mais. A torreta, que fica até ser destruída e não tem munição contada, é a mais cara
+// dos poderes; a estrela e o espaço sobem de preço a cada compra (passos abaixo). Na loja,
+// do mais barato ao mais caro (pelo preço da lista)
 bool AppConfig::survival_shop = true;
 vector<pair<string, int>> AppConfig::survival_shop_items =
 {
-    {"barricade", 8}, {"turbo", 8}, {"mine", 10}, {"recall", 10}, {"repair", 12},
-    {"revive", 15}, {"turret", 20}, {"truce", 20}, {"teamshield", 20},
+    {"barricade", 6}, {"turbo", 6}, {"mine", 8}, {"recall", 8}, {"repair", 10},
+    {"star", 12}, {"slot", 15}, {"revive", 15}, {"truce", 20}, {"teamshield", 20},
+    {"turret", 30}, {"reinforce", 35},
 };
 int AppConfig::survival_points_per_coin = 100;
+// Dá para a primeira compra (uma mina ou uma barricada) já no primeiro intervalo
+int AppConfig::survival_start_coins = 5;
+// Estrela: 12, 20 e 28 moedas (do 1º ao 3º nível)
+int AppConfig::survival_star_price_step = 8;
+// Espaços: o 1º é de graça; o 2º custa 15 e o 3º, 25
+int AppConfig::survival_max_slots = 3;
+int AppConfig::survival_slot_price_step = 10;
+// Torreta permanente: até 3 por jogador; um pouco mais rápida que a do duelo (700 ms), para
+// acompanhar os blindados das ondas altas
+int AppConfig::survival_turret_max_per_player = 3;
+unsigned AppConfig::survival_turret_reload = 500;
+// Reforço: 2 vidas, até 2 no mapa
+int AppConfig::survival_reinforce_lives = 2;
+int AppConfig::survival_reinforce_max = 2;
+// Rompimento da pedra: 1 batida em 100
+double AppConfig::survival_wall_breach_chance = 0.01;
 // Intervalo entre as ondas (ms), com a loja aberta; termina com o aviso "WAVE N" da próxima
 unsigned AppConfig::survival_break_time = 15000;
 

@@ -205,10 +205,11 @@ void Player::destroy()
         changeStarCountBy(-1);
     else
     {
-        // Perde três estrelas e o poder guardado (guardar tem risco) e chama a
+        // Perde três estrelas e os poderes guardados (guardar tem risco) e chama a
         // destruição da classe base
         changeStarCountBy(-3);
         held_power = ST_NONE;
+        power_stock.clear();
         Tank::destroy();
     }
 }
@@ -382,5 +383,26 @@ void Player::setFlag(TankStateFlag flag)
     if(flag == TSF_SHIELD && m_shield != nullptr)
     {
         m_shield->color = color;
+    }
+}
+
+int Player::storedPowers() const
+{
+    return (held_power != ST_NONE ? 1 : 0) + static_cast<int>(power_stock.size());
+}
+
+void Player::storePower(SpriteType type)
+{
+    if(held_power == ST_NONE) held_power = type;
+    else power_stock.push_back(type);
+}
+
+void Player::consumeHeldPower()
+{
+    if(power_stock.empty()) held_power = ST_NONE;
+    else
+    {
+        held_power = power_stock.front();
+        power_stock.erase(power_stock.begin());
     }
 }

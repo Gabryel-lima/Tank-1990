@@ -15,6 +15,7 @@ void Mine::update(Uint32 dt)
 {
     if(to_erase) return;
     Object::update(dt);
+    if(m_permanent) return;
     if(dt >= m_time_left) to_erase = true;
     else m_time_left -= dt;
 }
@@ -23,7 +24,7 @@ void Mine::draw()
 {
     Object::draw();
     double warn = AppConfig::power_mine_time / 4.0;
-    if(m_time_left < warn) drawHaze(std::max(1.0 - m_time_left / warn, 0.15));
+    if(!m_permanent && m_time_left < warn) drawHaze(std::max(1.0 - m_time_left / warn, 0.15));
 }
 
 void Mine::detonate()

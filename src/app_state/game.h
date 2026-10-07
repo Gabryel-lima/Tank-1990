@@ -11,6 +11,7 @@
 #include "../objects/bonus.h"
 #include "../objects/mine.h"
 #include "../objects/turret.h"
+#include "../objects/bot.h"
 #include <vector>
 #include <string>
 
@@ -343,8 +344,9 @@ protected:
     void killEnemy(Enemy* enemy, Player* by);
 
     /**
-     * Minas e torretas do lado dos jogadores contra os inimigos da campanha (m_enemies):
-     * usado pela sobrevivência dentro de Game::update. O duelo trata as dele por equipe.
+     * Minas, torretas e aliados (m_allies) do lado dos jogadores contra os inimigos da
+     * campanha (m_enemies): usado pela sobrevivência dentro de Game::update. O duelo trata
+     * os dele por equipe.
      */
     void updateFriendlyPowers(Uint32 dt);
 
@@ -393,6 +395,14 @@ protected:
     /** Minas e torretas dos modos extras. */
     std::vector<Mine*> m_mines;
     std::vector<Turret*> m_turrets;
+
+    /**
+     * Tanques aliados do computador do lado dos jogadores (a tropa de reforço da
+     * sobrevivência). Quem decide o que fazem (Bot::command) é o modo; o Game cuida das
+     * colisões em updateFriendlyPowers, como nas torretas. O duelo guarda os bots dele
+     * entre os inimigos, por equipe, e não usa esta lista.
+     */
+    std::vector<Bot*> m_allies;
 
     /**
      * Ponteiro para o objeto águia.

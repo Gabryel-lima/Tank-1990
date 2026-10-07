@@ -128,6 +128,7 @@ void Game::draw()
         for(auto player : m_players) player->draw();
         for(auto enemy : m_enemies) enemy->draw();
         for(auto turret : m_turrets) turret->draw();
+        for(auto ally : m_allies) ally->draw();
         for(auto bush : m_bushes) bush->draw();
         for(auto bonus : m_bonuses) bonus->draw();
         m_eagle->draw();
@@ -563,6 +564,8 @@ void Game::clearLevel()
     m_mines.clear();
     for(auto turret : m_turrets) delete turret;
     m_turrets.clear();
+    for(auto ally : m_allies) delete ally;
+    m_allies.clear();
 
     for(auto row : m_level)
     {
@@ -753,6 +756,7 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
     for(auto player : m_players) if(blocked_by(player)) return false;
     for(auto enemy : m_enemies) if(blocked_by(enemy)) return false;
     for(auto turret : m_turrets) if(blocked_by(turret)) return false;
+    for(auto ally : m_allies) if(blocked_by(ally)) return false;
 
     return true;
 }
@@ -999,6 +1003,13 @@ void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
     {
         SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
         engine.getRenderer()->drawObject(&icon, &slot);
+        // Mais de um guardado (os espaços da sobrevivência): quantos, no canto de baixo
+        if(!player->power_stock.empty())
+        {
+            std::string count = Engine::intToString(player->storedPowers());
+            SDL_Point size = engine.getRenderer()->textSize(count, 3);
+            engine.getRenderer()->drawTextOutlined({slot.x + slot.w - size.x + 1, slot.y + slot.h - size.y + 2}, count, {255, 255, 255, 255}, 3);
+        }
     }
     else if(player != nullptr && player->activePower(nullptr) != ST_NONE)
     {
@@ -1340,6 +1351,8 @@ bool Game::rectFree(SDL_Rect area)
         if(!enemy->to_erase && (overlaps(enemy->dest_rect) || overlaps(enemy->collision_rect))) return false;
     for(auto turret : m_turrets)
         if(!turret->to_erase && overlaps(turret->dest_rect)) return false;
+    for(auto ally : m_allies)
+        if(!ally->to_erase && (overlaps(ally->dest_rect) || overlaps(ally->collision_rect))) return false;
     return true;
 }
 
@@ -1421,6 +1434,7 @@ void Game::restoreTerrain(const std::vector<std::string>& grid, const std::vecto
     for(Player* p : m_players) if(!p->to_erase) busy.push_back(p->collision_rect);
     for(Enemy* e : m_enemies) if(!e->to_erase) busy.push_back(e->collision_rect);
     for(Turret* turret : m_turrets) if(!turret->to_erase) busy.push_back(turret->collision_rect);
+    for(Bot* ally : m_allies) if(!ally->to_erase) busy.push_back(ally->collision_rect);
     for(Mine* mine : m_mines) if(!mine->to_erase) busy.push_back(mine->collision_rect);
     for(Bonus* bonus : m_bonuses) if(!bonus->to_erase) busy.push_back(bonus->collision_rect);
 
@@ -1487,6 +1501,7 @@ bool Game::recall(Player* player, const std::vector<SDL_Point>& points)
         for(auto other : m_players) check(other);
         for(auto other : m_enemies) check(other);
         for(auto other : m_turrets) check(other);
+        for(auto other : m_allies) check(other);
         if(occupied) continue;
         player->teleport(p.x, p.y);
         return true;
@@ -1509,7 +1524,7 @@ void Game::killEnemy(Enemy* enemy, Player* by)
 
 void Game::updateFriendlyPowers(Uint32 dt)
 {
-    if(m_mines.empty() && m_turrets.empty()) return;
+    if(m_mines.empty() && m_turrets.empty() && m_allies.empty()) return;
     auto overlap = [](const SDL_Rect& a, const SDL_Rect& b, int min) {
         SDL_Rect r = intersectRect(const_cast<SDL_Rect*>(&a), const_cast<SDL_Rect*>(&b));
         return r.w >= min && r.h >= min;
@@ -1523,7 +1538,27 @@ void Game::updateFriendlyPowers(Uint32 dt)
     for(auto turret : m_turrets)
     {
         if(turret->to_erase) continue;
+        // Surgindo, a torreta ainda não tem retângulo de colisão (como todo tanque que
+        // nasce), mas o lugar já é dela: sem isso, um tanque entrava nele durante a animação e
+        // ficava encaixado na torreta quando ela aparecia
+        if(turret->testFlag(TSF_CREATE))
+        {
+            SDL_Rect area = {turret->dest_rect.x + 2, turret->dest_rect.y + 2, turret->dest_rect.w - 4, turret->dest_rect.h - 4};
+            std::vector<Tank*> tanks(m_players.begin(), m_players.end());
+            tanks.insert(tanks.end(), m_enemies.begin(), m_enemies.end());
+            tanks.insert(tanks.end(), m_allies.begin(), m_allies.end());
+            for(Tank* tank : tanks)
+            {
+                if(tank->to_erase) continue;
+                SDL_Rect next = tank->nextCollisionRect(dt);
+                SDL_Rect hit = intersectRect(&next, &area);
+                if(hit.w > 0 && hit.h > 0) tank->collide(hit);
+            }
+        }
         for(auto player : m_players) checkCollisionTwoTanks(player, turret, dt);
+        for(auto ally : m_allies) checkCollisionTwoTanks(ally, turret, dt);
+        // O tiro só fere o corpo (Turret::hitRect): o que passa rente ao cano segue reto
+        SDL_Rect body = turret->hitRect();
         for(auto enemy : m_enemies)
         {
             checkCollisionTwoTanks(enemy, turret, dt);
@@ -1533,13 +1568,40 @@ void Game::updateFriendlyPowers(Uint32 dt)
                     checkCollisionTwoBullets(b1, b2);
             for(auto bullet : enemy->bullets)
                 if(!bullet->to_erase && !bullet->collide && turret->testFlag(TSF_LIFE) &&
-                   overlap(bullet->collision_rect, turret->collision_rect, 1))
+                   overlap(bullet->collision_rect, body, 1))
                 {
                     bullet->destroy();
                     turret->destroy();
                 }
         }
         for(auto bullet : turret->bullets) checkCollisionBulletWithLevel(bullet);
+    }
+
+    // Aliados (reforço): colidem com o cenário e com todos os tanques, atiram nos inimigos e
+    // levam tiro deles; o tiro dos jogadores passa por eles (fogo amigo, G1)
+    for(size_t i = 0; i < m_allies.size(); i++)
+    {
+        Bot* ally = m_allies[i];
+        if(ally->to_erase) continue;
+        for(size_t j = i + 1; j < m_allies.size(); j++) checkCollisionTwoTanks(ally, m_allies[j], dt);
+        for(auto player : m_players) checkCollisionTwoTanks(player, ally, dt);
+        for(auto enemy : m_enemies)
+        {
+            checkCollisionTwoTanks(enemy, ally, dt);
+            checkCollisionPlayerBulletsWithEnemy(ally, enemy);
+            for(auto b1 : ally->bullets)
+                for(auto b2 : enemy->bullets)
+                    checkCollisionTwoBullets(b1, b2);
+            for(auto bullet : enemy->bullets)
+                if(!bullet->to_erase && !bullet->collide && ally->testFlag(TSF_LIFE) &&
+                   overlap(bullet->collision_rect, ally->collision_rect, 1))
+                {
+                    bullet->destroy();
+                    ally->destroy(); // com o escudo do renascimento, nada
+                }
+        }
+        for(auto bullet : ally->bullets) checkCollisionBulletWithLevel(bullet);
+        checkCollisionTankWithLevel(ally, dt);
     }
 
     // Minas: explodem o inimigo que passar por cima (de vez, como a granada) e somem com
@@ -1558,6 +1620,7 @@ void Game::updateFriendlyPowers(Uint32 dt)
         std::vector<Tank*> shooters(m_players.begin(), m_players.end());
         shooters.insert(shooters.end(), m_enemies.begin(), m_enemies.end());
         shooters.insert(shooters.end(), m_turrets.begin(), m_turrets.end());
+        shooters.insert(shooters.end(), m_allies.begin(), m_allies.end());
         for(Tank* shooter : shooters)
             for(auto bullet : shooter->bullets)
                 if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(bullet->collision_rect, mine->collision_rect, 1))
@@ -1569,6 +1632,8 @@ void Game::updateFriendlyPowers(Uint32 dt)
 
     for(auto mine : m_mines) mine->update(dt);
     for(auto turret : m_turrets) turret->update(dt);
+    for(auto ally : m_allies) ally->update(dt);
     m_mines.erase(std::remove_if(m_mines.begin(), m_mines.end(), [](Mine* m){ if(m->to_erase) { delete m; return true; } return false; }), m_mines.end());
     m_turrets.erase(std::remove_if(m_turrets.begin(), m_turrets.end(), [](Turret* t){ if(t->to_erase) { delete t; return true; } return false; }), m_turrets.end());
+    m_allies.erase(std::remove_if(m_allies.begin(), m_allies.end(), [](Bot* b){ if(b->to_erase) { delete b; return true; } return false; }), m_allies.end());
 }
