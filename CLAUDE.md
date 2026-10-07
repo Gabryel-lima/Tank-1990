@@ -29,7 +29,10 @@ make build        # compila (sem warnings)
 make check-maps   # valida os mapas de todos os modos extras
 make duel-sim     # simulação do duelo sem janela (equilíbrio e partidas travadas)
 make pad-selftest # ponte de controles de ponta a ponta (controle de mentira)
+make survival-test # regras da sobrevivência que já quebraram (bônus, contagem, compras)
 ```
+
+Bug corrigido num modo vira caso no teste dele (`tools/survival_test.cpp`), para não voltar.
 
 A CI (`.github/workflows/build.yml`) roda isso no Linux, no macOS, no Windows (MSYS2) e o
 `tools/wsl-setup.sh` num Alpine, como o `install.cmd`.

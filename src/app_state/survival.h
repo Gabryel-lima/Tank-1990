@@ -24,6 +24,7 @@
  */
 class Survival : public Game
 {
+    friend struct SurvivalTest; // tools/survival_test.cpp: monta cenários e confere o estado
 public:
     /**
      * @param players - quantidade de jogadores (1 a 4)
@@ -56,6 +57,17 @@ public:
 protected:
     void generateEnemy() override;
     SpriteType randomBonusType() override;
+    bool bonusSpot(SDL_Point* spot) override;
+
+public:
+    /**
+     * Onde um bônus pode surgir: as posições de tanque (2x2 tiles) sem bloco nenhum (só chão,
+     * gelo ou arbusto), fora da águia, das torretas e da loja, e aonde os tanques chegam
+     * andando a partir do nascimento dos jogadores. Pública para o teste (tools/survival_test).
+     */
+    std::vector<SDL_Point> bonusSpots() const;
+
+protected:
     void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus) override;
     bool reservedTile(int row, int column) override;
     int enemyLimit() const override;
@@ -90,7 +102,13 @@ private:
     /** Refaz os tijolos em volta da águia (sem cobrir tanques, nem a pedra da pá). */
     void rebuildBaseWalls();
 
-    /** Dá o poder ao jogador: guardável vai para o espaço de poder; os outros valem na hora. */
+    /** Poder novo (mina, trégua, reparo...): na sobrevivência, todos ficam guardados até o botão. */
+    static bool storesPower(SpriteType type);
+
+    /** A muralha da águia está inteira (sem bloco faltando nem tijolo rachado). */
+    bool baseWallIntact() const;
+
+    /** Dá o poder novo ao jogador: vai para o espaço de poder (ver storesPower). */
     void givePower(Player* player, SpriteType type);
 
     // ===== Loja (AppConfig::survival_shop): uma só, da equipe, aberta nos intervalos =====
@@ -128,6 +146,16 @@ private:
 
     /** Moedas da equipe toda (a soma, nas individuais). */
     int teamCoins() const;
+
+    /**
+     * Quanto falta (ms) para os inimigos da próxima onda começarem a surgir: no intervalo e no
+     * aviso "WAVE N" (0 durante a onda). A contagem na tela sai daqui, então ela termina
+     * exatamente quando a onda começa.
+     */
+    Uint32 timeToWave() const;
+
+    /** timeToWave em segundos inteiros, arredondado para cima (o número mostrado). */
+    int countdown() const;
 
     /** Duração da fase de intervalo (ms): o intervalo menos o aviso da próxima onda. */
     Uint32 breakTime() const;

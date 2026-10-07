@@ -43,6 +43,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | P4 | **Erro** só para o indispensável: formato (26×26, símbolos conhecidos), ponto de nascimento livre, caminho da **largura de um tanque** (2 tiles) até o objetivo (o flanco da base inimiga; na sobrevivência, a muralha da águia) e, no competitivo, **justiça**: o terreno de uma equipe é o da outra pela mesma transformação que leva as bases e os nascimentos de uma às da outra (no duelo, girar 180°; espelho não é exigido). | `<Modo>Layout::validate` |
 | P5 | **O jogo se adapta** em vez de proibir: monta a base e a muralha; o dono da pedra é decidido pela **parede inteira** (dentro da área com dono, é da equipe; cruzando a borda, é comum), então a parede nunca fica metade colorida; o bônus não surge num ponto coberto (e volta quando o bloco cai). | `DuelLayout::stoneOwners`, `Duel::openSpots` |
 | P6 | **Aviso**, não erro: ponto de bônus coberto ou inalcançável a pé, defensor longe dos flancos da própria base. São escolhas de desenho que o jogo aguenta. | `<Modo>Layout::advise` |
+| P7 | Bônus que surge no mapa (do tanque vermelho ou do sorteio do modo) vai **só onde os tanques andam**: lugar do tamanho de um tanque sem bloco que o pare, alcançável a pé, fora da base e do que o modo põe no mapa. A campanha mantém o sorteio do original. Coberto por teste (`make survival-test`). | `Game::bonusSpot`, `Survival::bonusSpots`, `Duel::openSpots` |
 
 ## 4. Cores
 
@@ -56,7 +57,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 
 | # | Regra | Onde |
 |---|-------|------|
-| W1 | Uma classificação só: o que depende de **onde e quando** é usado é **guardável** (mina, barricada, torreta, retorno, turbo); o resto é imediato. | `Powers::storable` |
+| W1 | Uma classificação só: o que depende de **onde e quando** é usado é **guardável** (mina, barricada, torreta, retorno, turbo); o resto é imediato. Exceção: poder **comprado** (a loja da sobrevivência) é sempre guardado, porque a compra acontece fora da hora de usar. | `Powers::storable`, `Survival::storesPower` |
 | W2 | Cada modo tem a **sua tabela de sorteio**, sem poder que não faça nada nele (a trégua não entra no duelo, onde nada surge). | `Powers::duelTable`, `Powers::survivalTable` |
 | W3 | Com os espaços de poder cheios, o jogador **não pega outro bônus** (os bônus continuam no mapa). **Morrer perde** os poderes guardados. Um espaço guarda uma unidade; o modo pode dar mais espaços (a sobrevivência vende) e o botão usa as unidades na ordem em que entraram. | `Player::held_power`, `Player::power_stock`, `Player::destroy` |
 | W4 | O painel mostra o **espaço do poder de cada jogador**: o ícone, ou uma moldura vazia. | `Game::drawPowerSlot` |
@@ -127,5 +128,6 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | Espaços de poder | 1 | 1, e a loja vende até 3 | W3: a loja é o lugar de planejar a defesa |
 | Aliados do computador | bots de reforço da equipe, entre os inimigos, com a IA do duelo | tropa de reforço comprada na loja (`Game::m_allies`), atira só com o inimigo na mira | no duelo o bot é jogador de uma equipe; na sobrevivência, um ajudante contra a IA |
 | Pedra | quebra só com o canhão | segura, mas raramente um inimigo a rompe (`survival_wall_breach_chance`) | evento raro de propósito, só contra a IA |
+| Poderes imediatos (reviver, reparo, trégua, escudo de equipe) | valem na hora em que o bônus é pego | comprados, ficam guardados e valem no botão, quando fazem efeito | W1: comprado no intervalo, o imediato se perderia |
 | Moedas | não há | da equipe ou de cada um (escolha no menu) | |
 | Quando dá para pausar | durante a rodada | durante a onda e o aviso dela (os jogadores já se movem) | M4 |

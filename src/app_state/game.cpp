@@ -1303,6 +1303,15 @@ void Game::generateBonus()
     m_bonuses.clear();
 
     Bonus* b = new Bonus(0, 0, randomBonusType());
+    SDL_Point spot;
+    if(bonusSpot(&spot))
+    {
+        b->pos_x = spot.x;
+        b->pos_y = spot.y;
+        b->update(0);
+        m_bonuses.push_back(b);
+        return;
+    }
     SDL_Rect intersect_rect;
     do
     {
@@ -1313,6 +1322,12 @@ void Game::generateBonus()
     }while(intersect_rect.w > 0 && intersect_rect.h > 0);
 
     m_bonuses.push_back(b);
+}
+
+// Campanha: como no original, o bônus cai em qualquer lugar fora da águia (até sobre paredes)
+bool Game::bonusSpot(SDL_Point*)
+{
+    return false;
 }
 
 // Campanha: um dos 8 bônus originais, com a mesma chance

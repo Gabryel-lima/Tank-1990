@@ -199,6 +199,12 @@ protected:
     virtual SpriteType randomBonusType();
 
     /**
+     * Onde o próximo bônus surge (canto do sprite de 32x32, em pixels). @return false para o
+     * sorteio da campanha: qualquer lugar fora da águia, como no original (até sobre paredes)
+     */
+    virtual bool bonusSpot(SDL_Point* spot);
+
+    /**
      * Verifica se o tanque pode se mover livremente para frente; caso contrário, o tanque é parado. Não permite sair do tabuleiro.
      * Se o tanque entrar no gelo, escorrega. Se possuir o bônus "Barco", pode atravessar água. Tanques não podem passar pela águia.
      * @param tank - tanque a ser verificado

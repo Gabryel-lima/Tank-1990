@@ -173,6 +173,10 @@ DEPS    = $(OBJS:.o=.d)
 SIM_EXE  = $(BIN)/duel_sim$(EXE_EXT)
 SIM_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/duel_sim.o
 
+# Testes da sobrevivência (tools/survival_test.cpp): o jogo sem o main.cpp e sem janela
+SURVIVAL_TEST_EXE  = $(BIN)/survival_test$(EXE_EXT)
+SURVIVAL_TEST_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/survival_test.o
+
 # Verificação dos mapas do duelo (tools/check_duel_maps.cpp): mesmas regras do jogo
 CHECK_MAPS_EXE  = $(BIN)/check_duel_maps$(EXE_EXT)
 CHECK_MAPS_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/check_duel_maps.o
@@ -316,6 +320,19 @@ $(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
 
 -include $(BUILD)/tools/duel_sim.d
 
+# Testes da sobrevivência sem janela: bônus fora das paredes, contagem até a onda, compras
+survival-test: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SURVIVAL_TEST_EXE)
+	cd $(BIN) && ./survival_test$(EXE_EXT)
+
+$(SURVIVAL_TEST_EXE): $(SURVIVAL_TEST_OBJS)
+	$(CC) $(SURVIVAL_TEST_OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) -o $@
+
+$(BUILD)/tools/survival_test.o: tools/survival_test.cpp Makefile
+	@mkdir -p $(BUILD)/tools
+	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
+
+-include $(BUILD)/tools/survival_test.d
+
 # Verifica os mapas do duelo e da sobrevivência listados em resources/duel_levels/maps.txt e resources/survival_levels/maps.txt
 check-maps: $(BUILD_DIRS) copy_resources $(RESOURCES) $(CHECK_MAPS_EXE)
 	cd $(BIN) && ./check_duel_maps$(EXE_EXT)
@@ -430,6 +447,7 @@ help:
 	@echo "  make doc         - Gera documentação (Doxygen)"
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
 	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
+	@echo "  make survival-test - Testes da sobrevivência sem janela (bônus, contagem, compras)"
 	@echo "  make sprites     - Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura"
 	@echo "  make pad-tools   - Compila o padprobe (diagnóstico de controles) e o padbridge (ponte de controles)"
 	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
@@ -457,7 +475,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps sprites pad-tools padprobe padbridge padbridge-win pad-selftest
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO
