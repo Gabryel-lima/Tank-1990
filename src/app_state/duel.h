@@ -98,6 +98,8 @@ struct DuelStats
  */
 class Duel : public Game
 {
+    friend struct SurvivalTest; // tools/survival_test.cpp: torreta e mina iguais às da sobrevivência
+
 public:
     explicit Duel(const DuelConfig& config);
     ~Duel();

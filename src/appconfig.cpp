@@ -181,12 +181,11 @@ double AppConfig::duel_max_shots_per_second = 3.0;
 unsigned AppConfig::duel_freeze_time = 4000;
 
 // Poderes dos modos extras (ver Powers)
-unsigned AppConfig::power_turret_time = 20000;
-unsigned AppConfig::power_turret_reload = 700;
-int AppConfig::power_turret_ammo = 10;
+// Torreta e mina ficam até serem destruídas, nos dois modos; até 3 torretas por jogador
+unsigned AppConfig::power_turret_reload = 500;
+int AppConfig::power_turret_max_per_player = 3;
 int AppConfig::duel_demolisher_stars = 1;
 int AppConfig::power_turret_range = 12;
-unsigned AppConfig::power_mine_time = 30000;
 unsigned AppConfig::power_turbo_time = 8000;
 double AppConfig::power_turbo_factor = 1.5;
 unsigned AppConfig::power_truce_time = 10000;
@@ -212,10 +211,6 @@ int AppConfig::survival_star_price_step = 8;
 // Espaços: o 1º é de graça; o 2º custa 15 e o 3º, 25
 int AppConfig::survival_max_slots = 3;
 int AppConfig::survival_slot_price_step = 10;
-// Torreta permanente: até 3 por jogador; um pouco mais rápida que a do duelo (700 ms), para
-// acompanhar os blindados das ondas altas
-int AppConfig::survival_turret_max_per_player = 3;
-unsigned AppConfig::survival_turret_reload = 500;
 // Reforço: 2 vidas, até 2 no mapa
 int AppConfig::survival_reinforce_lives = 2;
 int AppConfig::survival_reinforce_max = 2;
@@ -235,8 +230,8 @@ int AppConfig::survival_max_on_map = 10;
 unsigned AppConfig::survival_first_spawn_delay = 1500;
 unsigned AppConfig::survival_min_spawn_delay = 500;
 unsigned AppConfig::survival_wave_intro_time = 3000;
-// A cada 3 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
-int AppConfig::survival_life_every_waves = 3;
+// A cada 4 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
+int AppConfig::survival_life_every_waves = 4;
 
 // Demonstração no fundo do menu: troca de modo a cada 40 s; escurecida a 2/3
 unsigned AppConfig::menu_demo_time = 40000;

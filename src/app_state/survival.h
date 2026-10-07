@@ -214,6 +214,11 @@ private:
 
     void drawFloor() override;
     void drawShop();
+    /**
+     * Caixa de texto da loja (sem a borda de 1 px), de @a width x @a height: ao lado da loja,
+     * do lado de fora, e com a borda inteira dentro do mapa.
+     */
+    SDL_Rect shopBoxRect(int width, int height) const;
     static std::string shopName(SpriteType type);
 
     /** Tiles da muralha da águia ({coluna, linha}): laterais e frente. */
@@ -227,9 +232,6 @@ private:
 
     /** Usa o poder guardado do jogador. @return false se não deu (sem espaço, ponto ocupado) */
     bool usePower(Player* player);
-
-    /** Torreta permanente (AppConfig::survival_turret_*): a mais antiga do jogador além do limite sai. */
-    bool placePermanentTurret(Player* player);
 
 
     Phase m_phase;

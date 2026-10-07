@@ -576,14 +576,12 @@ bool Survival::usePower(Player* player)
     switch(player->held_power)
     {
     case ST_BONUS_MINE:
-        // Fica até um inimigo passar por cima ou um tiro acertá-la
         placeMine(player);
-        m_mines.back()->setPermanent();
         return true;
     case ST_BONUS_BARRICADE:
         return placeBarricade(player);
     case ST_BONUS_TURRET:
-        return placePermanentTurret(player);
+        return placeTurret(player);
     case ST_BONUS_TURBO:
         player->boost(AppConfig::power_turbo_time);
         SoundManager::getInstance().playSound("bonus");
@@ -635,21 +633,6 @@ bool Survival::usePower(Player* player)
     default:
         return false;
     }
-}
-
-bool Survival::placePermanentTurret(Player* player)
-{
-    if(!placeTurret(player)) return false;
-    Turret* placed = m_turrets.back();
-    placed->setPermanent(AppConfig::survival_turret_reload);
-    // Limite por jogador: a mais antiga dele é desmontada (explode, como ao ser destruída)
-    std::vector<Turret*> own;
-    for(Turret* turret : m_turrets)
-        if(turret != placed && turret->owner == player->playerIndex() && !turret->to_erase && !turret->testFlag(TSF_DESTROYED))
-            own.push_back(turret);
-    int excess = static_cast<int>(own.size()) + 1 - std::max(1, AppConfig::survival_turret_max_per_player);
-    for(int i = 0; i < excess; i++) own[i]->destroy();
-    return true;
 }
 
 void Survival::onBaseHit(Eagle* base, Bullet* bullet)
@@ -974,6 +957,19 @@ void Survival::drawFloor()
     renderer->drawText(&p, "$", GOLD, 2);
 }
 
+SDL_Rect Survival::shopBoxRect(int width, int height) const
+{
+    const int tank = 2 * AppConfig::tile_rect.w;
+    bool left = m_shop_pad.x + tank / 2 < AppConfig::map_rect.w / 2;
+    SDL_Rect box = {left ? m_shop_pad.x - 3 - width : m_shop_pad.x + tank + 3, m_shop_pad.y + tank - height, width, height};
+    // Dentro do mapa com a borda (1 px em volta da caixa): sem isso, encostada na beirada, a
+    // borda saía da tela ou entrava no painel
+    const int edge = 1;
+    box.x = std::max(edge, std::min(box.x, AppConfig::map_rect.w - box.w - edge));
+    box.y = std::max(edge, std::min(box.y, AppConfig::map_rect.h - box.h - edge));
+    return box;
+}
+
 void Survival::drawShop()
 {
     // Caixa ao lado da loja, do lado de fora (loja à esquerda da base: caixa à esquerda), para
@@ -1038,11 +1034,7 @@ void Survival::drawShop()
     width += 2 * pad_x;
     height += pad_y - gap;
 
-    const int tank = 2 * AppConfig::tile_rect.w;
-    bool left = m_shop_pad.x + tank / 2 < AppConfig::map_rect.w / 2;
-    SDL_Rect box = {left ? m_shop_pad.x - 3 - width : m_shop_pad.x + tank + 3, m_shop_pad.y + tank - height, width, height};
-    box.x = std::max(0, std::min(box.x, AppConfig::map_rect.w - box.w));
-    box.y = std::max(0, box.y);
+    SDL_Rect box = shopBoxRect(width, height);
     SDL_Color border_color = user != nullptr ? user->color : GOLD;
     SDL_Rect border = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
     renderer->drawRect(&border, border_color, true);

@@ -273,16 +273,13 @@ public:
 
     // ======================== Poderes dos modos extras ========================
 
-    /** Duração (ms) da torreta no mapa. */
-    static unsigned power_turret_time;
-    /** Intervalo (ms) entre os tiros da torreta. */
+    /** Intervalo (ms) entre os tiros da torreta (ela fica até ser destruída, sem tempo nem munição). */
     static unsigned power_turret_reload;
     /**
-     * Tiros da torreta. Ela acaba no que vier primeiro: munição ou tempo. O tempo limita
-     * por quanto tempo ela ocupa o lugar (sem ele, uma torreta num corredor vazio ficaria lá
-     * para sempre); a munição limita o estrago num lugar movimentado.
+     * Torretas de cada jogador no mapa, em todos os modos. Colocar mais uma desmonta a mais
+     * antiga dele.
      */
-    static int power_turret_ammo;
+    static int power_turret_max_per_player;
     /**
      * Duelo: estrelas que o tanque precisa ter ao pegar o canhão para ganhar o tiro
      * demolidor (o segundo estágio). Morrer zera as estrelas, então é preciso juntar os
@@ -291,8 +288,6 @@ public:
     static int duel_demolisher_stars;
     /** Alcance da torreta, em tiles. */
     static int power_turret_range;
-    /** Duração (ms) da mina no mapa, se ninguém passar por cima. */
-    static unsigned power_mine_time;
     /** Duração (ms) e multiplicador de velocidade do turbo. */
     static unsigned power_turbo_time;
     static double power_turbo_factor;
@@ -343,15 +338,6 @@ public:
      */
     static int survival_max_slots;
     static int survival_slot_price_step;
-
-    /**
-     * Torreta da sobrevivência: fica até ser destruída (sem tempo nem munição). Cada jogador
-     * tem no máximo esta quantidade no mapa; colocar mais uma desmonta a mais antiga dele.
-     */
-    static int survival_turret_max_per_player;
-
-    /** Intervalo (ms) entre os tiros da torreta na sobrevivência (no duelo: power_turret_reload). */
-    static unsigned survival_turret_reload;
 
     /**
      * Tropa de reforço ("reinforce" na loja): um tanque aliado do computador que nasce ao lado

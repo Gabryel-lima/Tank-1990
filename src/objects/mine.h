@@ -7,7 +7,7 @@
  * @brief Mina dos modos extras: fica no chão e explode o tanque inimigo que passar por cima.
  *
  * Quem decide quem é inimigo, o que a explosão faz e o que acontece com um tiro na mina é o
- * modo de jogo (Game/Duel). A mina só cuida de piscar e de sumir depois de um tempo.
+ * modo de jogo (Game/Duel). A mina só cuida de piscar: fica até explodir (sem tempo).
  */
 class Mine : public Object
 {
@@ -22,21 +22,11 @@ public:
 
     void update(Uint32 dt) override;
 
-    /** Pisca a luz; no último quarto do tempo, uma névoa branca avisa que vai sumir. */
-    void draw() override;
-
     /** Explode (encostou num inimigo ou levou um tiro): some do mapa. */
     void detonate();
 
-    /** Sobrevivência: fica até explodir (sem tempo, sem a névoa de "acabando"). */
-    void setPermanent() { m_permanent = true; }
-
     int team;
     int owner;
-
-private:
-    Uint32 m_time_left;
-    bool m_permanent = false;
 };
 
 #endif // MINE_H

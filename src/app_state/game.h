@@ -334,10 +334,14 @@ protected:
      */
     void restoreTerrain(const std::vector<std::string>& grid, const std::vector<SDL_Point>& skip);
 
-    /** Torreta logo à frente do jogador, da cor e da equipe dele. @return false se não há espaço */
+    /**
+     * Torreta logo à frente do jogador, da cor e da equipe dele. Fica até ser destruída; cada
+     * jogador tem até AppConfig::power_turret_max_per_player (a mais antiga dele sai).
+     * @return false se não há espaço
+     */
     bool placeTurret(Player* player);
 
-    /** Mina embaixo do jogador, da cor e da equipe dele. */
+    /** Mina embaixo do jogador, da cor e da equipe dele. Fica até explodir. */
     void placeMine(Player* player);
 
     /**

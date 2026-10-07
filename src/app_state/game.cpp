@@ -1497,6 +1497,14 @@ bool Game::placeTurret(Player* player)
     if(!frontArea(player, false, &area)) return false;
     Turret* turret = new Turret(area.x, area.y, player->team, player->playerIndex(), player->color);
     turret->direction = player->direction;
+    // Fica até ser destruída; além do limite por jogador, a mais antiga dele é desmontada
+    // (explode, como ao ser destruída)
+    std::vector<Turret*> own;
+    for(Turret* other : m_turrets)
+        if(other->owner == player->playerIndex() && !other->to_erase && !other->testFlag(TSF_DESTROYED))
+            own.push_back(other);
+    int excess = static_cast<int>(own.size()) + 1 - std::max(1, AppConfig::power_turret_max_per_player);
+    for(int i = 0; i < excess; i++) own[i]->destroy();
     m_turrets.push_back(turret);
     SoundManager::getInstance().playSound("bonus");
     return true;

@@ -12,10 +12,14 @@
 //   compra     poder comprado vai para o espaço de poder: nada vale na hora da compra (a
 //              trégua e o escudo não correm no intervalo) e só vale quando faz efeito
 //   espaços    cada espaço guarda uma unidade; a unidade colocada no mapa sai do estoque
+//   loja       a caixa de texto da loja, com a borda, fica inteira dentro do mapa
+//   torreta    torreta e mina ficam até serem destruídas, na sobrevivência e no duelo (o
+//              duelo ainda as fazia sumir com o tempo); até 3 torretas por jogador
 
 #include <SDL2/SDL.h>
 
 #include "../src/app_state/survival.h"
+#include "../src/app_state/duel.h"
 #include "../src/app_state/survival_layout.h"
 #include "../src/app_state/duel_layout.h"
 #include "../src/appconfig.h"
@@ -220,6 +224,116 @@ struct SurvivalTest
         p->consumeHeldPower();
         expect(p->storedPowers() == 2 && s.m_mines.size() == 1, "2 guardadas, 1 no mapa (a do mapa não ocupa espaço)");
     }
+    // ===== Caixa da loja =====
+    static void shopBox()
+    {
+        Survival s(1, 0);
+        const int t = AppConfig::tile_rect.w, map_w = AppConfig::map_rect.w, map_h = AppConfig::map_rect.h;
+        int outside = 0, checked = 0;
+        // A loja em qualquer tile do mapa e caixas de vários tamanhos (o texto muda com o item)
+        for(int row = 0; row + 2 <= map_h / t; row++)
+            for(int column = 0; column + 2 <= map_w / t; column++)
+                for(int w = 30; w <= 220; w += 10)
+                    for(int h = 20; h <= 120; h += 10)
+                    {
+                        s.m_shop_pad = {column * t, row * t};
+                        SDL_Rect box = s.shopBoxRect(w, h);
+                        SDL_Rect border = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
+                        checked++;
+                        if(border.x < 0 || border.y < 0 || border.x + border.w > map_w || border.y + border.h > map_h)
+                        {
+                            if(outside < 3) std::printf("        loja em (%d,%d), caixa %dx%d: borda em (%d,%d) %dx%d\n", column, row, w, h, border.x, border.y, border.w, border.h);
+                            outside++;
+                        }
+                    }
+        expect(outside == 0, "a borda da caixa da loja fica dentro do mapa (" + std::to_string(outside) + " de " + std::to_string(checked) + " fora)");
+        // A caixa continua ao lado da loja, do lado de fora, quando cabe (sem tapar a loja)
+        s.m_shop_pad = {10 * t, 20 * t};
+        SDL_Rect box = s.shopBoxRect(80, 40);
+        expect(box.x + box.w + 3 == 10 * t, "loja à esquerda do meio: caixa à esquerda dela");
+        s.m_shop_pad = {14 * t, 20 * t};
+        box = s.shopBoxRect(80, 40);
+        expect(box.x == 16 * t + 3, "loja à direita do meio: caixa à direita dela");
+    }
+
+    // ===== Torreta e mina permanentes, nos dois modos =====
+    template<class Mode>
+    static Player* readyPlayer(Mode& mode)
+    {
+        for(int i = 0; i < 200; i++)
+        {
+            for(Player* p : mode.m_players)
+                if(!p->to_erase && p->testFlag(TSF_LIFE)) return p;
+            mode.update(16);
+        }
+        return nullptr;
+    }
+
+    template<class Mode>
+    static void permanentPowers(Mode& mode, const std::string& name)
+    {
+        Player* p = readyPlayer(mode);
+        if(p == nullptr) { expect(false, name + ": um jogador entra no mapa"); return; }
+        p->held_power = ST_BONUS_MINE;
+        expect(mode.usePower(p) && !mode.m_mines.empty(), name + ": coloca a mina");
+        Mine* mine = mode.m_mines.back();
+
+        // A torreta na direção em que couber
+        Turret* turret = nullptr;
+        for(int d = 0; d < 4 && turret == nullptr; d++)
+        {
+            p->direction = static_cast<Direction>(d);
+            p->held_power = ST_BONUS_TURRET;
+            if(mode.usePower(p)) turret = mode.m_turrets.back();
+        }
+        expect(turret != nullptr, name + ": coloca a torreta");
+        if(turret == nullptr) return;
+
+        // 3 minutos de jogo só para elas (sem inimigos nem tiros por perto): antes, a torreta
+        // sumia em 20 s (ou 10 tiros) e a mina em 30 s fora da sobrevivência
+        for(Uint32 time = 0; time < 180000; time += 16)
+        {
+            turret->update(16);
+            mine->update(16);
+            turret->think([](Direction) { return true; }); // atira o tempo todo: sem munição contada
+            for(Bullet* b : turret->bullets) b->destroy();
+        }
+        expect(!turret->to_erase && turret->testFlag(TSF_LIFE) && !turret->testFlag(TSF_DESTROYED), name + ": a torreta fica 3 min e atirando");
+        expect(!mine->to_erase, name + ": a mina fica 3 min");
+
+        // Limite por jogador: a quarta desmonta a mais antiga dele. Cada torreta colocada sai da
+        // frente (fora do mapa), para a próxima caber no mesmo lugar
+        std::vector<Turret*> placed = {turret};
+        for(int k = 0; k < 3; k++)
+        {
+            // Surgindo, o update não move os retângulos: muda direto
+            Turret* last = placed.back();
+            last->pos_x = -1000 - 100 * k;
+            last->dest_rect.x = static_cast<int>(last->pos_x);
+            last->collision_rect.x = last->dest_rect.x + 2;
+            p->held_power = ST_BONUS_TURRET;
+            if(mode.usePower(p)) placed.push_back(mode.m_turrets.back());
+        }
+        expect(placed.size() == 4, name + ": coloca mais 3 torretas");
+        int alive = 0;
+        for(Turret* t : placed) if(!t->to_erase && !t->testFlag(TSF_DESTROYED)) alive++;
+        expect(alive == AppConfig::power_turret_max_per_player && placed.front()->testFlag(TSF_DESTROYED),
+               name + ": até " + std::to_string(AppConfig::power_turret_max_per_player) + " por jogador, a mais antiga sai (" + std::to_string(alive) + " no mapa)");
+    }
+
+    static void permanentPowers()
+    {
+        std::srand(17);
+        Survival s(1, 0);
+        s.m_phase = Survival::PHASE_PLAY;
+        permanentPowers(s, "sobrevivência");
+
+        std::srand(17);
+        DuelLayout::loadMapList();
+        DuelConfig config;
+        Duel d(config);
+        permanentPowers(d, "duelo");
+    }
 };
 
 // Com os argumentos: no Windows o SDL troca main por SDL_main (extern "C", com argc e argv);
@@ -234,6 +348,8 @@ int main(int, char*[])
     SurvivalTest::countdown();
     SurvivalTest::purchases();
     SurvivalTest::slots();
+    SurvivalTest::shopBox();
+    SurvivalTest::permanentPowers();
 
     std::printf("\n%s: %d falha(s)\n", g_failures == 0 ? "PASSOU" : "FALHOU", g_failures);
     return g_failures == 0 ? 0 : 1;
