@@ -34,8 +34,40 @@ O pacote tem duas pastas:
 
 ```
 ports_scripts/Tank1990.sh     o atalho que aparece em "Ports"
+ports_scripts/gamelist.xml    o que o menu mostra com o jogo selecionado (ver abaixo)
+ports_scripts/images/         a arte: imagem principal, capa e logo
 ports/tank1990/               o jogo: binário aarch64, mapas, imagem, fonte e sons
 ```
+
+## O que o menu do EmuELEC mostra
+
+Com o jogo selecionado em **Ports**, antes de abrir, o EmuELEC mostra:
+
+- o nome **Tank 1990 Remake**;
+- a imagem principal: um campo de batalha com os 4 tanques dos jogadores, cada um na sua cor,
+  e o logo **TANK 1990** em tijolos com a faixa dourada **REMAKE**;
+- a capa (nos temas que mostram caixa) e o logo (nos temas que mostram o logo do jogo);
+- a descrição: a campanha, os modos Duelo e Sobrevivência e os poderes novos;
+- o criador (Gabryel Lima da Silva), o gênero (Action / Shooter), de 1 a 4 jogadores e a data
+  em que o remake começou (julho de 2025).
+
+Tudo isso vem do `ports_scripts/gamelist.xml` e das imagens em `ports_scripts/images/`. O que
+aparece depende do tema do EmuELEC: alguns mostram a imagem principal, outros a capa ou o logo.
+
+**Cuidado com o `gamelist.xml`:** o EmuELEC lê um único `gamelist.xml` por sistema. Se a sua
+pasta `ports_scripts/` já tiver um (de outros ports ou do CharyRick), **não substitua** o
+arquivo. Abra os dois num editor de texto e copie o bloco `<game> ... </game>` do nosso para
+dentro do `<gameList>` do seu. Se substituir, os outros jogos perdem a descrição e a arte; o
+jogo continua aparecendo e abrindo, só sem as informações.
+
+A arte é gerada pelo `tools/emuelec/art/make_art.py` (Pillow), só com os sprites e a fonte
+do jogo. Ajuste o script e rode-o de novo para mudar a arte.
+
+## Créditos dentro do jogo
+
+O menu principal tem a opção **Credits**: o remake (Gabryel Lima da Silva, Rio de Janeiro,
+github.com/Gabryel-lima), a base do motor (Tanks, de Krystian Kałużny, 2015, MIT) e o jogo
+original (Battle City, Namco, 1985). B/Back ou **Back** voltam ao menu.
 
 ## Levar para o cartão de memória
 
@@ -67,7 +99,8 @@ já está lá.
 
 1. No EmuELEC, atualize a lista de jogos: *Start → Game Settings → Update Gamelists*, ou
    reinicie o aparelho.
-2. Abra o sistema **Ports** e escolha **Tank1990**.
+2. Abra o sistema **Ports** e escolha **Tank 1990 Remake** (sem o `gamelist.xml`, o nome que
+   aparece é o do arquivo: **Tank1990**).
 3. Os controles do stick funcionam como no PC (ver *Controles* no [README](README.md#-controles)):
    direcional ou analógico esquerdo para andar, qualquer botão frontal (A, B, X, Y) para atirar,
    LB para o poder guardado, Start para pausar. No menu, A/Start confirma e B/Back volta. Os
@@ -76,6 +109,9 @@ já está lá.
 
 ## Problemas
 
+- **A arte e a descrição não aparecem.** Confira se o `gamelist.xml` e a pasta `images/`
+  estão dentro de `ports_scripts/`, ao lado do `Tank1990.sh`, e rode *Update Gamelists*. Se
+  havia outro `gamelist.xml` ali, veja o cuidado acima.
 - **"Ports" não aparece, ou o Tank1990 não está na lista.** Confira o caminho:
   `ports_scripts/Tank1990.sh`, na raiz das ROMs, e não dentro de outra pasta. Algumas versões
   de firmware dos sticks listam os ports em `ports/` em vez de `ports_scripts/`: nesse caso
@@ -109,5 +145,6 @@ já está lá.
 - **Tela cheia:** o `Tank1990.sh` liga `TANK_FULLSCREEN=1`, e a janela abre em tela cheia.
   Como no PC, o `Renderer::setScale` amplia e centraliza as telas lógicas (464x416) na TV.
 - **`tools/emuelec/smoke.sh`** abre o binário no `qemu-aarch64`, com vídeo e áudio de mentira,
-  e falha se faltar fonte, textura, som ou mapa no pacote. A CI roda esse teste e publica o
-  pacote. O teste não cobre a GPU e os controles de verdade: isso só se confere no stick.
+  e falha se faltar fonte, textura, som ou mapa no pacote, ou um arquivo que o `gamelist.xml`
+  cita (o atalho e as imagens). A CI roda esse teste e publica o pacote. O teste não cobre a
+  GPU e os controles de verdade: isso só se confere no stick.

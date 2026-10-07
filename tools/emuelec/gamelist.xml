@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- O que o menu do EmuELEC mostra com o Tank 1990 selecionado em "Ports" (vai como
+     ports_scripts/gamelist.xml; ver EMUELEC.md). Imagens: tools/emuelec/art/make_art.py.
+     Data: o início do remake (o fork). -->
+<gameList>
+	<game>
+		<path>./Tank1990.sh</path>
+		<name>Tank 1990 Remake</name>
+		<desc>A remake of Battle City (Tank 1990): defend the eagle and destroy every enemy tank across 36 stages, alone or with up to four players on the same screen, each tank in its own color.
+
+Extra modes: Duel, team against team (1 vs 1, 2 vs 2 or custom teams) on 10 symmetric maps; and Survival, 1 to 4 players against endless waves, with coins, a shop between waves and new powers such as mines, barricades, turrets, turbo and team shields. Gamepads for every player, with hotplug, and a match of a random mode playing behind the menu.
+
+Remake by Gabryel Lima da Silva - Rio de Janeiro, Brazil - github.com/Gabryel-lima
+Based on Tanks by Krystian Kałużny (2015, MIT). Original game: Battle City, Namco 1985.</desc>
+		<image>./images/Tank1990-image.png</image>
+		<thumbnail>./images/Tank1990-thumb.png</thumbnail>
+		<marquee>./images/Tank1990-marquee.png</marquee>
+		<releasedate>20250715T000000</releasedate>
+		<developer>Gabryel Lima da Silva</developer>
+		<publisher>Gabryel Lima da Silva</publisher>
+		<genre>Action / Shooter</genre>
+		<players>1-4</players>
+	</game>
+</gameList>

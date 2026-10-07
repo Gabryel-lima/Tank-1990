@@ -3,6 +3,8 @@
 #
 #   build/emuelec/Tank1990-emuelec.zip
 #     ports_scripts/Tank1990.sh   o atalho que aparece em "Ports" no menu do EmuELEC
+#     ports_scripts/gamelist.xml  nome, descrição, criador e imagens que o menu mostra
+#     ports_scripts/images/       as imagens (tools/emuelec/art/make_art.py)
 #     ports/tank1990/             o jogo (binário aarch64 + mapas, imagens, fonte e sons)
 #
 # Descompactado na raiz da partição de ROMs do cartão (a pasta "roms"), fica pronto para jogar.

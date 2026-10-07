@@ -188,7 +188,14 @@ the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM 
    - **over the network**: with the stick on Wi-Fi, open `\\EMUELEC\roms` (Windows) or
      `smb://<stick IP>/roms` (Linux/macOS) and copy both folders there.
 3. On the stick, run *Start → Game Settings → Update Gamelists*, then open
-   **Ports → Tank1990**. Leave with **Exit** in the game's main menu.
+   **Ports → Tank 1990 Remake**. Leave with **Exit** in the game's main menu.
+
+With the game highlighted, the menu shows its art (a battlefield with the four players' tanks
+and the **TANK 1990** brick logo with a gold **REMAKE** banner), the description, the
+creator, genre and player count. That comes from `ports_scripts/gamelist.xml` and
+`ports_scripts/images/`. EmuELEC reads a single `gamelist.xml` per system: if `ports_scripts/`
+already has one (other ports, or CharyRick), don't overwrite it. Copy our `<game>` block into
+yours instead. The art is drawn by `tools/emuelec/art/make_art.py` from the game's own sprites.
 
 If it closes straight away or a controller doesn't respond, read `ports/tank1990/log.txt`.
 More details (in Portuguese), including how the build works: **[EMUELEC.md](EMUELEC.md)**.
@@ -208,6 +215,7 @@ More details (in Portuguese), including how the build works: **[EMUELEC.md](EMUE
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
 - ✅ **Extra modes**: team duel (10 maps) and wave survival (1 to 4 players)
+- ✅ **Credits** in the main menu (**Credits**): who made the remake, the engine it builds on and the original game
 - ✅ **Demo behind the menu**, like the original game: a match of a random mode (the campaign on any stage, a 1 vs 1 or 2 vs 2 duel, survival), with a random map and players and every tank driven by the computer, dimmed behind the options and silent. Every 40 s, or when the match ends, another one starts (`AppConfig::menu_demo_time`; 0 brings back the black background)
 
 ## ⚔️ Duel Mode (Extra Modes)

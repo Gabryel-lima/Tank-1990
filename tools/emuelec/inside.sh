@@ -24,12 +24,16 @@ make --no-print-directory -j"$(nproc)" BUILD="$OUT/obj" CC="$CXX" \
 PKG="$OUT/package"
 GAME="$PKG/ports/tank1990"
 rm -rf "$PKG"
-mkdir -p "$GAME/resources" "$PKG/ports_scripts"
+mkdir -p "$GAME/resources" "$PKG/ports_scripts/images"
 cp "$OUT/obj/bin/Tanks" "$GAME/"
 cp -r resources/levels resources/duel_levels resources/survival_levels "$GAME/"
 cp resources/font/prstartk.ttf resources/png/texture.png "$GAME/"
 cp -r resources/sound "$GAME/resources/"
 cp tools/emuelec/Tank1990.sh "$PKG/ports_scripts/"
+# O que o menu do EmuELEC mostra com o jogo selecionado: nome, descrição, criador e imagens
+cp tools/emuelec/gamelist.xml "$PKG/ports_scripts/"
+cp tools/emuelec/art/Tank1990-image.png tools/emuelec/art/Tank1990-thumb.png \
+    tools/emuelec/art/Tank1990-marquee.png "$PKG/ports_scripts/images/"
 chmod +x "$GAME/Tanks" "$PKG/ports_scripts/Tank1990.sh"
 
 rm -f "$OUT/Tank1990-emuelec.zip"

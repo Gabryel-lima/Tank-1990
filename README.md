@@ -181,7 +181,10 @@ C++ nem SDL2. É o próprio jogo, compilado para o Linux ARM (aarch64) do EmuELE
 2. Copie as pastas `ports_scripts/` e `ports/` do pacote para a raiz das ROMs do cartão. É a
    partição **EEROMS**, ao lado de `nes/`, `snes/` etc. Também dá para copiar pela rede, em
    `\\EMUELEC\roms`.
-3. No stick: *Start → Game Settings → Update Gamelists*, depois **Ports → Tank1990**.
+3. No stick: *Start → Game Settings → Update Gamelists*, depois **Ports → Tank 1990 Remake**.
+   Com o jogo selecionado, o menu mostra a arte (o logo em tijolos com a faixa **REMAKE**), a
+   descrição e o criador. Se já houver um `gamelist.xml` em `ports_scripts/`, junte os dois em
+   vez de substituir (ver EMUELEC.md).
 
 Passo a passo, problemas comuns e como a build funciona: **[EMUELEC.md](EMUELEC.md)**.
 
@@ -202,6 +205,7 @@ Passo a passo, problemas comuns e como a build funciona: **[EMUELEC.md](EMUELEC.
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
 - ✅ **Modos extras**: duelo por equipes (10 mapas) e sobrevivência em ondas (1 a 4 jogadores)
+- ✅ **Créditos** no menu principal (**Credits**): quem fez o remake, a base do motor e o jogo original
 - ✅ **Demonstração no fundo do menu**, como no jogo original: uma partida de um modo sorteado (campanha numa fase qualquer, duelo 1 contra 1 ou 2 contra 2, sobrevivência), com mapa e jogadores sorteados e todos os tanques no computador, escurecida atrás das opções e sem som. A cada 40 s, ou quando a partida acaba, vem outra (`AppConfig::menu_demo_time`; 0 volta ao fundo preto)
 
 ## ⚔️ Modo Duelo (Extra Modes)

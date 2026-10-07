@@ -23,6 +23,12 @@ fi
 cp -P "$OUT"/prefix/lib/libSDL2-2.0.so.0* "$SYSROOT/lib/"
 SYSROOT=$(cd "$SYSROOT" && pwd)
 
+# Todo arquivo que o gamelist.xml cita (o atalho e as imagens) tem de estar no pacote: uma
+# imagem faltando deixa o menu do EmuELEC sem a arte, sem erro nenhum
+for ref in $(sed -n 's|.*<[a-z]*>\./\([^<]*\)</[a-z]*>.*|\1|p' "$OUT/package/ports_scripts/gamelist.xml"); do
+    [ -f "$OUT/package/ports_scripts/$ref" ] || { echo "smoke.sh: o gamelist.xml cita $ref, que não está no pacote" >&2; exit 1; }
+done
+
 cd "$OUT/package/ports/tank1990"
 status=0
 TANK_FULLSCREEN=1 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy LD_LIBRARY_PATH="$SYSROOT/lib" \
