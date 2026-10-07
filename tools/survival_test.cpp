@@ -222,7 +222,9 @@ struct SurvivalTest
     }
 };
 
-int main()
+// Com os argumentos: no Windows o SDL troca main por SDL_main (extern "C", com argc e argv);
+// sem eles, virava outra função e o link falhava
+int main(int, char*[])
 {
     // Só a configuração de sprites (tamanhos e quadros): nada é desenhado
     Engine::getEngine().initModules();
