@@ -14,6 +14,8 @@ public:
     // 'loops' specifies the number of times to loop the sound (0 = play once, -1 = infinite).
     void playSound(const std::string& name, int loops = 0);
     void setVolume(int volume);
+    // Sem som enquanto true (a demonstração no fundo do menu não toca nada)
+    void setMuted(bool muted) { m_muted = muted; }
     void cleanup();
 
 private:
@@ -23,4 +25,5 @@ private:
     SoundManager& operator=(const SoundManager&) = delete;
 
     std::map<std::string, Mix_Chunk*> m_sounds;
+    bool m_muted = false;
 };

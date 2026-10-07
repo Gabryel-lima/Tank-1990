@@ -144,8 +144,11 @@ void Game::draw()
 
         drawStatus();
 
-        if(m_pause) drawPause();
-        drawOverlay();
+        if(!m_demo)
+        {
+            if(m_pause) drawPause();
+            drawOverlay();
+        }
     }
 
     renderer->flush();
@@ -205,6 +208,11 @@ void Game::update(Uint32 dt)
     else
     {
         if(m_pause) return;
+
+        // Jogadores do computador (a demonstração no fundo do menu): caçam os inimigos.
+        // Numa partida normal nenhum jogador é do computador
+        for(auto player : m_players)
+            if(player->cpu && !player->to_erase && player->testFlag(TSF_LIFE)) hunt(player, player->cpu_command, dt);
 
         std::vector<Player*>::iterator pl1, pl2;
         std::vector<Enemy*>::iterator en1, en2;
@@ -1520,6 +1528,101 @@ void Game::killEnemy(Enemy* enemy, Player* by)
     if(by != nullptr) by->score += enemy->scoreForHit();
     while(enemy->lives_count > 0) enemy->destroy();
     m_enemy_to_kill--;
+}
+
+bool Game::clearShot(Tank* shooter, Direction d)
+{
+    const int t = AppConfig::tile_rect.w;
+    SDL_Point c = {shooter->dest_rect.x + shooter->dest_rect.w / 2, shooter->dest_rect.y + shooter->dest_rect.h / 2};
+    bool vertical = (d == D_UP || d == D_DOWN);
+
+    // Inimigo mais perto alinhado com o cano (o tiro tem 8 px de largura)
+    Enemy* target = nullptr;
+    int best = AppConfig::power_turret_range * t + 1;
+    for(Enemy* e : m_enemies)
+    {
+        if(e->to_erase || !e->testFlag(TSF_LIFE)) continue;
+        SDL_Rect r = e->collision_rect;
+        bool aligned = vertical ? (r.x < c.x + 4 && r.x + r.w > c.x - 4) : (r.y < c.y + 4 && r.y + r.h > c.y - 4);
+        if(!aligned) continue;
+        int distance;
+        switch(d)
+        {
+        case D_UP: distance = c.y - (r.y + r.h); break;
+        case D_DOWN: distance = r.y - c.y; break;
+        case D_LEFT: distance = c.x - (r.x + r.w); break;
+        default: distance = r.x - c.x; break;
+        }
+        if(distance >= 0 && distance < best) { best = distance; target = e; }
+    }
+    if(target == nullptr) return false;
+
+    // Caminho do tiro até o alvo: sem pedra e sem passar pela águia nem pelos blocos em volta
+    // dela (a muralha; o tiro destruiria a própria base)
+    int lane0 = ((vertical ? c.x : c.y) - 4) / t, lane1 = ((vertical ? c.x : c.y) + 3) / t;
+    int from = (vertical ? c.y : c.x) / t;
+    int to = vertical ? (d == D_UP ? target->collision_rect.y + target->collision_rect.h : target->collision_rect.y) / t
+                      : (d == D_LEFT ? target->collision_rect.x + target->collision_rect.w : target->collision_rect.x) / t;
+    int step = (to >= from) ? 1 : -1;
+    std::vector<SDL_Rect> guarded;
+    for(Eagle* base : bases())
+        guarded.push_back({base->dest_rect.x - t, base->dest_rect.y - t, base->dest_rect.w + 2 * t, base->dest_rect.h + 2 * t});
+    for(int i = from; i != to + step; i += step)
+        for(int j = lane0; j <= lane1; j++)
+        {
+            int row = vertical ? i : j, column = vertical ? j : i;
+            if(row < 0 || column < 0 || row >= m_level_rows_count || column >= m_level_columns_count) continue;
+            Object* o = m_level.at(row).at(column);
+            if(o != nullptr && o->type == ST_STONE_WALL) return false;
+            SDL_Rect tile = {column * t, row * t, t, t};
+            for(SDL_Rect& r : guarded)
+                if(SDL_HasIntersection(&r, &tile)) return false;
+        }
+    return true;
+}
+
+void Game::hunt(Tank* tank, TankCommand& c, Uint32 dt)
+{
+    // Inimigo na mira: vira e atira parado (a direção atual primeiro)
+    c.fire = false;
+    for(int k = 0; k < 4 && !c.fire; k++)
+    {
+        Direction d = static_cast<Direction>((tank->direction + k) % 4);
+        if(clearShot(tank, d)) { c.direction = d; c.move = false; c.fire = true; }
+    }
+    if(c.fire) return;
+
+    // Ninguém na mira: atrás do inimigo mais perto
+    Enemy* target = nullptr;
+    int best = 0;
+    for(Enemy* e : m_enemies)
+    {
+        if(e->to_erase || !e->testFlag(TSF_LIFE)) continue;
+        int distance = std::abs(e->dest_rect.x - tank->dest_rect.x) + std::abs(e->dest_rect.y - tank->dest_rect.y);
+        if(target == nullptr || distance < best) { target = e; best = distance; }
+    }
+    if(target == nullptr) { c.move = false; return; } // sem inimigos: espera
+    c.move = true;
+
+    // Bateu em algo à frente, ou de tempos em tempos (~0,5 s): nova direção. Como os
+    // inimigos da campanha: quase sempre na direção do alvo, às vezes ao acaso (é o que
+    // tira o tanque de trás de uma parede)
+    SDL_Rect ahead = tank->collision_rect;
+    switch(c.direction)
+    {
+    case D_UP: ahead.y -= 2; break;
+    case D_DOWN: ahead.y += 2; break;
+    case D_LEFT: ahead.x -= 2; break;
+    default: ahead.x += 2; break;
+    }
+    bool blocked = !isAreaFreeForTank(ahead, tank, dt);
+    if(!blocked && rand() % 1000 >= static_cast<int>(2 * dt)) return;
+    int dx = target->dest_rect.x - tank->dest_rect.x, dy = target->dest_rect.y - tank->dest_rect.y;
+    Direction toward_x = dx < 0 ? D_LEFT : D_RIGHT, toward_y = dy < 0 ? D_UP : D_DOWN;
+    int roll = rand() % 100;
+    if(roll < (blocked ? 40 : 15)) c.direction = static_cast<Direction>(rand() % 4);
+    else if((std::abs(dx) > std::abs(dy)) == (roll < 75)) c.direction = toward_x;
+    else c.direction = toward_y;
 }
 
 void Game::updateFriendlyPowers(Uint32 dt)

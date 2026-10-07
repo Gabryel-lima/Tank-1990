@@ -7,6 +7,8 @@
 #include "../app_state/duel.h"
 #include "../app_state/duel_layout.h"
 #include "../app_state/survival.h"
+#include "../app_state/demo.h"
+#include "../soundmanager.h"
 #include "../soundmanager.h"
 #include "../controllers.h"
 
@@ -63,12 +65,26 @@ Menu::Menu(Screen screen)
         m_survival_grids.push_back(DuelLayout::readMap(AppConfig::survival_levels_path + map.first));
 
     openScreen(screen);
+    nextDemo();
 }
 
-// Destrutor do Menu: libera o ponteiro do tanque
+// Destrutor do Menu: libera o ponteiro do tanque e a demonstração
 Menu::~Menu()
 {
     delete m_tank_pointer;
+    delete m_demo;
+}
+
+void Menu::nextDemo()
+{
+    delete m_demo;
+    m_demo = nullptr;
+    m_demo_time = 0;
+    if(AppConfig::menu_demo_time == 0) return;
+    // A partida nasce e roda sem som: o menu continua silencioso
+    SoundManager::getInstance().setMuted(true);
+    m_demo = Demo::random();
+    SoundManager::getInstance().setMuted(false);
 }
 
 // ======================== Itens e telas ========================
@@ -479,12 +495,28 @@ void Menu::draw()
     renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 255}, true);
     renderer->drawRect(&AppConfig::status_rect, {0, 0, 0, 255}, true);
 
+    // Fundo: a partida de demonstração, escurecida, com o menu por cima (como o demo do
+    // jogo original). Ela desenha no mesmo buffer, sem limpar nem apresentar
+    if(m_demo != nullptr)
+    {
+        renderer->setComposing(true);
+        m_demo->draw();
+        renderer->setComposing(false);
+        SDL_Rect screen = {0, 0, AppConfig::map_rect.w + AppConfig::status_rect.w, AppConfig::map_rect.h};
+        renderer->dim(&screen, static_cast<Uint8>(AppConfig::menu_demo_dim));
+    }
+
     // Desenha o LOGO do jogo centralizado
     const SpriteData* logo = Engine::getEngine().getSpriteConfig()->getSpriteData(ST_TANKS_LOGO);
     SDL_Rect dst = {(AppConfig::map_rect.w + AppConfig::status_rect.w - logo->rect.w)/2, 50, logo->rect.w, logo->rect.h};
     renderer->drawObject(&logo->rect, &dst);
 
     SDL_Point text_start;
+    // Sobre a demonstração, o texto leva contorno preto (V3): direto sobre tijolo ou água some
+    auto menuText = [&](const std::string& text, SDL_Color color) {
+        if(m_demo != nullptr) renderer->drawTextOutlined(text_start, text, color, 2);
+        else renderer->drawText(&text_start, text, color, 2);
+    };
 
     // Título da tela: uma linha da grade acima do primeiro item, na mesma coluna
     std::string title;
@@ -510,7 +542,7 @@ void Menu::draw()
     if(!title.empty())
     {
         text_start = {TEXT_X, slotY(-1)};
-        renderer->drawText(&text_start, title, title_color, 2);
+        menuText(title, title_color);
     }
 
     // Desenha as opções visíveis do menu (a lista rola se não couber na tela)
@@ -530,7 +562,7 @@ void Menu::draw()
            Controllers::inputName(s_survival_players, item - ITEM_SURVIVAL_PLAYER_1) == "NO PAD")
             color = RED;
         text_start = {TEXT_X, itemY(i)};
-        renderer->drawText(&text_start, itemText(item), color, 2);
+        menuText(itemText(item), color);
         // "P1" na cor da equipe escolhida (muda junto ao trocar de equipe)
         if(item >= ITEM_HUMAN_1_TEAM && item <= ITEM_HUMAN_4_TEAM && color.r == WHITE.r && color.g == WHITE.g)
         {
@@ -622,6 +654,16 @@ void Menu::drawMapPreview(int map_index)
 // Atualiza o estado do menu (apenas atualiza o tanque ponteiro)
 void Menu::update(Uint32 dt)
 {
+    // Demonstração: roda sem som; acabou (ou deu o tempo), vem outra de um modo sorteado
+    if(m_demo != nullptr)
+    {
+        SoundManager::getInstance().setMuted(true);
+        m_demo->update(dt);
+        SoundManager::getInstance().setMuted(false);
+        m_demo_time += dt;
+        if(m_demo->finished() || m_demo_time > AppConfig::menu_demo_time) nextDemo();
+    }
+
     // Posiciona também o retângulo de desenho: durante a animação de criação
     // o Tank::update ainda não o atualiza, e o ponteiro apareceria fora do lugar
     m_tank_pointer->pos_y = itemY(m_menu_index) - 10;

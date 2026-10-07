@@ -212,6 +212,14 @@ private:
      */
     Player* m_tank_pointer;
 
+    /** Partida de demonstração no fundo (ver Demo), ou nullptr se desligada. */
+    AppState* m_demo = nullptr;
+    /** Tempo (ms) da demonstração atual. */
+    Uint32 m_demo_time = 0;
+
+    /** Troca a demonstração por uma nova, de um modo sorteado (sem som). */
+    void nextDemo();
+
     /**
      * Indica se o menu deve ser finalizado e o estado deve ser trocado (iniciar jogo ou sair).
      */

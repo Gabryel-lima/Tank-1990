@@ -184,6 +184,7 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
 - ✅ **Modos extras**: duelo por equipes (10 mapas) e sobrevivência em ondas (1 a 4 jogadores)
+- ✅ **Demonstração no fundo do menu**, como no jogo original: uma partida de um modo sorteado (campanha numa fase qualquer, duelo 1 contra 1 ou 2 contra 2, sobrevivência), com mapa e jogadores sorteados e todos os tanques no computador, escurecida atrás das opções e sem som. A cada 40 s, ou quando a partida acaba, vem outra (`AppConfig::menu_demo_time`; 0 volta ao fundo preto)
 
 ## ⚔️ Modo Duelo (Extra Modes)
 
@@ -529,6 +530,7 @@ Tank-1990/
 │   │   ├── survival.h/cpp # Modo sobrevivência (ondas)
 │   │   ├── powers.h/cpp  # Poderes novos: guardáveis x imediatos e chances de sorteio
 │   │   ├── survival_layout.h/cpp # Geometria e validação dos mapas da sobrevivência
+│   │   ├── demo.h/cpp     # Partidas de demonstração do fundo do menu (um modo sorteado)
 │   │   ├── message_box.h/cpp # Caixa de mensagem dos modos extras
 │   │   ├── navgrid.h/cpp # Busca de caminho em grade (Dijkstra) usada pela IA
 │   │   └── scores.h/cpp  # Tela de pontuação

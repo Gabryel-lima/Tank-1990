@@ -541,54 +541,6 @@ bool Survival::placePermanentTurret(Player* player)
     return true;
 }
 
-bool Survival::clearShot(Tank* shooter, Direction d) const
-{
-    const int t = AppConfig::tile_rect.w;
-    SDL_Point c = {shooter->dest_rect.x + shooter->dest_rect.w / 2, shooter->dest_rect.y + shooter->dest_rect.h / 2};
-    bool vertical = (d == D_UP || d == D_DOWN);
-
-    // Inimigo mais perto alinhado com o cano (o tiro tem 8 px de largura)
-    Enemy* target = nullptr;
-    int best = AppConfig::power_turret_range * t + 1;
-    for(Enemy* e : m_enemies)
-    {
-        if(e->to_erase || !e->testFlag(TSF_LIFE)) continue;
-        SDL_Rect r = e->collision_rect;
-        bool aligned = vertical ? (r.x < c.x + 4 && r.x + r.w > c.x - 4) : (r.y < c.y + 4 && r.y + r.h > c.y - 4);
-        if(!aligned) continue;
-        int distance;
-        switch(d)
-        {
-        case D_UP: distance = c.y - (r.y + r.h); break;
-        case D_DOWN: distance = r.y - c.y; break;
-        case D_LEFT: distance = c.x - (r.x + r.w); break;
-        default: distance = r.x - c.x; break;
-        }
-        if(distance >= 0 && distance < best) { best = distance; target = e; }
-    }
-    if(target == nullptr) return false;
-
-    // Caminho do tiro até o alvo: sem pedra, sem a águia e sem a muralha dela
-    int lane0 = ((vertical ? c.x : c.y) - 4) / t, lane1 = ((vertical ? c.x : c.y) + 3) / t;
-    int from = (vertical ? c.y : c.x) / t;
-    int to = vertical ? (d == D_UP ? target->collision_rect.y + target->collision_rect.h : target->collision_rect.y) / t
-                      : (d == D_LEFT ? target->collision_rect.x + target->collision_rect.w : target->collision_rect.x) / t;
-    int step = (to >= from) ? 1 : -1;
-    std::vector<SurvivalLayout::Tile> wall = SurvivalLayout::baseWallTiles();
-    for(int i = from; i != to + step; i += step)
-        for(int j = lane0; j <= lane1; j++)
-        {
-            int row = vertical ? i : j, column = vertical ? j : i;
-            if(row < 0 || column < 0 || row >= m_level_rows_count || column >= m_level_columns_count) continue;
-            Object* o = m_level.at(row).at(column);
-            if(o != nullptr && o->type == ST_STONE_WALL) return false;
-            for(const SurvivalLayout::Tile& w : wall)
-                if(w.row == row && w.column == column) return false;
-            if(row >= m_level_rows_count - 2 && (column == 12 || column == 13)) return false; // águia
-        }
-    return true;
-}
-
 void Survival::onBaseHit(Eagle* base, Bullet* bullet)
 {
     // O tiro que passou do alvo e seguiu até a águia: só os inimigos e os jogadores a ferem
@@ -636,51 +588,7 @@ bool Survival::callReinforcement(Player* player)
 void Survival::steerAllies(Uint32 dt)
 {
     for(Bot* ally : m_allies)
-    {
-        if(ally->to_erase || !ally->testFlag(TSF_LIFE)) continue;
-        TankCommand& c = ally->command;
-
-        // Inimigo na mira: vira e atira parado (a direção atual primeiro)
-        c.fire = false;
-        for(int k = 0; k < 4 && !c.fire; k++)
-        {
-            Direction d = static_cast<Direction>((ally->direction + k) % 4);
-            if(clearShot(ally, d)) { c.direction = d; c.move = false; c.fire = true; }
-        }
-        if(c.fire) continue;
-
-        // Ninguém na mira: atrás do inimigo mais perto
-        Enemy* target = nullptr;
-        int best = 0;
-        for(Enemy* e : m_enemies)
-        {
-            if(e->to_erase || !e->testFlag(TSF_LIFE)) continue;
-            int distance = std::abs(e->dest_rect.x - ally->dest_rect.x) + std::abs(e->dest_rect.y - ally->dest_rect.y);
-            if(target == nullptr || distance < best) { target = e; best = distance; }
-        }
-        if(target == nullptr) { c.move = false; continue; } // sem inimigos (intervalo): espera
-        c.move = true;
-
-        // Bateu em algo à frente, ou de tempos em tempos (~0,5 s): nova direção. Como os
-        // inimigos da campanha: quase sempre na direção do alvo, às vezes ao acaso (é o que
-        // tira o tanque de trás de uma parede)
-        SDL_Rect ahead = ally->collision_rect;
-        switch(c.direction)
-        {
-        case D_UP: ahead.y -= 2; break;
-        case D_DOWN: ahead.y += 2; break;
-        case D_LEFT: ahead.x -= 2; break;
-        default: ahead.x += 2; break;
-        }
-        bool blocked = !isAreaFreeForTank(ahead, ally, dt);
-        if(!blocked && rand() % 1000 >= static_cast<int>(2 * dt)) continue;
-        int dx = target->dest_rect.x - ally->dest_rect.x, dy = target->dest_rect.y - ally->dest_rect.y;
-        Direction toward_x = dx < 0 ? D_LEFT : D_RIGHT, toward_y = dy < 0 ? D_UP : D_DOWN;
-        int roll = rand() % 100;
-        if(roll < (blocked ? 40 : 15)) c.direction = static_cast<Direction>(rand() % 4);
-        else if((std::abs(dx) > std::abs(dy)) == (roll < 75)) c.direction = toward_x;
-        else c.direction = toward_y;
-    }
+        if(!ally->to_erase && ally->testFlag(TSF_LIFE)) hunt(ally, ally->command, dt);
 }
 
 // ======================== Rompimento da pedra ========================

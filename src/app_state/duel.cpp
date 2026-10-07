@@ -1009,7 +1009,8 @@ void Duel::draw()
 
     //=========== Mensagens no centro: sempre numa caixa, centralizada no mapa ===========
     std::string score = Engine::intToString(m_wins[0]) + " - " + Engine::intToString(m_wins[1]);
-    if(m_phase == PHASE_INTRO)
+    if(m_demo) {} // demonstração no fundo do menu: sem caixas por cima das opções
+    else if(m_phase == PHASE_INTRO)
     {
         drawMessageBox(renderer, {
             {"ROUND " + Engine::intToString(m_round), WHITE, 1, 8},

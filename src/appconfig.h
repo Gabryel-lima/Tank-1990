@@ -410,6 +410,18 @@ public:
      */
     static double bullet_default_speed;
 
+    // ======================== Menu ========================
+
+    /**
+     * Demonstração no fundo do menu (ver Demo): uma partida de um modo sorteado, com todos os
+     * tanques no computador. Depois deste tempo (ms), ou quando a partida acaba, vem outra.
+     * 0 desliga (fundo preto, como antes).
+     */
+    static unsigned menu_demo_time;
+
+    /** Quanto a demonstração escurece (0 a 255): o bastante para as opções lerem por cima. */
+    static int menu_demo_dim;
+
     /**
      * Indica se a visualização dos alvos dos inimigos está ativada (debug/cheat).
      */

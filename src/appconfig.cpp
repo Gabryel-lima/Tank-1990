@@ -238,5 +238,9 @@ unsigned AppConfig::survival_wave_intro_time = 3000;
 // A cada 3 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
 int AppConfig::survival_life_every_waves = 3;
 
+// Demonstração no fundo do menu: troca de modo a cada 40 s; escurecida a 2/3
+unsigned AppConfig::menu_demo_time = 40000;
+int AppConfig::menu_demo_dim = 170;
+
 // Exibe ou não o alvo do inimigo (debug)
 bool AppConfig::show_enemy_target = false;

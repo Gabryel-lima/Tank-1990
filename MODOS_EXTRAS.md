@@ -27,6 +27,7 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 | M3 | Teclas: **Enter / Start** pausa; **Esc / Select** sai para o menu, **só com o jogo pausado** (nunca avança nem encerra nada no meio da partida); na tela final, **tiro / Enter / A / Start** volta ao menu, liberado depois de 1,5 s (para não pular a tela sem querer). | `Game::extraModeInput` |
 | M4 | A pausa é a **caixa padrão** ("PAUSE", "ENTER / START: PLAY" e "ESC / SELECT: MENU"). O modo decide quando dá para pausar: sempre que os jogadores controlam os tanques. | `Game::drawPauseBox`, `drawPause()` |
 | M5 | **Botão de poder:** LB no controle, Shift esquerdo no `WASD`, Shift direito no `ARROWS`. | `PlayerKeys::power`, `Player::takePowerPress` |
+| M6 | **Demonstração:** todo modo entra no sorteio do fundo do menu com uma linha em `Demo::modes()`: a fábrica cria o modo com os jogadores no computador (o competitivo com a IA dele; o cooperativo com `Player::cpu`, que o `Game` guia com `hunt`) e marca `m_demo`, que esconde as caixas do modo. | `Demo::modes`, `Game::m_demo`, `Game::hunt` |
 
 ## 3. Mapas
 
@@ -106,6 +107,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 - [ ] Sinais visuais com `drawHaze` e caixas de mensagem (V1, V3, V4).
 - [ ] Poder novo com duração: névoa branca no fim, no mapa e no painel enquanto dura (W8).
 - [ ] Poder novo colocado à frente: `frontArea`, logo à frente do tanque, sem bloco vazio no meio (W9).
+- [ ] Entra na demonstração do fundo do menu (`Demo::modes`), com todos os tanques no computador (M6).
 - [ ] A campanha continua idêntica pixel a pixel (K1).
 - [ ] README em português e em inglês.
 

@@ -158,11 +158,7 @@ private:
     /** Chama um aliado na cor do jogador. @return false sem lugar ou no limite */
     bool callReinforcement(Player* player);
 
-    /**
-     * Decide o comando de cada aliado: inimigo na mira (clearShot), vira e atira parado;
-     * senão, anda atrás do inimigo mais perto (como os inimigos da campanha atrás do alvo),
-     * trocando de direção de tempos em tempos e quando bate em algo.
-     */
+    /** Decide o comando de cada aliado (Game::hunt). */
     void steerAllies(Uint32 dt);
 
     // ===== Rompimento da pedra (AppConfig::survival_wall_breach_chance) =====
@@ -207,12 +203,6 @@ private:
     /** Torreta permanente (AppConfig::survival_turret_*): a mais antiga do jogador além do limite sai. */
     bool placePermanentTurret(Player* player);
 
-    /**
-     * A torreta ou o aliado acerta um inimigo atirando na direção @a d: inimigo alinhado, a
-     * até AppConfig::power_turret_range tiles, sem pedra no caminho e sem a águia ou a muralha
-     * dela no meio (o tiro destruiria a própria base).
-     */
-    bool clearShot(Tank* shooter, Direction d) const;
 
     Phase m_phase;
     Uint32 m_phase_time;

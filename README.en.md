@@ -183,6 +183,7 @@ when run — see the Windows section above.
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
 - ✅ **Extra modes**: team duel (10 maps) and wave survival (1 to 4 players)
+- ✅ **Demo behind the menu**, like the original game: a match of a random mode (the campaign on any stage, a 1 vs 1 or 2 vs 2 duel, survival), with a random map and players and every tank driven by the computer, dimmed behind the options and silent. Every 40 s, or when the match ends, another one starts (`AppConfig::menu_demo_time`; 0 brings back the black background)
 
 ## ⚔️ Duel Mode (Extra Modes)
 
@@ -526,6 +527,7 @@ Tank-1990/
 │   │   ├── survival.h/cpp # Survival mode (waves)
 │   │   ├── powers.h/cpp  # New powers: storable vs immediate, and draw odds
 │   │   ├── survival_layout.h/cpp # Survival map geometry and validation
+│   │   ├── demo.h/cpp     # Demo matches behind the menu (a random mode)
 │   │   ├── message_box.h/cpp # Message box for the extra modes
 │   │   ├── navgrid.h/cpp # Grid pathfinding (Dijkstra) used by the AI
 │   │   └── scores.h/cpp  # Score screen
