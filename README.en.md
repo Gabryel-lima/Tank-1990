@@ -99,6 +99,7 @@ make sprites      # Paints the pixel art from tools/sprites/ into resources/png/
 make pad-tools    # Controller diagnostics (padprobe) and bridge (padbridge)
 make pad-selftest # Tests the controller bridge end to end
 make survival-test # Survival mode tests, no window
+make emuelec      # Package for the EmuELEC TV console (see EMUELEC.md)
 make install-deps # Installs dependencies (apk, apt, dnf or brew)
 make help         # Lists every available command
 ```
@@ -168,6 +169,29 @@ make build WIN_CONSOLE=1      # keeps the console open (debugging)
 
 Keep in mind this `.exe` will most likely be **blocked by Smart App Control**
 when run — see the Windows section above.
+
+## 📺 TV console (EmuELEC / GameStick Y6)
+
+The game also runs on the **GameStick / Powkiddy Y6** and other Amlogic sticks and TV boxes
+with **EmuELEC 4.3+**. It shows up under **Ports** in the menu, complete (1 to 4 player
+campaign, duel and survival) and played with the stick's controllers. It is not an NES ROM:
+the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM Linux
+(aarch64).
+
+1. Get the **Tank1990-emuelec** package. Download it from *Actions → build → Artifacts* on
+   GitHub, or build it with `make emuelec` (Linux or WSL, with Docker).
+2. Copy the package's `ports_scripts/` and `ports/` folders to the root of the card's ROMs:
+   - **card in a PC**: shut the stick down (*Start → Quit → Shutdown*), put the card in the
+     PC and open the **EEROMS** partition, the one with `nes/`, `snes/`, etc. Leave the other
+     partitions alone. You should end up with `EEROMS/ports_scripts/Tank1990.sh` and
+     `EEROMS/ports/tank1990/Tanks`. If `ports/` already exists, merge the folders;
+   - **over the network**: with the stick on Wi-Fi, open `\\EMUELEC\roms` (Windows) or
+     `smb://<stick IP>/roms` (Linux/macOS) and copy both folders there.
+3. On the stick, run *Start → Game Settings → Update Gamelists*, then open
+   **Ports → Tank1990**. Leave with **Exit** in the game's main menu.
+
+If it closes straight away or a controller doesn't respond, read `ports/tank1990/log.txt`.
+More details (in Portuguese), including how the build works: **[EMUELEC.md](EMUELEC.md)**.
 
 ## 🎮 Features
 
@@ -562,6 +586,7 @@ Tank-1990/
 │   ├── padbridge.cpp     # Controller bridge: reads on Windows, sends to the game in WSL
 │   ├── pad-selftest.sh   # End-to-end test of the bridge (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art of the new powers
+│   ├── emuelec/          # TV console package (make emuelec, see EMUELEC.md)
 │   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows

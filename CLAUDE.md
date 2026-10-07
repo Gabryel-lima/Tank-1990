@@ -32,6 +32,11 @@ make pad-selftest # ponte de controles de ponta a ponta (controle de mentira)
 make survival-test # regras da sobrevivência que já quebraram (bônus, contagem, compras)
 ```
 
+Console de TV (EmuELEC, ver `EMUELEC.md`): `make emuelec` gera o pacote aarch64 (precisa de
+Docker) e `sh tools/emuelec/smoke.sh` o abre no qemu. O pacote linka contra o SDL 2.0.9 do
+EmuELEC 4.3: função do SDL mais nova que isso fica atrás de `SDL_VERSION_ATLEAST`, como no
+`NetPad`, senão a build do pacote quebra.
+
 Bug corrigido num modo vira caso no teste dele (`tools/survival_test.cpp`), para não voltar.
 
 A CI (`.github/workflows/build.yml`) roda isso no Linux, no macOS, no Windows (MSYS2) e o

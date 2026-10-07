@@ -9,6 +9,7 @@
 #include "app_state/duel_layout.h"
 #include "app_state/survival_layout.h"
 
+#include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <stdlib.h>
@@ -66,9 +67,14 @@ void App::run()
         // Idem para os mapas do modo sobrevivência (survival_levels/maps.txt)
         SurvivalLayout::loadMapList();
 
-        // Cria a janela principal do jogo
+        // Cria a janela principal do jogo. TANK_FULLSCREEN=1 abre em tela cheia: é como o
+        // console de TV (EmuELEC, ver EMUELEC.md) roda o jogo, sem gerenciador de janelas
+        Uint32 window_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+        const char* fullscreen = std::getenv("TANK_FULLSCREEN");
+        if(fullscreen != nullptr && fullscreen[0] != '\0' && fullscreen[0] != '0')
+            window_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         m_window = SDL_CreateWindow("TANKS", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                    AppConfig::windows_rect.w, AppConfig::windows_rect.h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+                                    AppConfig::windows_rect.w, AppConfig::windows_rect.h, window_flags);
 
         // Confere a janela e inicializa imagens PNG e fontes TrueType;
         // se algo falhar, libera o que já foi criado e sai.
