@@ -5,6 +5,23 @@ set -eu
 
 : "${OUT:?}"
 export HOST=aarch64-unknown-linux-gnu PREFIX="$OUT/prefix" SRC="$OUT/src"
+
+# O make só enxerga mudança nos fontes e cabeçalhos do jogo. Mudou a receita (versões e sha256
+# das bibliotecas e a imagem do toolchain no build.sh, o deps.sh, as flags daqui): refaz do zero
+# o que foi feito com a receita antiga, em vez de reaproveitar um resultado velho
+fresh() { # fresh <pasta> <arquivos da receita...>
+    dir=$1; shift
+    sum=$(cat "$@" | sha256sum | cut -d' ' -f1)
+    if [ "$(cat "$dir/.recipe" 2>/dev/null)" != "$sum" ]; then
+        [ -d "$dir" ] && echo ">> receita mudou, refazendo $dir"
+        rm -rf "$dir"
+        mkdir -p "$dir"
+        echo "$sum" > "$dir/.recipe"
+    fi
+}
+fresh "$PREFIX" tools/emuelec/build.sh tools/emuelec/deps.sh
+fresh "$OUT/obj" tools/emuelec/build.sh tools/emuelec/deps.sh tools/emuelec/inside.sh
+
 sh tools/emuelec/deps.sh sdl2 image mixer ttf
 
 # O jogo, com o mesmo Makefile do PC, em $OUT/obj. Linka contra o SDL 2.0.9 (dinâmico: no stick
