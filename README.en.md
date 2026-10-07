@@ -99,6 +99,7 @@ make sprites      # Paints the pixel art from tools/sprites/ into resources/png/
 make pad-tools    # Controller diagnostics (padprobe) and bridge (padbridge)
 make pad-selftest # Tests the controller bridge end to end
 make survival-test # Survival mode tests, no window
+make emuelec      # Package for the EmuELEC TV console (see EMUELEC.md)
 make install-deps # Installs dependencies (apk, apt, dnf or brew)
 make help         # Lists every available command
 ```
@@ -169,6 +170,37 @@ make build WIN_CONSOLE=1      # keeps the console open (debugging)
 Keep in mind this `.exe` will most likely be **blocked by Smart App Control**
 when run — see the Windows section above.
 
+## 📺 TV console (EmuELEC / GameStick Y6)
+
+The game also runs on the **GameStick / Powkiddy Y6** and other Amlogic sticks and TV boxes
+with **EmuELEC 4.3+**. It shows up under **Ports** in the menu, complete (1 to 4 player
+campaign, duel and survival) and played with the stick's controllers. It is not an NES ROM:
+the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM Linux
+(aarch64).
+
+1. Get the **Tank1990-emuelec** package. Download it from *Actions → build → Artifacts* on
+   GitHub, or build it with `make emuelec` (Linux or WSL, with Docker).
+2. Copy the package's `ports_scripts/` and `ports/` folders to the root of the card's ROMs:
+   - **card in a PC**: shut the stick down (*Start → Quit → Shutdown*), put the card in the
+     PC and open the **EEROMS** partition, the one with `nes/`, `snes/`, etc. Leave the other
+     partitions alone. You should end up with `EEROMS/ports_scripts/Tank1990.sh` and
+     `EEROMS/ports/tank1990/Tanks`. If `ports/` already exists, merge the folders;
+   - **over the network**: with the stick on Wi-Fi, open `\\EMUELEC\roms` (Windows) or
+     `smb://<stick IP>/roms` (Linux/macOS) and copy both folders there.
+3. On the stick, run *Start → Game Settings → Update Gamelists*, then open
+   **Ports → Tank 1990 Remake**. Leave with **Exit** in the game's main menu.
+
+With the game highlighted, the menu shows its art (a battlefield with the four players' tanks
+and the **TANK 1990** brick logo with a gold **REMAKE** banner), a short video with sound
+(the menu's demo matches, recorded by `tools/emuelec/art/record_video.sh`), the
+description, the creator, genre and player count. That comes from `ports_scripts/gamelist.xml` and
+`ports_scripts/images/`. EmuELEC reads a single `gamelist.xml` per system: if `ports_scripts/`
+already has one (other ports, or CharyRick), don't overwrite it. Copy our `<game>` block into
+yours instead. The art is drawn by `tools/emuelec/art/make_art.py` from the game's own sprites.
+
+If it closes straight away or a controller doesn't respond, read `ports/tank1990/log.txt`.
+More details (in Portuguese), including how the build works: **[EMUELEC.md](EMUELEC.md)**.
+
 ## 🎮 Features
 
 - ✅ **36 levels** with increasing difficulty
@@ -184,6 +216,7 @@ when run — see the Windows section above.
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
 - ✅ **Extra modes**: team duel (10 maps) and wave survival (1 to 4 players)
+- ✅ **Credits** in the main menu (**Credits**): who made the remake, the engine it builds on and the original game
 - ✅ **Demo behind the menu**, like the original game: a match of a random mode (the campaign on any stage, a 1 vs 1 or 2 vs 2 duel, survival), with a random map and players and every tank driven by the computer, dimmed behind the options and silent. Every 40 s, or when the match ends, another one starts (`AppConfig::menu_demo_time`; 0 brings back the black background)
 
 ## ⚔️ Duel Mode (Extra Modes)
@@ -562,6 +595,8 @@ Tank-1990/
 │   ├── padbridge.cpp     # Controller bridge: reads on Windows, sends to the game in WSL
 │   ├── pad-selftest.sh   # End-to-end test of the bridge (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art of the new powers
+│   ├── emuelec/          # TV console package (make emuelec, see EMUELEC.md)
+│   ├── attract.cpp       # Demo matches without the menu, with sound (EmuELEC video)
 │   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows

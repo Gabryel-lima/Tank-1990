@@ -173,6 +173,11 @@ DEPS    = $(OBJS:.o=.d)
 SIM_EXE  = $(BIN)/duel_sim$(EXE_EXT)
 SIM_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/duel_sim.o
 
+# Partidas de demonstração em tela cheia, com som (tools/attract.cpp): para gravar o vídeo do
+# menu do EmuELEC (tools/emuelec/art/record_video.sh)
+ATTRACT_EXE  = $(BIN)/attract$(EXE_EXT)
+ATTRACT_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/attract.o
+
 # Testes da sobrevivência (tools/survival_test.cpp): o jogo sem o main.cpp e sem janela
 SURVIVAL_TEST_EXE  = $(BIN)/survival_test$(EXE_EXT)
 SURVIVAL_TEST_OBJS = $(filter-out $(BUILD)/main.o,$(OBJS)) $(BUILD)/tools/survival_test.o
@@ -300,10 +305,22 @@ compile: $(OBJS)
 	$(CC) $(OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) $(LFLAGS) -o $(EXE)
 
 # Compila cada .cpp (e recompila tudo se o Makefile mudar, já que as flags podem ter mudado)
-build/%.o: src/%.cpp Makefile
+$(BUILD)/%.o: src/%.cpp Makefile
 	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
 
 -include $(DEPS)
+
+# As partidas de demonstração do menu numa janela, sem o menu e com som (ver tools/attract.cpp)
+attract: $(BUILD_DIRS) copy_resources $(RESOURCES) $(ATTRACT_EXE)
+
+$(ATTRACT_EXE): $(ATTRACT_OBJS)
+	$(CC) $(ATTRACT_OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) $(LFLAGS) -o $@
+
+$(BUILD)/tools/attract.o: tools/attract.cpp Makefile
+	@mkdir -p $(BUILD)/tools
+	$(CC) $(CFLAGS) $(INCLUDEPATH) $< -o $@
+
+-include $(BUILD)/tools/attract.d
 
 # Simulação do modo duelo, sem janela: todos os jogadores pela IA (ver tools/duel_sim.cpp)
 duel-sim: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SIM_EXE)
@@ -428,6 +445,15 @@ copy_dlls: | $(BIN)
 endif
 
 # ============================================================================
+# CONSOLE DE TV (EmuELEC)
+# ============================================================================
+
+# Pacote para o EmuELEC (GameStick / Powkiddy Y6, Amlogic aarch64): binário compilado num
+# container com o toolchain aarch64, mais os recursos. Ver EMUELEC.md
+emuelec:
+	sh tools/emuelec/build.sh
+
+# ============================================================================
 # AJUDA
 # ============================================================================
 
@@ -452,6 +478,8 @@ help:
 	@echo "  make pad-tools   - Compila o padprobe (diagnóstico de controles) e o padbridge (ponte de controles)"
 	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
 	@echo "  make padbridge-win SDL2_MINGW=<dir> - padbridge.exe para Windows, a partir do Linux/WSL (MinGW)"
+	@echo "  make emuelec     - Pacote para o console de TV com EmuELEC (GameStick Y6), precisa de Docker"
+	@echo "  make attract     - Partidas de demonstração sem o menu, com som (para o vídeo do EmuELEC)"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
 	@echo ""
@@ -475,7 +503,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec attract
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

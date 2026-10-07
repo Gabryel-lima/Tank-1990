@@ -5,6 +5,8 @@
 #    inclusive a ponte de controles Bluetooth (padbridge.exe) compilada com o MinGW
 # Em todas: os mapas (check-maps) e a ponte de controles de ponta a ponta (pad-selftest),
 # com um controle de mentira (não há controle de verdade na CI). Ver CONTROLES.md.
+# E o pacote do console de TV com EmuELEC (make emuelec), aberto num emulador de ARM, que fica
+# para baixar em Actions -> build -> Artifacts -> Tank1990-emuelec. Ver EMUELEC.md.
 name: build
 
 on:
@@ -91,3 +93,24 @@ jobs:
             test -f /opt/tank1990/windows/padbridge.exe &&
             test -f /opt/tank1990/windows/SDL2.dll &&
             echo "instalação do WSL ok, com a ponte de controles"'
+
+  emuelec:
+    # Pacote do EmuELEC (GameStick / Powkiddy Y6, Amlogic aarch64): binário compilado no
+    # container do toolchain, aberto no qemu, e as pastas prontas para o cartão como artefato
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: qemu (para abrir o binário ARM)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user
+      - name: Pacote (make emuelec)
+        run: make emuelec
+      - name: O binário abre no ARM
+        run: sh tools/emuelec/smoke.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tank1990-emuelec
+          path: |
+            build/emuelec/package/ports
+            build/emuelec/package/ports_scripts

@@ -11,12 +11,14 @@
 /**
  * @brief
  * Classe responsável pelo menu principal do jogo.
- * Permite escolher a campanha (1 a 4 jogadores), os modos extras (duelo) ou sair do jogo.
+ * Permite escolher a campanha (1 a 4 jogadores), os modos extras (duelo), ver os créditos ou
+ * sair do jogo.
  * Esta é a primeira tela exibida ao iniciar o aplicativo e permite a transição para o estado
  * de jogo (classe Game) ou de duelo (classe Duel).
  *
  * Telas do menu:
- * @li principal: 1 a 4 jogadores, Extra Modes, Exit
+ * @li principal: 1 a 4 jogadores, Extra Modes, Credits, Exit
+ * @li Credits: quem fez o remake, a base do motor e o jogo original
  * @li Extra Modes: Duel Mode, Survival
  * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
  * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
@@ -37,7 +39,8 @@ public:
         SCREEN_DUEL_SETUP,
         SCREEN_DUEL_MAP,
         SCREEN_SURVIVAL,
-        SCREEN_SURVIVAL_MAP
+        SCREEN_SURVIVAL_MAP,
+        SCREEN_CREDITS
     };
 
     /**
@@ -88,7 +91,7 @@ private:
     enum Item
     {
         ITEM_CAMPAIGN_1, ITEM_CAMPAIGN_2, ITEM_CAMPAIGN_3, ITEM_CAMPAIGN_4,
-        ITEM_EXTRA_MODES, ITEM_EXIT,
+        ITEM_EXTRA_MODES, ITEM_CREDITS, ITEM_EXIT,
         ITEM_DUEL_MODE,
         ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_CUSTOM,
         ITEM_HUMANS,
@@ -158,6 +161,9 @@ private:
 
     /** Atualiza o tamanho de cada equipe a partir da equipe de cada jogador. */
     void syncTeamSizes();
+
+    /** Desenha o texto da tela de créditos, centralizado entre o logo e o "Back". */
+    void drawCredits();
 
     /** Desenha a miniatura do mapa (tiles de 5 px) à esquerda da lista. */
     void drawMapPreview(int map_index);

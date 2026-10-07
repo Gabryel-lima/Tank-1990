@@ -95,7 +95,10 @@ void Menu::buildItems()
     switch(m_screen)
     {
     case SCREEN_MAIN:
-        m_items = {ITEM_CAMPAIGN_1, ITEM_CAMPAIGN_2, ITEM_CAMPAIGN_3, ITEM_CAMPAIGN_4, ITEM_EXTRA_MODES, ITEM_EXIT};
+        m_items = {ITEM_CAMPAIGN_1, ITEM_CAMPAIGN_2, ITEM_CAMPAIGN_3, ITEM_CAMPAIGN_4, ITEM_EXTRA_MODES, ITEM_CREDITS, ITEM_EXIT};
+        break;
+    case SCREEN_CREDITS:
+        m_items = {ITEM_BACK};
         break;
     case SCREEN_EXTRA:
         m_items = {ITEM_DUEL_MODE, ITEM_SURVIVAL, ITEM_BACK};
@@ -161,6 +164,8 @@ int Menu::slotY(int slot) const
     // Tela principal como no original (152, 184, 216...); nas demais, a linha
     // 152 é o título da tela e os itens começam na seguinte
     if(m_screen == SCREEN_MAIN) return rowY(slot + 1);
+    // Créditos: o texto ocupa o meio da tela e o "Back" fica na última linha da grade
+    if(m_screen == SCREEN_CREDITS) return rowY(slot + 7);
     return rowY(slot + 2);
 }
 
@@ -223,6 +228,7 @@ std::string Menu::itemText(Item item) const
     case ITEM_CAMPAIGN_3: return "3 Players";
     case ITEM_CAMPAIGN_4: return "4 Players";
     case ITEM_EXTRA_MODES: return "Extra Modes";
+    case ITEM_CREDITS: return "Credits";
     case ITEM_EXIT: return "Exit";
     case ITEM_DUEL_MODE: return "Duel Mode";
     case ITEM_SURVIVAL: return "Survival";
@@ -386,6 +392,9 @@ void Menu::confirm()
     case ITEM_EXTRA_MODES:
         openScreen(SCREEN_EXTRA);
         break;
+    case ITEM_CREDITS:
+        openScreen(SCREEN_CREDITS);
+        break;
     case ITEM_EXIT:
         m_result = RESULT_EXIT;
         m_finished = true;
@@ -463,6 +472,10 @@ void Menu::back()
     case SCREEN_EXTRA:
         openScreen(SCREEN_MAIN);
         m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_EXTRA_MODES) - m_items.begin();
+        break;
+    case SCREEN_CREDITS:
+        openScreen(SCREEN_MAIN);
+        m_menu_index = std::find(m_items.begin(), m_items.end(), ITEM_CREDITS) - m_items.begin();
         break;
     case SCREEN_DUEL_FORMAT:
         openScreen(SCREEN_EXTRA);
@@ -577,6 +590,8 @@ void Menu::draw()
         }
     }
 
+    if(m_screen == SCREEN_CREDITS) drawCredits();
+
     // Miniatura do mapa selecionado, à esquerda da lista
     if(isMapScreen() && !m_items.empty())
     {
@@ -590,6 +605,44 @@ void Menu::draw()
     m_tank_pointer->draw();
 
     renderer->flush();
+}
+
+void Menu::drawCredits()
+{
+    // Uma linha por entrada, na fonte pequena (10 px por letra: cabem 46 na largura),
+    // centralizada. Sobre a demonstração leva contorno preto, como o resto do menu (V3).
+    // Só ASCII: a fonte não tem o "ł" nem o "ż" de Kałużny
+    struct Line { const char* text; SDL_Color color; int gap_before; };
+    const SDL_Color GOLD = {255, 200, 40, 255};
+    const Line lines[] = {
+        {"Remake by Gabryel Lima da Silva", GOLD, 0},
+        {"Rio de Janeiro, Brazil", GRAY, 0},
+        {"github.com/Gabryel-lima", GRAY, 0},
+        {"Based on Tanks by Krystian Kaluzny", WHITE, 8},
+        {"2015, MIT license", GRAY, 0},
+        {"github.com/krystiankaluzny/Tanks", GRAY, 0},
+        {"Original game: Battle City, Namco 1985", WHITE, 8},
+        {"C++17 + SDL2, font Press Start K", GRAY, 0},
+    };
+    const int LINE_HEIGHT = 16;
+    Renderer* renderer = Engine::getEngine().getRenderer();
+    int center_x = (AppConfig::map_rect.w + AppConfig::status_rect.w) / 2;
+    // Título na linha dos títulos das outras telas (152), o texto logo abaixo e o "Back"
+    // (slotY(0)) na última linha da grade
+    int y = slotY(-5) - 8;
+
+    SDL_Point start = {TEXT_X, slotY(-6)};
+    if(m_demo != nullptr) renderer->drawTextOutlined(start, "Credits", GRAY, 2);
+    else renderer->drawText(&start, "Credits", GRAY, 2);
+
+    for(const Line& line : lines)
+    {
+        y += line.gap_before;
+        start = {center_x - renderer->textSize(line.text, 3).x / 2, y};
+        if(m_demo != nullptr) renderer->drawTextOutlined(start, line.text, line.color, 3);
+        else renderer->drawText(&start, line.text, line.color, 3);
+        y += LINE_HEIGHT;
+    }
 }
 
 void Menu::drawMapPreview(int map_index)

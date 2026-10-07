@@ -97,6 +97,7 @@ make sprites     # Desenha a pixel art de tools/sprites/ em resources/png/textur
 make pad-tools   # Diagnóstico (padprobe) e ponte (padbridge) de controles
 make pad-selftest # Testa a ponte de controles de ponta a ponta
 make survival-test # Testes do modo sobrevivência, sem janela
+make emuelec     # Pacote para o console de TV com EmuELEC (ver EMUELEC.md)
 make install-deps # Instala as dependências (apk, apt, dnf ou brew)
 make help        # Mostra todos os comandos disponíveis
 ```
@@ -168,6 +169,25 @@ make build WIN_CONSOLE=1      # mantém o console aberto (depuração)
 Lembrando que esse `.exe` provavelmente será **bloqueado pelo Smart App
 Control** ao ser executado — veja a explicação na seção do Windows acima.
 
+## 📺 Console de TV (EmuELEC / GameStick Y6)
+
+O jogo também roda no **GameStick / Powkiddy Y6** e em outros sticks e TV boxes Amlogic com
+**EmuELEC 4.3+**: aparece na seção **Ports** do menu, completo (campanha de 1 a 4 jogadores,
+duelo e sobrevivência), jogado com os controles do stick. Não é uma ROM de NES: o NES não roda
+C++ nem SDL2. É o próprio jogo, compilado para o Linux ARM (aarch64) do EmuELEC.
+
+1. Pegue o pacote **Tank1990-emuelec**: baixe-o em *Actions → build → Artifacts* no GitHub, ou
+   compile-o com `make emuelec` (Linux ou WSL, com Docker).
+2. Copie as pastas `ports_scripts/` e `ports/` do pacote para a raiz das ROMs do cartão. É a
+   partição **EEROMS**, ao lado de `nes/`, `snes/` etc. Também dá para copiar pela rede, em
+   `\\EMUELEC\roms`.
+3. No stick: *Start → Game Settings → Update Gamelists*, depois **Ports → Tank 1990 Remake**.
+   Com o jogo selecionado, o menu mostra a arte (o logo em tijolos com a faixa **REMAKE**), um
+   vídeo curto com som (as partidas de demonstração), a descrição e o criador. Se já houver um `gamelist.xml` em `ports_scripts/`, junte os dois em
+   vez de substituir (ver EMUELEC.md).
+
+Passo a passo, problemas comuns e como a build funciona: **[EMUELEC.md](EMUELEC.md)**.
+
 ## 🎮 Funcionalidades
 
 ### Características Principais
@@ -185,6 +205,7 @@ Control** ao ser executado — veja a explicação na seção do Windows acima.
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
 - ✅ **Modos extras**: duelo por equipes (10 mapas) e sobrevivência em ondas (1 a 4 jogadores)
+- ✅ **Créditos** no menu principal (**Credits**): quem fez o remake, a base do motor e o jogo original
 - ✅ **Demonstração no fundo do menu**, como no jogo original: uma partida de um modo sorteado (campanha numa fase qualquer, duelo 1 contra 1 ou 2 contra 2, sobrevivência), com mapa e jogadores sorteados e todos os tanques no computador, escurecida atrás das opções e sem som. A cada 40 s, ou quando a partida acaba, vem outra (`AppConfig::menu_demo_time`; 0 volta ao fundo preto)
 
 ## ⚔️ Modo Duelo (Extra Modes)
@@ -565,6 +586,8 @@ Tank-1990/
 │   ├── padbridge.cpp     # Ponte de controles: lê no Windows, manda ao jogo no WSL
 │   ├── pad-selftest.sh   # Teste de ponta a ponta da ponte (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art dos poderes novos
+│   ├── emuelec/          # Pacote do console de TV (make emuelec, ver EMUELEC.md)
+│   ├── attract.cpp       # Partidas de demonstração sem o menu, com som (vídeo do EmuELEC)
 │   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build
