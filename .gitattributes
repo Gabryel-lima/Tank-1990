@@ -22,6 +22,7 @@ Makefile    text eol=lf
 *.png       binary
 *.ogg       binary
 *.wav       binary
+*.mp4       binary
 *.ttf       binary
 *.xcf       binary
 *.dll       binary

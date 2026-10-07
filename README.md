@@ -182,8 +182,8 @@ C++ nem SDL2. É o próprio jogo, compilado para o Linux ARM (aarch64) do EmuELE
    partição **EEROMS**, ao lado de `nes/`, `snes/` etc. Também dá para copiar pela rede, em
    `\\EMUELEC\roms`.
 3. No stick: *Start → Game Settings → Update Gamelists*, depois **Ports → Tank 1990 Remake**.
-   Com o jogo selecionado, o menu mostra a arte (o logo em tijolos com a faixa **REMAKE**), a
-   descrição e o criador. Se já houver um `gamelist.xml` em `ports_scripts/`, junte os dois em
+   Com o jogo selecionado, o menu mostra a arte (o logo em tijolos com a faixa **REMAKE**), um
+   vídeo curto com som (as partidas de demonstração), a descrição e o criador. Se já houver um `gamelist.xml` em `ports_scripts/`, junte os dois em
    vez de substituir (ver EMUELEC.md).
 
 Passo a passo, problemas comuns e como a build funciona: **[EMUELEC.md](EMUELEC.md)**.
@@ -587,6 +587,7 @@ Tank-1990/
 │   ├── pad-selftest.sh   # Teste de ponta a ponta da ponte (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art dos poderes novos
 │   ├── emuelec/          # Pacote do console de TV (make emuelec, ver EMUELEC.md)
+│   ├── attract.cpp       # Partidas de demonstração sem o menu, com som (vídeo do EmuELEC)
 │   └── duel_sim_report.py # Soma os resultados de várias simulações
 ├── build/                # Arquivos de build (gerado)
 ├── Makefile              # Sistema de build

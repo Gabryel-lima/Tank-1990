@@ -35,7 +35,7 @@ O pacote tem duas pastas:
 ```
 ports_scripts/Tank1990.sh     o atalho que aparece em "Ports"
 ports_scripts/gamelist.xml    o que o menu mostra com o jogo selecionado (ver abaixo)
-ports_scripts/images/         a arte: imagem principal, capa e logo
+ports_scripts/images/         a arte: imagem principal, capa, logo e o vídeo
 ports/tank1990/               o jogo: binário aarch64, mapas, imagem, fonte e sons
 ```
 
@@ -47,6 +47,10 @@ Com o jogo selecionado em **Ports**, antes de abrir, o EmuELEC mostra:
 - a imagem principal: um campo de batalha com os 4 tanques dos jogadores, cada um na sua cor,
   e o logo **TANK 1990** em tijolos com a faixa dourada **REMAKE**;
 - a capa (nos temas que mostram caixa) e o logo (nos temas que mostram o logo do jogo);
+- um vídeo de 27 s, com som: as partidas de demonstração do menu (campanha, duelo 2 contra 2 e
+  sobrevivência com 4 jogadores), todos os tanques na IA. Nos temas com vídeo, ele começa a
+  tocar alguns segundos depois de o jogo ficar selecionado. O som do vídeo pode ser desligado
+  no EmuELEC, em *Start → Sound Settings → Enable Video Audio*;
 - a descrição: a campanha, os modos Duelo e Sobrevivência e os poderes novos;
 - o criador (Gabryel Lima da Silva), o gênero (Action / Shooter), de 1 a 4 jogadores e a data
   em que o remake começou (julho de 2025).
@@ -62,6 +66,13 @@ jogo continua aparecendo e abrindo, só sem as informações.
 
 A arte é gerada pelo `tools/emuelec/art/make_art.py` (Pillow), só com os sprites e a fonte
 do jogo. Ajuste o script e rode-o de novo para mudar a arte.
+
+O vídeo é gravado pelo `tools/emuelec/art/record_video.sh` (Linux, com Xvfb, xdotool e
+ffmpeg). Ele roda o `tools/attract.cpp` (`make attract`): as partidas de `Demo::modes()`,
+sem o menu por cima, sem escurecer e com som, cada modo por 9 s. O ffmpeg grava a imagem, e
+o driver "disk" do SDL grava o som. Sai em H.264 + AAC, com 640 px de largura e cerca de
+1,3 MB, um formato que o VLC do EmuELEC toca. Modo novo em `Demo::modes()` entra no vídeo
+na próxima gravação.
 
 ## Créditos dentro do jogo
 

@@ -191,8 +191,9 @@ the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM 
    **Ports → Tank 1990 Remake**. Leave with **Exit** in the game's main menu.
 
 With the game highlighted, the menu shows its art (a battlefield with the four players' tanks
-and the **TANK 1990** brick logo with a gold **REMAKE** banner), the description, the
-creator, genre and player count. That comes from `ports_scripts/gamelist.xml` and
+and the **TANK 1990** brick logo with a gold **REMAKE** banner), a short video with sound
+(the menu's demo matches, recorded by `tools/emuelec/art/record_video.sh`), the
+description, the creator, genre and player count. That comes from `ports_scripts/gamelist.xml` and
 `ports_scripts/images/`. EmuELEC reads a single `gamelist.xml` per system: if `ports_scripts/`
 already has one (other ports, or CharyRick), don't overwrite it. Copy our `<game>` block into
 yours instead. The art is drawn by `tools/emuelec/art/make_art.py` from the game's own sprites.
@@ -595,6 +596,7 @@ Tank-1990/
 │   ├── pad-selftest.sh   # End-to-end test of the bridge (make pad-selftest)
 │   ├── sprites/powers.txt # Pixel art of the new powers
 │   ├── emuelec/          # TV console package (make emuelec, see EMUELEC.md)
+│   ├── attract.cpp       # Demo matches without the menu, with sound (EmuELEC video)
 │   └── duel_sim_report.py # Adds up the results of several simulation runs
 ├── install.cmd           # Windows installer (WSL)
 ├── play.cmd              # Starts the game on Windows

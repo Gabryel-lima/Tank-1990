@@ -33,7 +33,8 @@ cp tools/emuelec/Tank1990.sh "$PKG/ports_scripts/"
 # O que o menu do EmuELEC mostra com o jogo selecionado: nome, descrição, criador e imagens
 cp tools/emuelec/gamelist.xml "$PKG/ports_scripts/"
 cp tools/emuelec/art/Tank1990-image.png tools/emuelec/art/Tank1990-thumb.png \
-    tools/emuelec/art/Tank1990-marquee.png "$PKG/ports_scripts/images/"
+    tools/emuelec/art/Tank1990-marquee.png tools/emuelec/art/Tank1990-video.mp4 \
+    "$PKG/ports_scripts/images/"
 chmod +x "$GAME/Tanks" "$PKG/ports_scripts/Tank1990.sh"
 
 rm -f "$OUT/Tank1990-emuelec.zip"
