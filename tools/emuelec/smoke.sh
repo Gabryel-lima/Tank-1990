@@ -17,8 +17,12 @@ SYSROOT="$OUT/sysroot"
 if [ ! -f "$SYSROOT/lib/libc.so.6" ]; then
     mkdir -p "$SYSROOT"
     id=$(docker create "$IMAGE")
-    docker cp "$id:/usr/xcc/aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu/sysroot/lib" "$SYSROOT/"
+    # Pelo tar, e não direto: no toolchain as pastas são só de leitura (dr-xr-xr-x), e um usuário
+    # comum (o da CI) não consegue escrever nem dentro da lib/ que o docker cp acabou de criar
+    docker cp "$id:/usr/xcc/aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu/sysroot/lib" - |
+        tar -x -C "$SYSROOT" --no-same-permissions
     docker rm "$id" >/dev/null
+    chmod -R u+w "$SYSROOT"
 fi
 cp -P "$OUT"/prefix/lib/libSDL2-2.0.so.0* "$SYSROOT/lib/"
 SYSROOT=$(cd "$SYSROOT" && pwd)
