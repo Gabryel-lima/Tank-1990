@@ -211,11 +211,19 @@ mkdir -p "$PL/ports_scripts" "$PL/ports/$ln_name"
 cp "$L" "$PL/ports_scripts/"
 cp "$ENTRY" "$PL/ports/$ln_name/gamelist-entry.xml"
 cp "$MERGE" "$PL/ports/$ln_name/"
-printf '#!/bin/sh\necho "rodou em $(pwd)"\n' > "$PL/ports/$ln_name/$bin"
+printf '#!/bin/sh\necho "rodou em $(pwd)"\nexit 7\n' > "$PL/ports/$ln_name/$bin"
 chmod 644 "$PL/ports/$ln_name/$bin"
-(cd "$PL" && bash "ports_scripts/$(basename "$L")" > /dev/null 2>&1) || true
+launch_status=0
+(cd "$PL" && EMUELEC_RUN_DIRS="/proc/nao-existe $T/run" bash "ports_scripts/$(basename "$L")" > /dev/null 2>&1) ||
+    launch_status=$?
 grep -q "rodou em .*/ports/$ln_name\$" "$PL/ports/$ln_name/log.txt" 2> /dev/null ||
     fail "o lançador não rodou o binário sem permissão de executar: $(cat "$PL/ports/$ln_name/log.txt" 2> /dev/null)"
+# O primeiro lugar falhou (o erro vai para o log) e o jogo rodou no segundo; o código de saída do
+# jogo (7) passa adiante, e só 126 ("não executa") tenta outro lugar
+grep -q "nao-existe" "$PL/ports/$ln_name/log.txt" || fail "o lançador não registrou o erro do primeiro lugar"
+grep -q "^launcher: $T/run/" "$PL/ports/$ln_name/log.txt" || fail "o lançador não usou o segundo lugar"
+[ "$launch_status" = 7 ] || fail "o lançador não devolveu o código de saída do jogo: $launch_status"
+[ "$(count 'rodou em' "$PL/ports/$ln_name/log.txt")" = 1 ] || fail "o lançador rodou o jogo mais de uma vez"
 
 # O gamelist-merge.sh num sistema sem cksum (o busybox do EmuELEC): usa md5sum ou sha1sum
 NB="$T/nocksum"

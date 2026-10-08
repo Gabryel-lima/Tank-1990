@@ -210,9 +210,17 @@ não a trocou.
   `ports/tank1990/log.txt`. Abra esse arquivo no PC (ou pela rede) e veja a mensagem de erro.
   `Permission denied` (código de saída 126 no log do EmulationStation) quer dizer que a partição
   das ROMs, que é FAT, está montada sem permissão de executar programas, e o `chmod` não muda
-  isso. O lançador já contorna: roda uma cópia do binário em `/tmp`, com a pasta do jogo como
-  pasta de trabalho. A primeira linha do `log.txt` diz qual rodou (`launcher: /tmp/...` ou
-  `launcher: ./Tanks`; este indica que a cópia falhou).
+  isso. O lançador já contorna: roda uma cópia do binário numa pasta que executa
+  (`/storage/.tmp`, na partição STORAGE, que é ext4; depois `/tmp` e `/dev/shm`), com a pasta do
+  jogo como pasta de trabalho. O `log.txt` registra cada pasta que falhou e o erro dela, e depois
+  uma linha `launcher: <caminho>` com a que rodou. Se a última linha for `launcher: ./Tanks`, todas
+  as cópias falharam.
+- **O menu mostra nome, descrição e vídeo, mas na primeira vez não havia nada.** No firmware do
+  Y6, o menu guarda a lista de cada sistema num `gamelist.db` e remove o `gamelist.xml` que
+  encontra (na camada de cima do overlay ele aparece como um "whiteout", um dispositivo de
+  caractere). A entrada entra quando o lançador roda o `gamelist-merge.sh`, que a entrega ao menu
+  pela API local dele; por isso a arte aparece depois da primeira execução, mesmo que o jogo em si
+  não tenha aberto.
 - **O controle não responde.** O jogo usa os mapeamentos de controle que o EmuELEC já conhece
   (`/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt`). Cada controle reconhecido
   aparece como `Controle conectado: ...` no `log.txt`. Se o seu não aparecer, falta o mapeamento
