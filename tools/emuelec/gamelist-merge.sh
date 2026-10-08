@@ -31,7 +31,14 @@ ESLIST="${HOME:-/storage}/.emulationstation/gamelists/ports/gamelist.xml"
 
 game_path=$(sed -n 's|.*<path>\(.*\)</path>.*|\1|p' "$ENTRY" | head -n 1)
 image=$(sed -n 's|.*<image>\(.*\)</image>.*|\1|p' "$ENTRY" | head -n 1)
-sum=$(cksum < "$ENTRY")
+# Soma da entrada, para saber se mudou. O busybox do EmuELEC não tem cksum: usa o que houver
+checksum() {
+    if command -v cksum >/dev/null 2>&1; then cksum
+    elif command -v md5sum >/dev/null 2>&1; then md5sum
+    elif command -v sha1sum >/dev/null 2>&1; then sha1sum
+    else wc -c; fi
+}
+sum=$(checksum < "$ENTRY")
 
 # O bloco <game>...</game> cujo <path> é $1 (vazio: o primeiro), de um gamelist.xml. O
 # EmulationStation e os nossos arquivos põem cada etiqueta numa linha
