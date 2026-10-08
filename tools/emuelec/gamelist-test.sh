@@ -3,7 +3,7 @@
 # outros jogos, sem duplicar e sem perder o que a pessoa já tinha (favorito, partidas). Roda no
 # PC, sem o EmuELEC; a API do EmulationStation é imitada com um servidor em Python, se houver.
 # Testa também o install.sh (o pacote vai para o stick pela rede), com um ssh de mentira, e o
-# card-install.sh (o pacote vai para o cartão no PC), com um cartão de mentira.
+# card-install.sh (o pacote vai para o cartão no PC), com um cartão de mentira, e o lançador com um binário sem permissão de executar.
 #
 #   sh tools/emuelec/gamelist-test.sh   (ou make gamelist-test)
 set -eu
@@ -197,5 +197,35 @@ fi
 # De novo: não duplica
 CARD_SUDO= sh "$(pwd)/card-install.sh" "$T/pkg.zip" "$CARD" > /dev/null || fail "o card-install.sh falhou na segunda vez"
 [ "$(count "<path>$game_path</path>" "$CU/gamelist.xml")" = 1 ] || fail "o card-install.sh duplicou a entrada"
+
+# O lançador: a partição das ROMs é FAT e, montada sem permissão de executar, o binário dá
+# "Permission denied" (saída 126). Um binário sem o bit de execução tem de rodar mesmo assim, de
+# uma cópia fora do cartão, com a pasta de trabalho no jogo
+L=$(grep -l '^GAMEDIR=' ./*.sh | head -n 1)
+L="$(pwd)/$(basename "$L")"
+ln_name=$(basename "$L" .sh | tr 'A-Z' 'a-z')
+bin=$(sed -n 's|.*cp \./\([A-Za-z0-9]*\) "\$RUN.*|\1|p' "$L" | head -n 1)
+[ -f "$L" ] && [ -n "$bin" ] || fail "não achei o binário no lançador $L"
+PL="$T/launch"
+mkdir -p "$PL/ports_scripts" "$PL/ports/$ln_name"
+cp "$L" "$PL/ports_scripts/"
+cp "$ENTRY" "$PL/ports/$ln_name/gamelist-entry.xml"
+cp "$MERGE" "$PL/ports/$ln_name/"
+printf '#!/bin/sh\necho "rodou em $(pwd)"\n' > "$PL/ports/$ln_name/$bin"
+chmod 644 "$PL/ports/$ln_name/$bin"
+(cd "$PL" && bash "ports_scripts/$(basename "$L")" > /dev/null 2>&1) || true
+grep -q "rodou em .*/ports/$ln_name\$" "$PL/ports/$ln_name/log.txt" 2> /dev/null ||
+    fail "o lançador não rodou o binário sem permissão de executar: $(cat "$PL/ports/$ln_name/log.txt" 2> /dev/null)"
+
+# O gamelist-merge.sh num sistema sem cksum (o busybox do EmuELEC): usa md5sum ou sha1sum
+NB="$T/nocksum"
+mkdir -p "$NB"
+for c in sed head awk grep cat rm cp md5sum sha1sum cut echo; do
+    p=$(command -v "$c" 2> /dev/null) && [ -x "$p" ] && ln -sf "$p" "$NB/$c"
+done
+rm -f "$T/stamp" "$T/ps/gamelist.xml"
+out=$(PATH="$NB" "$(command -v sh)" "$MERGE" "$ENTRY" "$T/ps" "$T/stamp" 2>&1) || fail "o merge falhou sem cksum: $out"
+case $out in *"not found"*) fail "o merge reclamou de comando faltando: $out" ;; esac
+[ -s "$T/stamp" ] || fail "o merge sem cksum não gravou a marca"
 
 echo "gamelist-test: a entrada entra no gamelist.xml sem apagar nem duplicar nada, também pelo install.sh e pelo card-install.sh"

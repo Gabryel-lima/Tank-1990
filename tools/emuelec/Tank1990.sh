@@ -25,5 +25,17 @@ export TANK_FULLSCREEN=1
 DB=/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt
 [ -f "$DB" ] && export SDL_GAMECONTROLLERCONFIG="$(cat "$DB")"
 
-chmod +x ./Tanks 2>/dev/null
-./Tanks > "$GAMEDIR/log.txt" 2>&1
+# A partição das ROMs é FAT: conforme a montagem do stick, nada nela tem permissão de executar
+# ("Permission denied", saída 126) e o chmod não muda isso. Por isso o jogo roda de uma cópia do
+# binário em /tmp (RAM), com a pasta de trabalho no jogo: os mapas, os sons e a fonte ficam no
+# cartão (o jogo os abre pelo caminho relativo à pasta de trabalho)
+RUN=/tmp/tank1990-run
+rm -rf "$RUN"
+if mkdir -p "$RUN" && cp ./Tanks "$RUN/Tanks" && chmod +x "$RUN/Tanks"; then
+    BIN="$RUN/Tanks"
+else
+    BIN=./Tanks
+fi
+echo "launcher: $BIN" > "$GAMEDIR/log.txt"
+"$BIN" >> "$GAMEDIR/log.txt" 2>&1
+rm -rf "$RUN"

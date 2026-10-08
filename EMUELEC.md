@@ -208,6 +208,11 @@ não a trocou.
   opção e reinicie o EmulationStation.
 - **Abre e volta direto para o menu, ou fica tela preta.** O jogo grava o que aconteceu em
   `ports/tank1990/log.txt`. Abra esse arquivo no PC (ou pela rede) e veja a mensagem de erro.
+  `Permission denied` (código de saída 126 no log do EmulationStation) quer dizer que a partição
+  das ROMs, que é FAT, está montada sem permissão de executar programas, e o `chmod` não muda
+  isso. O lançador já contorna: roda uma cópia do binário em `/tmp`, com a pasta do jogo como
+  pasta de trabalho. A primeira linha do `log.txt` diz qual rodou (`launcher: /tmp/...` ou
+  `launcher: ./Tanks`; este indica que a cópia falhou).
 - **O controle não responde.** O jogo usa os mapeamentos de controle que o EmuELEC já conhece
   (`/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt`). Cada controle reconhecido
   aparece como `Controle conectado: ...` no `log.txt`. Se o seu não aparecer, falta o mapeamento
