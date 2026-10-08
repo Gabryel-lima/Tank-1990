@@ -341,6 +341,10 @@ $(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
 survival-test: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SURVIVAL_TEST_EXE)
 	cd $(BIN) && ./survival_test$(EXE_EXT)
 
+# O jogo acha os arquivos dele pela TANK_DATA_DIR com o executável em outro lugar (como no EmuELEC)
+datadir-test: build
+	sh tools/datadir_test.sh $(BIN)
+
 $(SURVIVAL_TEST_EXE): $(SURVIVAL_TEST_OBJS)
 	$(CC) $(SURVIVAL_TEST_OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) -o $@
 
@@ -486,6 +490,7 @@ help:
 	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
 	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
 	@echo "  make survival-test - Testes da sobrevivência sem janela (bônus, contagem, compras)"
+	@echo "  make datadir-test  - O jogo acha os arquivos pela TANK_DATA_DIR, com o executável em outro lugar"
 	@echo "  make sprites     - Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura"
 	@echo "  make pad-tools   - Compila o padprobe (diagnóstico de controles) e o padbridge (ponte de controles)"
 	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
@@ -518,7 +523,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec emuelec-card emuelec-install gamelist-test attract
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test datadir-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec emuelec-card emuelec-install gamelist-test attract
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

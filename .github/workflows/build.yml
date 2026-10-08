@@ -29,6 +29,8 @@ jobs:
         run: make check-maps
       - name: Testes da sobrevivência
         run: make survival-test
+      - name: O jogo acha os arquivos com o executável em outro lugar
+        run: make datadir-test
       - name: Simulação do duelo (compila)
         run: make duel-sim
       - name: Ponte de controles de ponta a ponta
