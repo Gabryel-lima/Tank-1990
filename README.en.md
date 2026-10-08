@@ -180,15 +180,16 @@ the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM 
 
 1. Get the **Tank1990-emuelec** package. Download it from *Actions → build → Artifacts* on
    GitHub, or build it with `make emuelec` (Linux or WSL, with Docker).
-2. Copy the package's `ports_scripts/` and `ports/` folders to the root of the card's ROMs:
-   - **card in a PC**: shut the stick down (*Start → Quit → Shutdown*), put the card in the
-     PC and open the **EEROMS** partition, the one with `nes/`, `snes/`, etc. Leave the other
-     partitions alone. You should end up with `EEROMS/ports_scripts/Tank1990.sh` and
-     `EEROMS/ports/tank1990/Tanks`. If `ports/` already exists, merge the folders;
-   - **over the network**: with the stick on Wi-Fi, open `\\EMUELEC\roms` (Windows) or
-     `smb://<stick IP>/roms` (Linux/macOS) and copy both folders there.
-3. On the stick, run *Start → Game Settings → Update Gamelists*, then open
-   **Ports → Tank 1990 Remake**. Leave with **Exit** in the game's main menu.
+2. Put it on the stick **while the stick is on**, over the network:
+   - **install script**: `make emuelec-install HOST=<stick IP>` (Linux, macOS or WSL; needs
+     SSH on the stick, password `emuelec`). The menu entry, with its art, shows up right away;
+   - **shared folder**: open `\\EMUELEC\roms` (Windows) or `smb://<stick IP>/roms`
+     (Linux/macOS), copy both folders there and restart EmulationStation.
+
+   Copying `ports_scripts/` onto the memory card in a PC doesn't work on EmuELEC 4.3: at boot
+   it mounts a folder of its own over that one (an overlay on the STORAGE partition), which
+   hides the launcher.
+3. On the stick, open **Ports → Tank 1990 Remake**. Leave with **Exit** in the game's main menu.
 
 With the game highlighted, the menu shows its art (a battlefield with the four players' tanks
 and the **TANK 1990** brick logo with a gold **REMAKE** banner), a short video with sound
@@ -198,7 +199,8 @@ description, the creator, genre and player count. That comes from `ports_scripts
 so the package doesn't ship one (unzipping it would wipe the other ports' entries). The entry
 lives in `ports/tank1990/gamelist-entry.xml`, and the launcher merges it into
 `ports_scripts/gamelist.xml` each time the game starts, leaving the other games alone and
-keeping your favorite flag and play count. Until the first launch, the game is listed as
+keeping your favorite flag and play count (`make emuelec-install` merges it right away). Copied
+through the shared folder, until the first launch the game is listed as
 **Tank1990**, without art. The art is drawn by `tools/emuelec/art/make_art.py` from the game's
 own sprites.
 

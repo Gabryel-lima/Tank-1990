@@ -2,6 +2,7 @@
 # Testa o gamelist-merge.sh: a entrada do jogo entra no gamelist.xml dos Ports sem apagar a dos
 # outros jogos, sem duplicar e sem perder o que a pessoa já tinha (favorito, partidas). Roda no
 # PC, sem o EmuELEC; a API do EmulationStation é imitada com um servidor em Python, se houver.
+# Testa também o install.sh (o pacote vai para o stick pela rede), com um ssh de mentira.
 #
 #   sh tools/emuelec/gamelist-test.sh   (ou make gamelist-test)
 set -eu
@@ -133,4 +134,34 @@ else
     echo "gamelist-test: sem python3 ou curl, a API do EmulationStation não foi testada"
 fi
 
-echo "gamelist-test: a entrada entra no gamelist.xml sem apagar nem duplicar nada"
+# O install.sh: copia o pacote para as ROMs do stick e junta a entrada ao gamelist.xml dos
+# Ports, sem apagar o que já estava lá. O ssh de mentira roda o comando aqui, em $T/roms
+INSTALL="$(pwd)/install.sh"
+R="$T/roms" P="$T/pkg"
+n=$(sed -n 's|.*<path>\./\(.*\)\.sh</path>.*|\1|p' "$ENTRY" | head -n 1 | tr 'A-Z' 'a-z')
+mkdir -p "$P/ports/$n" "$P/ports_scripts" "$R/ports/$n" "$R/ports/other" "$R/ports_scripts"
+cp "$ENTRY" "$P/ports/$n/gamelist-entry.xml"
+cp "$MERGE" "$P/ports/$n/gamelist-merge.sh"
+echo jogo > "$P/ports/$n/bin"
+echo atalho > "$P/ports_scripts/$(basename "$game_path")"
+echo outro > "$R/ports/other/bin"
+cp "$T/other.xml" "$R/ports_scripts/gamelist.xml"
+cksum < "$ENTRY" > "$R/ports/$n/.gamelist-stamp"
+(cd "$P" && python3 -I -m zipfile -c "$T/pkg.zip" ports ports_scripts) ||
+    fail "sem python3 para montar o pacote de teste"
+printf '%s\n' '#!/bin/sh' '[ "$1" = root@stick ] || exit 255' 'exec sh -c "$2"' > "$T/fake-ssh"
+chmod +x "$T/fake-ssh"
+EMUELEC_SSH="$T/fake-ssh" EMUELEC_ROMS="$R" sh "$INSTALL" stick "$T/pkg.zip" > /dev/null ||
+    fail "o install.sh falhou"
+[ "$(cat "$R/ports/$n/bin")" = jogo ] || fail "o install.sh não copiou ports/$n"
+[ -f "$R/ports_scripts/$(basename "$game_path")" ] || fail "o install.sh não copiou o atalho"
+[ "$(cat "$R/ports/other/bin")" = outro ] || fail "o install.sh apagou outro port"
+grep -qF "<path>$game_path</path>" "$R/ports_scripts/gamelist.xml" ||
+    fail "o install.sh não juntou a entrada"
+grep -q '<path>./Other.sh</path>' "$R/ports_scripts/gamelist.xml" ||
+    fail "o install.sh apagou a entrada de outro port"
+if EMUELEC_SSH="$T/fake-ssh" sh "$INSTALL" "" "$T/pkg.zip" > /dev/null 2>&1; then
+    fail "o install.sh rodou sem o IP do stick"
+fi
+
+echo "gamelist-test: a entrada entra no gamelist.xml sem apagar nem duplicar nada, também pelo install.sh"

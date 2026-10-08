@@ -35,7 +35,9 @@ make survival-test # regras da sobrevivência que já quebraram (bônus, contage
 Console de TV (EmuELEC, ver `EMUELEC.md`): `make emuelec` gera o pacote aarch64 (precisa de
 Docker) e `sh tools/emuelec/smoke.sh` o abre no qemu. O pacote não traz `ports_scripts/gamelist.xml`
 (apagaria o dos outros ports): a entrada vai em `ports/tank1990/gamelist-entry.xml` e o atalho a
-junta com o `gamelist-merge.sh`, igual ao do CharyRick (`make gamelist-test`). O pacote linka contra o SDL 2.0.9 do
+junta com o `gamelist-merge.sh`, igual ao do CharyRick (`make gamelist-test`). Para o stick:
+`make emuelec-install HOST=<IP>` (SSH); copiar o `ports_scripts/` com o cartão no PC não serve no
+EmuELEC 4.3 (no boot ele monta um overlay por cima dessa pasta e o atalho some). O pacote linka contra o SDL 2.0.9 do
 EmuELEC 4.3: função do SDL mais nova que isso fica atrás de `SDL_VERSION_ATLEAST`, como no
 `NetPad`, senão a build do pacote quebra. A arte e o vídeo do menu do EmuELEC saem de
 `tools/emuelec/art/make_art.py` e `record_video.sh` (que grava as partidas de `Demo::modes()`
