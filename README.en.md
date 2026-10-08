@@ -194,9 +194,13 @@ With the game highlighted, the menu shows its art (a battlefield with the four p
 and the **TANK 1990** brick logo with a gold **REMAKE** banner), a short video with sound
 (the menu's demo matches, recorded by `tools/emuelec/art/record_video.sh`), the
 description, the creator, genre and player count. That comes from `ports_scripts/gamelist.xml` and
-`ports_scripts/images/`. EmuELEC reads a single `gamelist.xml` per system: if `ports_scripts/`
-already has one (other ports, or CharyRick), don't overwrite it. Copy our `<game>` block into
-yours instead. The art is drawn by `tools/emuelec/art/make_art.py` from the game's own sprites.
+`ports_scripts/images/`. EmuELEC reads a single `gamelist.xml` per system, shared by every port,
+so the package doesn't ship one (unzipping it would wipe the other ports' entries). The entry
+lives in `ports/tank1990/gamelist-entry.xml`, and the launcher merges it into
+`ports_scripts/gamelist.xml` each time the game starts, leaving the other games alone and
+keeping your favorite flag and play count. Until the first launch, the game is listed as
+**Tank1990**, without art. The art is drawn by `tools/emuelec/art/make_art.py` from the game's
+own sprites.
 
 If it closes straight away or a controller doesn't respond, read `ports/tank1990/log.txt`.
 More details (in Portuguese), including how the build works: **[EMUELEC.md](EMUELEC.md)**.
