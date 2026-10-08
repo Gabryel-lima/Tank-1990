@@ -228,6 +228,16 @@ não a trocou.
   caractere). A entrada entra quando o lançador roda o `gamelist-merge.sh`, que a entrega ao menu
   pela API local dele; por isso a arte aparece depois da primeira execução, mesmo que o jogo em si
   não tenha aberto.
+- **Os botões ou direções saem trocados, ou não há som.** O lançador liga o registro de
+  diagnóstico (`TANK_PAD_LOG=1`) e o jogo escreve no `log.txt`:
+  - a linha `Audio: driver=... 48000 Hz, 2 canais, formato 0x...`: o que o SDL abriu para o som
+    (um driver `dummy` ou `disk` é silêncio); e `Erro ao tocar som [...]` se um som falhar ao
+    tocar;
+  - o `mapeamento:` de cada controle (nome e botões que o SDL usa) e, a cada aperto, o botão
+    **cru** que o controle manda e o que o jogo **vê** (`A`, `B`, `X`, `Y`, `leftshoulder`...),
+    e o D-pad e o analógico quando mudam de direção. Aperte cada botão e cada direção, uma por
+    vez, e anote o que está impresso no controle: a diferença entre o cru, o que o jogo vê e o
+    que você esperava mostra onde a troca acontece.
 - **O controle não responde.** O jogo usa os mapeamentos de controle que o EmuELEC já conhece
   (`/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt`). Cada controle reconhecido
   aparece como `Controle conectado: ...` no `log.txt`. Se o seu não aparecer, falta o mapeamento
@@ -236,6 +246,18 @@ não a trocou.
   arquivo.
 - **Sem som.** Confira o volume em *Start → Sound Settings* do EmuELEC: o jogo usa a saída de
   áudio do sistema.
+
+## Mapeamentos de controles
+
+O lançador passa ao SDL os mapeamentos dos controles ligados (do `gamecontrollerdb.txt` do
+sistema: só os controles que o EmulationStation informa, mais os de Linux, até 100000 bytes: uma
+variável de ambiente inteira não passa de 128 KiB, ver *Problemas*) e, por último, o
+`gamecontrollerdb.extra.txt` que vem com o jogo. O SDL guarda o último mapeamento de cada GUID,
+então o do jogo vale. Ele tem o controle do Y6 (`Twin USB Joystick`, USB `20bc:5500`), conferido
+com o do fabricante (`STORAGE/joypads/Twin USB Joystick.cfg`); é o mesmo arquivo do CharyRick, onde
+o controle passou a funcionar como a tela diz. Antes, o Tank usava o mapeamento que o banco do
+sistema tivesse por último para esse GUID (o log mostrava `ShanWan PC/PS3/Android`). Outro
+controle entra com uma linha nesse arquivo (linhas com `#` são comentários).
 
 ## Como a build funciona (para quem mexe no código)
 

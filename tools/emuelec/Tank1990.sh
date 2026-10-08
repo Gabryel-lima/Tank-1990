@@ -24,6 +24,9 @@ fi
 # fonte e textura, e a cópia do binário roda longe deles (ver abaixo)
 export TANK_FULLSCREEN=1
 export TANK_DATA_DIR="$GAMEDIR"
+# Cada botão apertado e o mapeamento do controle vão para o log.txt (para achar por que um
+# controle genérico "troca" botões); ver CONTROLES.md
+export TANK_PAD_LOG=1
 
 # Os mapeamentos de controles que o EmuELEC já conhece. O arquivo inteiro passa de 128 KiB, o
 # máximo de UMA variável de ambiente no Linux (MAX_ARG_STRLEN): com ele exportado, todo exec
@@ -31,13 +34,21 @@ export TANK_DATA_DIR="$GAMEDIR"
 # dos controles ligados (o EmulationStation passa os GUIDs em --controllers) e os de Linux, até
 # 100000 bytes
 DB=${GAMECONTROLLERDB:-/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt}
+SDL_GAMECONTROLLERCONFIG=
 if [ -f "$DB" ]; then
     GUIDS=$(echo "$*" | tr ' "' '\n\n' | grep -E '^[0-9a-fA-F]{32}$' | sort -u)
     SDL_GAMECONTROLLERCONFIG=$({ for g in $GUIDS; do grep -i "^$g" "$DB"; done
         grep 'platform:Linux' "$DB"; } |
         awk '!seen[$0]++ { n += length($0) + 1; if (n > 100000) exit; print }')
-    export SDL_GAMECONTROLLERCONFIG
 fi
+# Os mapeamentos do jogo (gamecontrollerdb.extra.txt) vão por último: para um mesmo GUID, o
+# último vale. É onde o controle do Y6 ganha o mapeamento conferido com o do fabricante (o mesmo
+# do CharyRick), em vez de o que o banco do sistema tiver por último para ele
+if [ -f ./gamecontrollerdb.extra.txt ]; then
+    SDL_GAMECONTROLLERCONFIG="$SDL_GAMECONTROLLERCONFIG
+$(grep -v '^#' ./gamecontrollerdb.extra.txt)"
+fi
+[ -n "$SDL_GAMECONTROLLERCONFIG" ] && export SDL_GAMECONTROLLERCONFIG
 
 # A partição das ROMs é FAT: conforme a montagem do stick, nada nela tem permissão de executar
 # ("Permission denied", saída 126) e o chmod não muda isso. Por isso o jogo roda de uma cópia do
