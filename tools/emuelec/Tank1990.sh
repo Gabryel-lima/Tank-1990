@@ -20,8 +20,10 @@ if [ "$EE_DEVICE" = "Amlogic-ng" ] && command -v fbfix >/dev/null 2>&1; then
     fbfix
 fi
 
-# Tela cheia
+# Tela cheia, e a pasta dos dados: o jogo entra na pasta do executável para achar mapas, sons,
+# fonte e textura, e a cópia do binário roda longe deles (ver abaixo)
 export TANK_FULLSCREEN=1
+export TANK_DATA_DIR="$GAMEDIR"
 
 # Os mapeamentos de controles que o EmuELEC já conhece. O arquivo inteiro passa de 128 KiB, o
 # máximo de UMA variável de ambiente no Linux (MAX_ARG_STRLEN): com ele exportado, todo exec
