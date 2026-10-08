@@ -20,10 +20,22 @@ if [ "$EE_DEVICE" = "Amlogic-ng" ] && command -v fbfix >/dev/null 2>&1; then
     fbfix
 fi
 
-# Tela cheia, e os mapeamentos de controles que o EmuELEC já conhece
+# Tela cheia
 export TANK_FULLSCREEN=1
-DB=/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt
-[ -f "$DB" ] && export SDL_GAMECONTROLLERCONFIG="$(cat "$DB")"
+
+# Os mapeamentos de controles que o EmuELEC já conhece. O arquivo inteiro passa de 128 KiB, o
+# máximo de UMA variável de ambiente no Linux (MAX_ARG_STRLEN): com ele exportado, todo exec
+# depois (mkdir, cp, o próprio jogo) falha com "Argument list too long". Vão só os mapeamentos
+# dos controles ligados (o EmulationStation passa os GUIDs em --controllers) e os de Linux, até
+# 100000 bytes
+DB=${GAMECONTROLLERDB:-/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt}
+if [ -f "$DB" ]; then
+    GUIDS=$(echo "$*" | tr ' "' '\n\n' | grep -E '^[0-9a-fA-F]{32}$' | sort -u)
+    SDL_GAMECONTROLLERCONFIG=$({ for g in $GUIDS; do grep -i "^$g" "$DB"; done
+        grep 'platform:Linux' "$DB"; } |
+        awk '!seen[$0]++ { n += length($0) + 1; if (n > 100000) exit; print }')
+    export SDL_GAMECONTROLLERCONFIG
+fi
 
 # A partição das ROMs é FAT: conforme a montagem do stick, nada nela tem permissão de executar
 # ("Permission denied", saída 126) e o chmod não muda isso. Por isso o jogo roda de uma cópia do

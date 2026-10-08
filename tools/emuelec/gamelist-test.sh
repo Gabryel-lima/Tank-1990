@@ -211,17 +211,28 @@ mkdir -p "$PL/ports_scripts" "$PL/ports/$ln_name"
 cp "$L" "$PL/ports_scripts/"
 cp "$ENTRY" "$PL/ports/$ln_name/gamelist-entry.xml"
 cp "$MERGE" "$PL/ports/$ln_name/"
-printf '#!/bin/sh\necho "rodou em $(pwd)"\nexit 7\n' > "$PL/ports/$ln_name/$bin"
+# O gamecontrollerdb.txt do EmuELEC passa de 128 KiB, o máximo de UMA variável de ambiente no
+# Linux: exportado inteiro, todo exec depois (mkdir, cp, o jogo) falha com "Argument list too long".
+# O jogo recebe só os mapeamentos dos controles ligados (os GUIDs vêm no --controllers) e os de Linux
+G=03000000bc2000000055000011010000
+awk -v g="$G" 'BEGIN { for (i = 0; i < 2500; i++) printf "%032x,Pad %d,a:b0,b:b1,x:b2,y:b3,platform:Linux,\n", i + 1, i
+    printf "%s,Twin USB,a:b0,b:b1,platform:Linux,\n", g }' > "$T/db.txt"
+[ "$(wc -c < "$T/db.txt")" -gt 131072 ] || fail "o gamecontrollerdb.txt de teste devia passar de 128 KiB"
+printf '#!/bin/sh\necho "rodou em $(pwd)"\necho "cfg=${#SDL_GAMECONTROLLERCONFIG}"\necho "primeira=$(echo "$SDL_GAMECONTROLLERCONFIG" | head -n 1)"\nexit 7\n' > "$PL/ports/$ln_name/$bin"
 chmod 644 "$PL/ports/$ln_name/$bin"
 launch_status=0
-(cd "$PL" && EMUELEC_RUN_DIRS="/proc/nao-existe $T/run" bash "ports_scripts/$(basename "$L")" > /dev/null 2>&1) ||
-    launch_status=$?
+(cd "$PL" && GAMECONTROLLERDB="$T/db.txt" EMUELEC_RUN_DIRS="/proc/nao-existe $T/run" \
+    bash "ports_scripts/$(basename "$L")" -Pports --core= --emulator= \
+    "--controllers=-p1index 0 -p1guid $G -p2index 1 -p2guid $G " > /dev/null 2>&1) || launch_status=$?
 grep -q "rodou em .*/ports/$ln_name\$" "$PL/ports/$ln_name/log.txt" 2> /dev/null ||
     fail "o lançador não rodou o binário sem permissão de executar: $(cat "$PL/ports/$ln_name/log.txt" 2> /dev/null)"
 # O primeiro lugar falhou (o erro vai para o log) e o jogo rodou no segundo; o código de saída do
 # jogo (7) passa adiante, e só 126 ("não executa") tenta outro lugar
 grep -q "nao-existe" "$PL/ports/$ln_name/log.txt" || fail "o lançador não registrou o erro do primeiro lugar"
 grep -q "^launcher: $T/run/" "$PL/ports/$ln_name/log.txt" || fail "o lançador não usou o segundo lugar"
+cfg=$(sed -n 's/^cfg=//p' "$PL/ports/$ln_name/log.txt")
+[ -n "$cfg" ] && [ "$cfg" -gt 0 ] && [ "$cfg" -le 100000 ] || fail "o jogo recebeu um SDL_GAMECONTROLLERCONFIG de $cfg bytes (esperado de 1 a 100000)"
+grep -q "^primeira=$G,Twin USB" "$PL/ports/$ln_name/log.txt" || fail "o mapeamento do controle ligado não veio primeiro"
 [ "$launch_status" = 7 ] || fail "o lançador não devolveu o código de saída do jogo: $launch_status"
 [ "$(count 'rodou em' "$PL/ports/$ln_name/log.txt")" = 1 ] || fail "o lançador rodou o jogo mais de uma vez"
 
