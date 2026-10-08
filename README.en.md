@@ -180,15 +180,17 @@ the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM 
 
 1. Get the **Tank1990-emuelec** package. Download it from *Actions → build → Artifacts* on
    GitHub, or build it with `make emuelec` (Linux or WSL, with Docker).
-2. Put it on the stick **while the stick is on**, over the network:
-   - **install script**: `make emuelec-install HOST=<stick IP>` (Linux, macOS or WSL; needs
+2. Put it on the stick:
+   - **card in a Linux PC**: `make emuelec-card` (asks for `sudo`). It writes the launcher into
+     the overlay's upper layer on the card's STORAGE partition, so it isn't hidden;
+   - **install script over the network**: `make emuelec-install HOST=<stick IP>` (Linux, macOS or WSL; needs
      SSH on the stick, password `emuelec`). The menu entry, with its art, shows up right away;
    - **shared folder**: open `\\EMUELEC\roms` (Windows) or `smb://<stick IP>/roms`
      (Linux/macOS), copy both folders there and restart EmulationStation.
 
-   Copying `ports_scripts/` onto the memory card in a PC doesn't work on EmuELEC 4.3: at boot
-   it mounts a folder of its own over that one (an overlay on the STORAGE partition), which
-   hides the launcher.
+   Just unzipping the package onto the card doesn't work on EmuELEC 4.3: at boot it mounts a
+   folder of its own over `ports_scripts/` (an overlay on the STORAGE partition), which hides
+   the launcher.
 3. On the stick, open **Ports → Tank 1990 Remake**. Leave with **Exit** in the game's main menu.
 
 With the game highlighted, the menu shows its art (a battlefield with the four players' tanks

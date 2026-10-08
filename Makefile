@@ -453,6 +453,10 @@ endif
 emuelec:
 	sh tools/emuelec/build.sh
 
+# Instala o pacote no cartão do stick, no leitor do PC (Linux, sudo): make emuelec-card [CARD=/media/<você>] [ZIP=...]
+emuelec-card:
+	sh tools/emuelec/card-install.sh "$(ZIP)" "$(CARD)"
+
 # Instala o pacote no stick pela rede (SSH): make emuelec-install HOST=<IP do stick> [ZIP=...]
 emuelec-install:
 	sh tools/emuelec/install.sh "$(HOST)" $(ZIP)
@@ -487,6 +491,7 @@ help:
 	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
 	@echo "  make padbridge-win SDL2_MINGW=<dir> - padbridge.exe para Windows, a partir do Linux/WSL (MinGW)"
 	@echo "  make emuelec     - Pacote para o console de TV com EmuELEC (GameStick Y6), precisa de Docker"
+	@echo "  make emuelec-card - Instala o pacote no cartão do stick, no leitor do PC (Linux)"
 	@echo "  make emuelec-install HOST=<IP> - Instala o pacote no stick pela rede (SSH)"
 	@echo "  make gamelist-test - Testa a fusão da entrada do jogo no gamelist.xml do EmuELEC"
 	@echo "  make attract     - Partidas de demonstração sem o menu, com som (para o vídeo do EmuELEC)"
@@ -513,7 +518,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec emuelec-install gamelist-test attract
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec emuelec-card emuelec-install gamelist-test attract
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO
