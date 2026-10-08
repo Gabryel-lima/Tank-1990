@@ -12,6 +12,14 @@ bool SoundManager::init() {
         std::cerr << "Mix_OpenAudio: " << Mix_GetError() << "\n";
         return false;
     }
+    // O que o SDL abriu de verdade (vai para o log.txt do console de TV): sem som e sem erro,
+    // aqui se vê se o driver é o "dummy" ou se o formato é outro
+    int freq = 0, channels = 0;
+    Uint16 format = 0;
+    Mix_QuerySpec(&freq, &format, &channels);
+    const char* driver = SDL_GetCurrentAudioDriver();
+    std::cout << "Audio: driver=" << (driver != nullptr ? driver : "?") << " " << freq << " Hz, "
+              << channels << " canais, formato 0x" << std::hex << format << std::dec << std::endl;
     return true;
 }
 
@@ -46,7 +54,11 @@ void SoundManager::playSound(const std::string& name, int loops) {
     if (m_muted) return;
     auto it = m_sounds.find(name);
     if (it != m_sounds.end() && it->second) {
-        Mix_PlayChannel(-1, it->second, loops);
+        // Falha ao tocar (sem canal livre, áudio fechado): avisa uma vez, para o log mostrar
+        if (Mix_PlayChannel(-1, it->second, loops) < 0 && !m_play_error_shown) {
+            std::cerr << "Erro ao tocar som [" << name << "]: " << Mix_GetError() << "\n";
+            m_play_error_shown = true;
+        }
     }
 }
 

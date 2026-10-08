@@ -26,4 +26,5 @@ private:
 
     std::map<std::string, Mix_Chunk*> m_sounds;
     bool m_muted = false;
+    bool m_play_error_shown = false;
 };

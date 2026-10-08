@@ -3,12 +3,24 @@
 #include "input/pad_info.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
+#include <utility>
 
 std::vector<SDL_GameController*> Controllers::m_controllers;
 int Controllers::m_player_count = 1;
 std::map<SDL_JoystickID, int> Controllers::m_first_input;
 int Controllers::m_inputs = 0;
+
+// TANK_PAD_LOG=1 liga o registro dos botões no log (ver logPadEvent)
+static bool padLogEnabled()
+{
+    static const bool enabled = [] {
+        const char* v = std::getenv("TANK_PAD_LOG");
+        return v != nullptr && v[0] != '\0' && v[0] != '0';
+    }();
+    return enabled;
+}
 
 // Abre o controle do índice de dispositivo informado, se ainda não estiver aberto
 static SDL_GameController* openDevice(int device_index)
@@ -20,7 +32,16 @@ static SDL_GameController* openDevice(int device_index)
     else
         // De onde veio (USB, Bluetooth, virtual da ponte): só informação, o jogo não decide
         // nada por isso (CONTROLES.md)
+    {
         std::cout << "Controle conectado: " << PadInfo::summary(PadInfo::describe(device_index)) << std::endl;
+        if(padLogEnabled())
+        {
+            // O mapeamento em uso (nome e botões): é o que decide qual botão físico vira A, B, X, Y...
+            char* mapping = SDL_GameControllerMapping(c);
+            std::cout << "  mapeamento: " << (mapping != nullptr ? mapping : "?") << std::endl;
+            SDL_free(mapping);
+        }
+    }
     return c;
 }
 
@@ -52,8 +73,45 @@ void Controllers::shutdown()
     m_controllers.clear();
 }
 
+// TANK_PAD_LOG=1 (o lançador do console de TV liga): cada botão apertado vai para o log, cru (o
+// número que o controle manda) e como o jogo o vê (A, B, X, Y...); e o D-pad e o analógico
+// quando mudam de direção. Serve para descobrir por que um controle genérico "troca" botões
+static void logPadEvent(const SDL_Event* ev)
+{
+    static std::map<std::pair<int, int>, int> axis_side; // (controle, eixo) -> -1, 0, +1
+    switch(ev->type)
+    {
+    case SDL_JOYBUTTONDOWN:
+        std::cout << "  controle " << ev->jbutton.which << ": botao cru " << int(ev->jbutton.button) << std::endl;
+        break;
+    case SDL_JOYHATMOTION:
+        std::cout << "  controle " << ev->jhat.which << ": direcional cru " << int(ev->jhat.value) << std::endl;
+        break;
+    case SDL_CONTROLLERBUTTONDOWN:
+        std::cout << "  controle " << ev->cbutton.which << ": o jogo ve "
+                  << SDL_GameControllerGetStringForButton(SDL_GameControllerButton(ev->cbutton.button)) << std::endl;
+        break;
+    case SDL_CONTROLLERAXISMOTION:
+    {
+        int side = ev->caxis.value > 16000 ? 1 : (ev->caxis.value < -16000 ? -1 : 0);
+        int& last = axis_side[{ev->caxis.which, ev->caxis.axis}];
+        if(side != last)
+        {
+            last = side;
+            std::cout << "  controle " << ev->caxis.which << ": eixo "
+                      << SDL_GameControllerGetStringForAxis(SDL_GameControllerAxis(ev->caxis.axis))
+                      << (side > 0 ? " +" : (side < 0 ? " -" : " solto")) << std::endl;
+        }
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void Controllers::handleEvent(const SDL_Event* ev)
 {
+    if(padLogEnabled()) logPadEvent(ev);
     if(ev->type == SDL_CONTROLLERDEVICEADDED)
     {
         // Em DEVICEADDED, "which" é o índice do dispositivo

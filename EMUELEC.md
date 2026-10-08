@@ -228,6 +228,16 @@ não a trocou.
   caractere). A entrada entra quando o lançador roda o `gamelist-merge.sh`, que a entrega ao menu
   pela API local dele; por isso a arte aparece depois da primeira execução, mesmo que o jogo em si
   não tenha aberto.
+- **Os botões ou direções saem trocados, ou não há som.** O lançador liga o registro de
+  diagnóstico (`TANK_PAD_LOG=1`) e o jogo escreve no `log.txt`:
+  - a linha `Audio: driver=... 48000 Hz, 2 canais, formato 0x...`: o que o SDL abriu para o som
+    (um driver `dummy` ou `disk` é silêncio); e `Erro ao tocar som [...]` se um som falhar ao
+    tocar;
+  - o `mapeamento:` de cada controle (nome e botões que o SDL usa) e, a cada aperto, o botão
+    **cru** que o controle manda e o que o jogo **vê** (`A`, `B`, `X`, `Y`, `leftshoulder`...),
+    e o D-pad e o analógico quando mudam de direção. Aperte cada botão e cada direção, uma por
+    vez, e anote o que está impresso no controle: a diferença entre o cru, o que o jogo vê e o
+    que você esperava mostra onde a troca acontece.
 - **O controle não responde.** O jogo usa os mapeamentos de controle que o EmuELEC já conhece
   (`/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt`). Cada controle reconhecido
   aparece como `Controle conectado: ...` no `log.txt`. Se o seu não aparecer, falta o mapeamento

@@ -31,6 +31,8 @@ run() { # run <TANK_DATA_DIR ou vazio>
 # Com a variável apontando para os dados: acha tudo
 n=$(run "$BIN")
 [ "$n" = 0 ] || fail "com TANK_DATA_DIR o jogo ainda não achou $n sons: $(head -n 2 "$T/out.txt")"
+# O jogo diz que áudio abriu (o log.txt do console de TV mostra se o driver é o "dummy" ou outro)
+grep -q '^Audio: driver=' "$T/out.txt" || fail "o jogo não registrou o áudio que abriu: $(head -n 3 "$T/out.txt")"
 # E o lançador do console de TV a define (a cópia do binário roda longe do cartão)
 grep -q '^export TANK_DATA_DIR="\$GAMEDIR"' "$ROOT/tools/emuelec/Tank1990.sh" ||
     fail "o lançador do EmuELEC não exporta TANK_DATA_DIR"

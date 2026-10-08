@@ -24,6 +24,9 @@ fi
 # fonte e textura, e a cópia do binário roda longe deles (ver abaixo)
 export TANK_FULLSCREEN=1
 export TANK_DATA_DIR="$GAMEDIR"
+# Cada botão apertado e o mapeamento do controle vão para o log.txt (para achar por que um
+# controle genérico "troca" botões); ver CONTROLES.md
+export TANK_PAD_LOG=1
 
 # Os mapeamentos de controles que o EmuELEC já conhece. O arquivo inteiro passa de 128 KiB, o
 # máximo de UMA variável de ambiente no Linux (MAX_ARG_STRLEN): com ele exportado, todo exec
