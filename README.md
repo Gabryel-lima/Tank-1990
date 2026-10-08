@@ -178,10 +178,10 @@ C++ nem SDL2. É o próprio jogo, compilado para o Linux ARM (aarch64) do EmuELE
 
 1. Pegue o pacote **Tank1990-emuelec**: baixe-o em *Actions → build → Artifacts* no GitHub, ou
    compile-o com `make emuelec` (Linux ou WSL, com Docker).
-2. Ponha no stick **com ele ligado**, pela rede: `make emuelec-install HOST=<IP do stick>`
-   (SSH), ou copie as pastas `ports_scripts/` e `ports/` do pacote para a pasta compartilhada
-   `\\EMUELEC\roms`. Copiar o `ports_scripts/` para o cartão de memória no PC não funciona no
-   EmuELEC 4.3: no boot ele monta uma pasta dele por cima dessa, e o atalho fica escondido (ver
+2. Ponha no stick: com o cartão num PC com Linux, `make emuelec-card`; ou, com o stick na rede,
+   `make emuelec-install HOST=<IP do stick>` (SSH) ou uma cópia para a pasta compartilhada
+   `\\EMUELEC\roms`. Só descompactar o pacote no cartão não funciona no EmuELEC 4.3: no boot ele
+   monta uma pasta dele por cima do `ports_scripts/`, e o atalho fica escondido (ver
    [EMUELEC.md](EMUELEC.md#levar-para-o-stick)).
 3. No stick: **Ports → Tank 1990 Remake**.
    Com o jogo selecionado, o menu mostra a arte (o logo em tijolos com a faixa **REMAKE**), um

@@ -18,8 +18,8 @@ nativo, com a mesma qualidade do PC.
 
 - Um aparelho com **EmuELEC 4.3 ou mais novo**, em **aarch64**. O Y6 tem um Amlogic S905X2 e
   vem com o EmuELEC 4.3.
-- O stick na mesma rede do PC (Wi-Fi ou cabo): o atalho precisa ser copiado com o stick
-  ligado (ver abaixo).
+- O cartão de memória e um PC com Linux e leitor de cartão, ou o stick na mesma rede do PC (ver
+  [Levar para o stick](#levar-para-o-stick): só descompactar no cartão não basta).
 - O pacote `Tank1990-emuelec`. Para conseguir, escolha uma das duas formas:
   - **Baixar pronto:** no GitHub, abra *Actions → build*, entre na execução mais recente
     (verde) e baixe o artefato **Tank1990-emuelec** no fim da página.
@@ -86,7 +86,7 @@ o atalho `Tank1990.sh` a junta ao `gamelist.xml` toda vez que abre o jogo
   `gamelist.xml` que não dá para entender fica como está (o motivo vai para
   `ports/tank1990/gamelist.log`).
 
-O `make emuelec-install` faz a mesma fusão logo depois de copiar, e a entrada já está lá desde
+O `make emuelec-card` e o `make emuelec-install` fazem a mesma fusão logo depois de copiar, e a entrada já está lá desde
 o começo. Copiado pela pasta compartilhada, na primeira vez o jogo aparece na lista com o nome
 do arquivo (**Tank1990**) e sem arte. Abra-o uma vez: ao fechar, o menu já mostra o nome, a
 descrição e a arte.
@@ -116,19 +116,45 @@ As duas pastas vão para a **raiz da pasta de ROMs** do EmuELEC, a que já tem `
 `psx/` etc. Se já existirem `ports/` e `ports_scripts/`, junte as pastas: não apague o que
 já está lá.
 
-**Copie com o stick ligado, pela rede.** Copiar o `ports_scripts/` para o cartão de memória num
-leitor no PC não funciona no EmuELEC 4.3. No boot, o EmuELEC monta uma pasta dele por cima de
-`roms/ports_scripts` (um overlay dos ports que vêm com o sistema, `/usr/bin/ports`, com
-`/emuelec/ports`, na partição **STORAGE** do sistema). O que o PC gravou em
-`EEROMS/ports_scripts` fica embaixo dessa montagem, escondido: os arquivos estão no cartão, mas
-o EmuELEC nunca os lista. Uma cópia feita com o stick ligado cai na pasta montada e aparece.
-(O `ports/` não tem montagem por cima, então a pasta do jogo daria certo dos dois jeitos; é o
-atalho em `ports_scripts/` que precisa ir pela rede.)
+**Não basta descompactar o pacote no cartão.** No EmuELEC 4.3 isso não funciona para o
+`ports_scripts/`. No boot, o EmuELEC monta uma pasta dele por cima de `roms/ports_scripts`: um
+overlay cuja camada de baixo são os ports que vêm com o sistema (`/usr/bin/ports`) e a de cima é
+`.config/emuelec/ports`, na partição **STORAGE** do sistema. O que está no `ports_scripts/` da
+partição das ROMs fica embaixo dessa montagem, escondido: os arquivos estão no cartão, mas o
+EmuELEC nunca os lista. (O `ports/` não tem montagem por cima; só o atalho em `ports_scripts/`
+some.) Algumas imagens de stick vêm com todos os ports do sistema removidos: a camada de cima
+fica cheia de "whiteouts" do overlay, arquivos que no PC aparecem como dispositivos de
+caractere com o nome de cada port (`2048.sh`, `Doom.sh`, ..., `gamelist.xml`).
 
-Antes, no stick, conecte ao Wi-Fi ou ao cabo (*Start → Network Settings*) e anote o IP. Depois,
-um dos dois jeitos abaixo.
+Então o atalho precisa ir para a camada de cima do overlay, ou ser copiado com o stick ligado.
+Escolha um dos três jeitos abaixo.
 
-### Opção A: script de instalação (SSH)
+### Opção A: cartão num PC com Linux
+
+A partição STORAGE é ext4, que o Linux lê e grava (o Windows não). Desligue o stick (*Start →
+Quit → Shutdown*), ponha o cartão no PC e abra as partições dele no gerenciador de arquivos
+(elas montam em `/media/<você>`: a das ROMs, a `STORAGE` e a de boot). Depois, no repositório:
+
+```sh
+make emuelec-card                       # ou: sh tools/emuelec/card-install.sh [pacote.zip] [/media/<você>]
+```
+
+Ele pede a sua senha (`sudo`), porque a STORAGE é do root. Ele copia:
+
+- `ports/tank1990/` para a partição das ROMs;
+- o atalho e as imagens para `STORAGE/.config/emuelec/ports/` (a camada de cima do overlay),
+  trocando um whiteout de mesmo nome, se houver, e sem mexer nos arquivos dos outros ports.
+  Copia também para o `ports_scripts/` da partição das ROMs, que é o que vale nas versões do
+  EmuELEC sem o overlay (4.5 em diante);
+- a entrada do menu para o `gamelist.xml` dos dois, sem mexer na dos outros ports.
+
+`ZIP=...` escolhe outro pacote (o baixado do GitHub) e `CARD=...` outra pasta de montagem.
+Ejete as partições, devolva o cartão ao stick e ligue: o jogo está em **Ports**.
+
+Para os dois jeitos abaixo, o stick precisa estar na rede (Wi-Fi ou cabo, *Start → Network
+Settings*); anote o IP dele.
+
+### Opção B: script de instalação (SSH)
 
 No Linux, macOS ou WSL, no repositório:
 
@@ -142,7 +168,7 @@ pela API do EmulationStation. O jogo aparece na hora, com nome e arte, sem reini
 precisa estar ligado (*Start → Network Settings → Enable SSH*); a senha é `emuelec`, se você
 não a trocou.
 
-### Opção B: pasta compartilhada
+### Opção C: pasta compartilhada
 
 1. No PC, abra a pasta compartilhada do stick:
    - no Windows, `\\EMUELEC\roms` (ou `\\<IP>\roms`) no Explorador de Arquivos;
@@ -173,13 +199,13 @@ não a trocou.
 - **"Ports" não aparece, ou o Tank1990 não está na lista, mas os arquivos estão no cartão.**
   O mais provável é que tenham sido copiados com o cartão no PC: o EmuELEC esconde esse
   `ports_scripts/` atrás de uma montagem dele (ver [Levar para o stick](#levar-para-o-stick)).
-  Instale de novo pela rede. Confira também o caminho: `ports_scripts/Tank1990.sh`, na raiz das
+  Instale de novo com o `make emuelec-card` ou pela rede. Confira também o caminho: `ports_scripts/Tank1990.sh`, na raiz das
   ROMs, e não dentro de outra pasta.
-- **Copiado pela rede e ainda fora da lista.** Se a opção *Parse gamelists only* do
+- **Instalado com o `make emuelec-card` ou pela rede e ainda fora da lista.** Se a opção *Parse gamelists only* do
   EmulationStation estiver ligada (algumas imagens de stick vêm assim, para abrir mais rápido
   com milhares de jogos), o menu só mostra o que já está no `gamelist.xml` e nunca procura
-  arquivo novo. Use o `make emuelec-install`, que junta a entrada ele mesmo, ou desligue a opção
-  e reinicie o EmulationStation.
+  arquivo novo. Os dois scripts já põem a entrada no `gamelist.xml`; se ainda faltar, desligue a
+  opção e reinicie o EmulationStation.
 - **Abre e volta direto para o menu, ou fica tela preta.** O jogo grava o que aconteceu em
   `ports/tank1990/log.txt`. Abra esse arquivo no PC (ou pela rede) e veja a mensagem de erro.
 - **O controle não responde.** O jogo usa os mapeamentos de controle que o EmuELEC já conhece
@@ -214,6 +240,7 @@ não a trocou.
 - **`make gamelist-test`** (`tools/emuelec/gamelist-test.sh`) confere a fusão sem o EmuELEC:
   a entrada entra sem apagar os outros ports, sem duplicar, guardando favorito e partidas, e
   pela API do EmulationStation (imitada com um servidor em Python). Roda também o `install.sh`
-  com um `ssh` de mentira: o pacote cai na pasta de ROMs e a entrada é juntada sem mexer nos
-  outros ports. A CI roda esse teste e publica o pacote. O teste não cobre a
+  com um `ssh` de mentira e o `card-install.sh` com um cartão de mentira (com um whiteout do
+  overlay, quando o `mknod` é permitido): o pacote cai onde deve e a entrada é juntada sem mexer
+  nos outros ports. A CI roda esse teste e publica o pacote. O teste não cobre a
   GPU e os controles de verdade: isso só se confere no stick.

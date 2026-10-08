@@ -2,7 +2,8 @@
 # Testa o gamelist-merge.sh: a entrada do jogo entra no gamelist.xml dos Ports sem apagar a dos
 # outros jogos, sem duplicar e sem perder o que a pessoa já tinha (favorito, partidas). Roda no
 # PC, sem o EmuELEC; a API do EmulationStation é imitada com um servidor em Python, se houver.
-# Testa também o install.sh (o pacote vai para o stick pela rede), com um ssh de mentira.
+# Testa também o install.sh (o pacote vai para o stick pela rede), com um ssh de mentira, e o
+# card-install.sh (o pacote vai para o cartão no PC), com um cartão de mentira.
 #
 #   sh tools/emuelec/gamelist-test.sh   (ou make gamelist-test)
 set -eu
@@ -144,6 +145,7 @@ cp "$ENTRY" "$P/ports/$n/gamelist-entry.xml"
 cp "$MERGE" "$P/ports/$n/gamelist-merge.sh"
 echo jogo > "$P/ports/$n/bin"
 echo atalho > "$P/ports_scripts/$(basename "$game_path")"
+mkdir -p "$P/ports_scripts/images" && echo imagem > "$P/ports_scripts/images/x.png"
 echo outro > "$R/ports/other/bin"
 cp "$T/other.xml" "$R/ports_scripts/gamelist.xml"
 cksum < "$ENTRY" > "$R/ports/$n/.gamelist-stamp"
@@ -164,4 +166,36 @@ if EMUELEC_SSH="$T/fake-ssh" sh "$INSTALL" "" "$T/pkg.zip" > /dev/null 2>&1; the
     fail "o install.sh rodou sem o IP do stick"
 fi
 
-echo "gamelist-test: a entrada entra no gamelist.xml sem apagar nem duplicar nada, também pelo install.sh"
+# O card-install.sh: com o cartão no PC, o jogo vai para a partição das ROMs e os atalhos para a
+# camada de cima do overlay (STORAGE/.config/emuelec/ports), onde um whiteout do overlay dá
+# lugar ao arquivo do pacote e os dos outros ports ficam como estavam
+CARD="$T/card"
+CR="$CARD/ROMS/roms" CU="$CARD/STORAGE/.config/emuelec/ports"
+mkdir -p "$CR/ports/other" "$CR/ports_scripts" "$CU"
+echo outro > "$CR/ports/other/bin"
+echo vendido > "$CU/Vendor.sh"
+whiteout() { mknod "$1" c 0 0 2>/dev/null || sudo -n mknod "$1" c 0 0 2>/dev/null; }
+wo=
+if whiteout "$CU/gamelist.xml" && whiteout "$CU/Removed.sh"; then wo=1; fi
+CARD_SUDO= sh "$(pwd)/card-install.sh" "$T/pkg.zip" "$CARD" > /dev/null || fail "o card-install.sh falhou"
+sh_name=$(basename "$game_path")
+[ "$(cat "$CR/ports/$n/bin")" = jogo ] || fail "o card-install.sh não copiou ports/$n"
+[ "$(cat "$CR/ports/other/bin")" = outro ] || fail "o card-install.sh apagou outro port"
+[ "$(cat "$CU/$sh_name")" = atalho ] || fail "o card-install.sh não pôs o atalho na STORAGE"
+[ -f "$CU/images/x.png" ] || fail "o card-install.sh não pôs as imagens na STORAGE"
+[ -f "$CR/ports_scripts/$sh_name" ] || fail "o card-install.sh não pôs o atalho nas ROMs"
+[ "$(cat "$CU/Vendor.sh")" = vendido ] || fail "o card-install.sh mexeu no atalho de outro port"
+for L in "$CU/gamelist.xml" "$CR/ports_scripts/gamelist.xml"; do
+    [ -f "$L" ] || fail "o card-install.sh não criou $L"
+    [ "$(count "<path>$game_path</path>" "$L")" = 1 ] || fail "a entrada não entrou em $L"
+done
+if [ -n "$wo" ]; then
+    [ -c "$CU/Removed.sh" ] || fail "o card-install.sh mexeu num whiteout que não era dele"
+else
+    echo "gamelist-test: sem mknod, o whiteout do overlay não foi testado"
+fi
+# De novo: não duplica
+CARD_SUDO= sh "$(pwd)/card-install.sh" "$T/pkg.zip" "$CARD" > /dev/null || fail "o card-install.sh falhou na segunda vez"
+[ "$(count "<path>$game_path</path>" "$CU/gamelist.xml")" = 1 ] || fail "o card-install.sh duplicou a entrada"
+
+echo "gamelist-test: a entrada entra no gamelist.xml sem apagar nem duplicar nada, também pelo install.sh e pelo card-install.sh"
