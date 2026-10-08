@@ -1,0 +1,8 @@
+# Mapeamentos que o jogo soma aos do EmuELEC (o lançador os põe por último, e o último de um GUID vale).
+# Mesmo formato do gamecontrollerdb.txt do SDL; as linhas com # não vão para o SDL.
+#
+# Controle do Y6 ("Twin USB Joystick", USB 20bc:5500). O mapeamento do SDL e o do fabricante
+# (STORAGE/joypads/Twin USB Joystick.cfg) concordam em todos os botões, menos nos gatilhos: o
+# SDL manda lefttrigger e righttrigger para os eixos a5 e a4, que esse controle não tem; L2 e R2
+# são os botões digitais 8 e 9. Sem isto, LT e RT não fazem nada.
+03000000bc2000000055000011010000,Twin USB Joystick (Y6),a:b0,b:b1,back:b10,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,leftshoulder:b6,leftstick:b13,lefttrigger:b8,leftx:a0,lefty:a1,rightshoulder:b7,rightstick:b14,righttrigger:b9,rightx:a2,righty:a3,start:b11,x:b3,y:b4,platform:Linux,

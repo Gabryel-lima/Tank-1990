@@ -247,6 +247,18 @@ não a trocou.
 - **Sem som.** Confira o volume em *Start → Sound Settings* do EmuELEC: o jogo usa a saída de
   áudio do sistema.
 
+## Mapeamentos de controles
+
+O lançador passa ao SDL os mapeamentos dos controles ligados (do `gamecontrollerdb.txt` do
+sistema: só os controles que o EmulationStation informa, mais os de Linux, até 100000 bytes: uma
+variável de ambiente inteira não passa de 128 KiB, ver *Problemas*) e, por último, o
+`gamecontrollerdb.extra.txt` que vem com o jogo. O SDL guarda o último mapeamento de cada GUID,
+então o do jogo vale. Ele tem o controle do Y6 (`Twin USB Joystick`, USB `20bc:5500`), conferido
+com o do fabricante (`STORAGE/joypads/Twin USB Joystick.cfg`); é o mesmo arquivo do CharyRick, onde
+o controle passou a funcionar como a tela diz. Antes, o Tank usava o mapeamento que o banco do
+sistema tivesse por último para esse GUID (o log mostrava `ShanWan PC/PS3/Android`). Outro
+controle entra com uma linha nesse arquivo (linhas com `#` são comentários).
+
 ## Como a build funciona (para quem mexe no código)
 
 - `tools/emuelec/build.sh` baixa os fontes das bibliotecas, conferindo o sha256 de cada um. A
