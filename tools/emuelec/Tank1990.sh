@@ -27,15 +27,28 @@ DB=/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt
 
 # A partição das ROMs é FAT: conforme a montagem do stick, nada nela tem permissão de executar
 # ("Permission denied", saída 126) e o chmod não muda isso. Por isso o jogo roda de uma cópia do
-# binário em /tmp (RAM), com a pasta de trabalho no jogo: os mapas, os sons e a fonte ficam no
-# cartão (o jogo os abre pelo caminho relativo à pasta de trabalho)
-RUN=/tmp/tank1990-run
-rm -rf "$RUN"
-if mkdir -p "$RUN" && cp ./Tanks "$RUN/Tanks" && chmod +x "$RUN/Tanks"; then
-    BIN="$RUN/Tanks"
-else
-    BIN=./Tanks
+# binário numa pasta que executa (a STORAGE é ext4; depois /tmp e /dev/shm, que são RAM), com a
+# pasta de trabalho no jogo: os mapas, os sons e a fonte ficam no cartão (o jogo os abre pelo
+# caminho relativo à pasta de trabalho). Cada erro vai para o log.txt; se o binário não executar
+# (126), tenta o próximo lugar e, por fim, o do cartão
+LOG="$GAMEDIR/log.txt"
+: > "$LOG"
+STATUS=126
+# (o gamelist-test.sh troca a lista)
+for DIR in ${EMUELEC_RUN_DIRS:-/storage/.tmp /tmp /dev/shm}; do
+    RUN="$DIR/tank1990-run"
+    rm -rf "$RUN"
+    mkdir -p "$RUN" >> "$LOG" 2>&1 && cp ./Tanks "$RUN/Tanks" >> "$LOG" 2>&1 &&
+        chmod +x "$RUN/Tanks" >> "$LOG" 2>&1 || continue
+    echo "launcher: $RUN/Tanks" >> "$LOG"
+    "$RUN/Tanks" >> "$LOG" 2>&1
+    STATUS=$?
+    rm -rf "$RUN"
+    [ "$STATUS" -ne 126 ] && break
+done
+if [ "$STATUS" -eq 126 ]; then
+    echo "launcher: ./Tanks" >> "$LOG"
+    ./Tanks >> "$LOG" 2>&1
+    STATUS=$?
 fi
-echo "launcher: $BIN" > "$GAMEDIR/log.txt"
-"$BIN" >> "$GAMEDIR/log.txt" 2>&1
-rm -rf "$RUN"
+exit "$STATUS"
