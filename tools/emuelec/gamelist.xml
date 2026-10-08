@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- O que o menu do EmuELEC mostra com o Tank 1990 selecionado em "Ports" (vai como
-     ports_scripts/gamelist.xml; ver EMUELEC.md). Imagens: tools/emuelec/art/make_art.py; vídeo:
+<!-- O que o menu do EmuELEC mostra com o Tank 1990 selecionado em "Ports". Vai no pacote como
+     ports/tank1990/gamelist-entry.xml, e o lançador o junta ao ports_scripts/gamelist.xml com o
+     gamelist-merge.sh, sem apagar os outros ports (ver EMUELEC.md). Os caminhos são a partir
+     de ports_scripts/. Imagens: tools/emuelec/art/make_art.py; vídeo:
      tools/emuelec/art/record_video.sh.
      Data: o início do remake (o fork). -->
 <gameList>

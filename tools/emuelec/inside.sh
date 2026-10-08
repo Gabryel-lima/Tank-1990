@@ -47,8 +47,11 @@ cp -r resources/levels resources/duel_levels resources/survival_levels "$GAME/"
 cp resources/font/prstartk.ttf resources/png/texture.png "$GAME/"
 cp -r resources/sound "$GAME/resources/"
 cp tools/emuelec/Tank1990.sh "$PKG/ports_scripts/"
-# O que o menu do EmuELEC mostra com o jogo selecionado: nome, descrição, criador e imagens
-cp tools/emuelec/gamelist.xml "$PKG/ports_scripts/"
+# O que o menu do EmuELEC mostra com o jogo selecionado: nome, descrição, criador e imagens. A
+# entrada vai na pasta do jogo, e não como ports_scripts/gamelist.xml (que apagaria a dos outros
+# ports): o lançador a junta ao gamelist.xml com o gamelist-merge.sh
+cp tools/emuelec/gamelist.xml "$GAME/gamelist-entry.xml"
+cp tools/emuelec/gamelist-merge.sh "$GAME/"
 cp tools/emuelec/art/Tank1990-image.png tools/emuelec/art/Tank1990-thumb.png \
     tools/emuelec/art/Tank1990-marquee.png tools/emuelec/art/Tank1990-video.mp4 \
     "$PKG/ports_scripts/images/"

@@ -27,10 +27,13 @@ fi
 cp -P "$OUT"/prefix/lib/libSDL2-2.0.so.0* "$SYSROOT/lib/"
 SYSROOT=$(cd "$SYSROOT" && pwd)
 
-# Todo arquivo que o gamelist.xml cita (o atalho e as imagens) tem de estar no pacote: uma
-# imagem faltando deixa o menu do EmuELEC sem a arte, sem erro nenhum
-for ref in $(sed -n 's|.*<[a-z]*>\./\([^<]*\)</[a-z]*>.*|\1|p' "$OUT/package/ports_scripts/gamelist.xml"); do
-    [ -f "$OUT/package/ports_scripts/$ref" ] || { echo "smoke.sh: o gamelist.xml cita $ref, que não está no pacote" >&2; exit 1; }
+# Todo arquivo que a entrada do gamelist cita (o atalho e as imagens, a partir de
+# ports_scripts/) tem de estar no pacote: uma imagem faltando deixa o menu do EmuELEC sem a
+# arte, sem erro nenhum. E o pacote não traz um ports_scripts/gamelist.xml, que apagaria o dos
+# outros ports ao ser descompactado por cima
+[ ! -e "$OUT/package/ports_scripts/gamelist.xml" ] || { echo "smoke.sh: o pacote traz um ports_scripts/gamelist.xml" >&2; exit 1; }
+for ref in $(sed -n 's|.*<[a-z]*>\./\([^<]*\)</[a-z]*>.*|\1|p' "$OUT/package/ports/tank1990/gamelist-entry.xml"); do
+    [ -f "$OUT/package/ports_scripts/$ref" ] || { echo "smoke.sh: o gamelist-entry.xml cita $ref, que não está no pacote" >&2; exit 1; }
 done
 
 cd "$OUT/package/ports/tank1990"

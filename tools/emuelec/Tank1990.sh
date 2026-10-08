@@ -6,9 +6,14 @@
 . /etc/profile
 
 # O jogo fica em ../ports/tank1990 a partir deste script (cartão ou pendrive)
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 GAMEDIR="$(cd "$(dirname "$0")/.." && pwd)/ports/tank1990"
 [ -d "$GAMEDIR" ] || GAMEDIR=/storage/roms/ports/tank1990
 cd "$GAMEDIR" || exit 1
+
+# Nome, descrição e arte do menu: junta a entrada do jogo ao gamelist.xml dos Ports, sem apagar
+# a dos outros ports (ver gamelist-merge.sh). Na primeira vez, aparecem quando o jogo fecha
+sh ./gamelist-merge.sh ./gamelist-entry.xml "$SCRIPTDIR" ./.gamelist-stamp > ./gamelist.log 2>&1
 
 # Nos Amlogic-ng (S905X2, S905X3, S922X) o framebuffer precisa disso antes de um port SDL
 if [ "$EE_DEVICE" = "Amlogic-ng" ] && command -v fbfix >/dev/null 2>&1; then

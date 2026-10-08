@@ -183,8 +183,9 @@ C++ nem SDL2. É o próprio jogo, compilado para o Linux ARM (aarch64) do EmuELE
    `\\EMUELEC\roms`.
 3. No stick: *Start → Game Settings → Update Gamelists*, depois **Ports → Tank 1990 Remake**.
    Com o jogo selecionado, o menu mostra a arte (o logo em tijolos com a faixa **REMAKE**), um
-   vídeo curto com som (as partidas de demonstração), a descrição e o criador. Se já houver um `gamelist.xml` em `ports_scripts/`, junte os dois em
-   vez de substituir (ver EMUELEC.md).
+   vídeo curto com som (as partidas de demonstração), a descrição e o criador. Essa entrada do
+   menu entra no `gamelist.xml` dos Ports quando o jogo abre pela primeira vez, sem apagar a dos
+   outros ports: até lá, o jogo aparece como **Tank1990** (ver EMUELEC.md).
 
 Passo a passo, problemas comuns e como a build funciona: **[EMUELEC.md](EMUELEC.md)**.
 

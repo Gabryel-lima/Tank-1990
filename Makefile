@@ -453,6 +453,10 @@ endif
 emuelec:
 	sh tools/emuelec/build.sh
 
+# A entrada do jogo entra no gamelist.xml dos Ports sem apagar a dos outros ports (sem Docker)
+gamelist-test:
+	sh tools/emuelec/gamelist-test.sh
+
 # ============================================================================
 # AJUDA
 # ============================================================================
@@ -479,6 +483,7 @@ help:
 	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
 	@echo "  make padbridge-win SDL2_MINGW=<dir> - padbridge.exe para Windows, a partir do Linux/WSL (MinGW)"
 	@echo "  make emuelec     - Pacote para o console de TV com EmuELEC (GameStick Y6), precisa de Docker"
+	@echo "  make gamelist-test - Testa a fusão da entrada do jogo no gamelist.xml do EmuELEC"
 	@echo "  make attract     - Partidas de demonstração sem o menu, com som (para o vídeo do EmuELEC)"
 	@echo "  make install-deps - Instala dependências"
 	@echo "  make help        - Mostra esta ajuda"
@@ -503,7 +508,7 @@ help:
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec attract
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec gamelist-test attract
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO

@@ -34,10 +34,14 @@ O pacote tem duas pastas:
 
 ```
 ports_scripts/Tank1990.sh     o atalho que aparece em "Ports"
-ports_scripts/gamelist.xml    o que o menu mostra com o jogo selecionado (ver abaixo)
-ports_scripts/images/         a arte: imagem principal, capa, logo e o vídeo
-ports/tank1990/               o jogo: binário aarch64, mapas, imagem, fonte e sons
+ports_scripts/images/         a arte: imagem principal, capa, logo e o vídeo (Tank1990-*)
+ports/tank1990/               o jogo: binário aarch64, mapas, imagem, fonte e sons, e a
+                              entrada do menu (gamelist-entry.xml, ver abaixo)
 ```
+
+Nenhum arquivo do pacote tem o nome de um arquivo de outro jogo: o atalho e a arte começam
+com `Tank1990`, e o resto fica em `ports/tank1990/`. Por isso dá para descompactar por cima
+de uma pasta de ROMs que já tem outros ports (o CharyRick, por exemplo) sem apagar nada.
 
 ## O que o menu do EmuELEC mostra
 
@@ -58,11 +62,35 @@ Com o jogo selecionado em **Ports**, antes de abrir, o EmuELEC mostra:
 Tudo isso vem do `ports_scripts/gamelist.xml` e das imagens em `ports_scripts/images/`. O que
 aparece depende do tema do EmuELEC: alguns mostram a imagem principal, outros a capa ou o logo.
 
-**Cuidado com o `gamelist.xml`:** o EmuELEC lê um único `gamelist.xml` por sistema. Se a sua
-pasta `ports_scripts/` já tiver um (de outros ports ou do CharyRick), **não substitua** o
-arquivo. Abra os dois num editor de texto e copie o bloco `<game> ... </game>` do nosso para
-dentro do `<gameList>` do seu. Se substituir, os outros jogos perdem a descrição e a arte; o
-jogo continua aparecendo e abrindo, só sem as informações.
+### Como a entrada chega ao `gamelist.xml`
+
+O EmuELEC lê **um único** `gamelist.xml` por sistema, com a entrada de todos os ports. Se o
+pacote trouxesse o seu próprio `ports_scripts/gamelist.xml`, descompactá-lo por cima apagaria
+a descrição e a arte dos outros ports (e um port instalado depois apagaria a nossa). Um zip só
+sabe substituir arquivos, não juntar o conteúdo deles.
+
+Por isso a entrada do jogo vai dentro da pasta dele, em `ports/tank1990/gamelist-entry.xml`, e
+o atalho `Tank1990.sh` a junta ao `gamelist.xml` toda vez que abre o jogo
+(`ports/tank1990/gamelist-merge.sh`):
+
+- só a entrada do Tank 1990 é trocada; as dos outros jogos ficam como estavam, e o arquivo é
+  criado se ainda não existir;
+- o que você marcou ou jogou (favorito, oculto, número de partidas, última vez, tempo de jogo)
+  passa para a entrada nova;
+- a fusão é feita pelo próprio EmulationStation, o menu do EmuELEC, pela API local dele
+  (`127.0.0.1:1234/addgames/ports`, presente desde o EmuELEC 4.3). Editar o arquivo por fora
+  não bastaria: com o menu aberto, ao sair ele regrava a entrada do jogo que acabou de rodar a
+  partir do que tem na memória, e a descrição sumiria. Se a API não responder, o script edita
+  o arquivo direto;
+- não refaz nada se a entrada já estiver lá e for a mesma desta versão do pacote. Um
+  `gamelist.xml` que não dá para entender fica como está (o motivo vai para
+  `ports/tank1990/gamelist.log`).
+
+**Na primeira vez**, o jogo aparece na lista com o nome do arquivo (**Tank1990**) e sem arte.
+Abra-o uma vez: ao fechar, o menu já mostra o nome, a descrição e a arte.
+
+Se você juntou o bloco `<game>` à mão numa versão antiga, não precisa fazer nada: a entrada é
+trocada pela nova, sem duplicar.
 
 A arte é gerada pelo `tools/emuelec/art/make_art.py` (Pillow), só com os sprites e a fonte
 do jogo. Ajuste o script e rode-o de novo para mudar a arte.
@@ -92,7 +120,8 @@ já está lá.
 2. Coloque o cartão no PC. Abra a partição **EEROMS**, a que tem as pastas dos consoles.
    (As outras partições, `COREELEC`/`EMUELEC` e `STORAGE`, são do sistema: não mexa.)
 3. Descompacte o pacote ali, de modo que fiquem `EEROMS/ports_scripts/Tank1990.sh` e
-   `EEROMS/ports/tank1990/Tanks`.
+   `EEROMS/ports/tank1990/Tanks`. Se o programa perguntar se junta as pastas, diga que sim:
+   nenhum arquivo do pacote substitui o de outro jogo.
 4. Ejete o cartão com segurança, devolva-o ao stick e ligue.
 
 ### Opção B: pela rede (stick no Wi-Fi)
@@ -110,8 +139,9 @@ já está lá.
 
 1. No EmuELEC, atualize a lista de jogos: *Start → Game Settings → Update Gamelists*, ou
    reinicie o aparelho.
-2. Abra o sistema **Ports** e escolha **Tank 1990 Remake** (sem o `gamelist.xml`, o nome que
-   aparece é o do arquivo: **Tank1990**).
+2. Abra o sistema **Ports** e escolha **Tank 1990 Remake**. Na primeira vez, o nome que
+   aparece é o do arquivo, **Tank1990**, sem arte: a entrada do menu entra quando o jogo abre
+   (ver acima).
 3. Os controles do stick funcionam como no PC (ver *Controles* no [README](README.md#-controles)):
    direcional ou analógico esquerdo para andar, qualquer botão frontal (A, B, X, Y) para atirar,
    LB para o poder guardado, Start para pausar. No menu, A/Start confirma e B/Back volta. Os
@@ -120,9 +150,10 @@ já está lá.
 
 ## Problemas
 
-- **A arte e a descrição não aparecem.** Confira se o `gamelist.xml` e a pasta `images/`
-  estão dentro de `ports_scripts/`, ao lado do `Tank1990.sh`, e rode *Update Gamelists*. Se
-  havia outro `gamelist.xml` ali, veja o cuidado acima.
+- **A arte e a descrição não aparecem.** Abra o jogo uma vez e feche: é aí que a entrada
+  entra no `gamelist.xml`. Se ainda faltar, veja o que aconteceu em
+  `ports/tank1990/gamelist.log`, e confira se a pasta `images/` está dentro de
+  `ports_scripts/`, ao lado do `Tank1990.sh`.
 - **"Ports" não aparece, ou o Tank1990 não está na lista.** Confira o caminho:
   `ports_scripts/Tank1990.sh`, na raiz das ROMs, e não dentro de outra pasta. Algumas versões
   de firmware dos sticks listam os ports em `ports/` em vez de `ports_scripts/`: nesse caso
@@ -156,6 +187,9 @@ já está lá.
 - **Tela cheia:** o `Tank1990.sh` liga `TANK_FULLSCREEN=1`, e a janela abre em tela cheia.
   Como no PC, o `Renderer::setScale` amplia e centraliza as telas lógicas (464x416) na TV.
 - **`tools/emuelec/smoke.sh`** abre o binário no `qemu-aarch64`, com vídeo e áudio de mentira,
-  e falha se faltar fonte, textura, som ou mapa no pacote, ou um arquivo que o `gamelist.xml`
-  cita (o atalho e as imagens). A CI roda esse teste e publica o pacote. O teste não cobre a
+  e falha se faltar fonte, textura, som ou mapa no pacote, ou um arquivo que a entrada do
+  gamelist cita (o atalho e as imagens), ou se o pacote trouxer um `ports_scripts/gamelist.xml`.
+- **`make gamelist-test`** (`tools/emuelec/gamelist-test.sh`) confere a fusão sem o EmuELEC:
+  a entrada entra sem apagar os outros ports, sem duplicar, guardando favorito e partidas, e
+  pela API do EmulationStation (imitada com um servidor em Python). A CI roda esse teste e publica o pacote. O teste não cobre a
   GPU e os controles de verdade: isso só se confere no stick.
