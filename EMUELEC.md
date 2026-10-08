@@ -214,7 +214,11 @@ não a trocou.
   (`/storage/.tmp`, na partição STORAGE, que é ext4; depois `/tmp` e `/dev/shm`), com a pasta do
   jogo como pasta de trabalho. O `log.txt` registra cada pasta que falhou e o erro dela, e depois
   uma linha `launcher: <caminho>` com a que rodou. Se a última linha for `launcher: ./Tanks`, todas
-  as cópias falharam.
+  as cópias falharam. `Argument list too long` no `mkdir`, no `cp` ou no jogo quer dizer que o
+  ambiente ficou grande demais: o Linux limita uma variável de ambiente a 128 KiB, e o
+  `gamecontrollerdb.txt` inteiro passa disso. O lançador exporta só os mapeamentos dos controles
+  ligados (os GUIDs vêm no argumento `--controllers` do EmulationStation) e os de Linux, até 100000
+  bytes.
 - **O menu mostra nome, descrição e vídeo, mas na primeira vez não havia nada.** No firmware do
   Y6, o menu guarda a lista de cada sistema num `gamelist.db` e remove o `gamelist.xml` que
   encontra (na camada de cima do overlay ele aparece como um "whiteout", um dispositivo de
