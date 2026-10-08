@@ -18,8 +18,8 @@ nativo, com a mesma qualidade do PC.
 
 - Um aparelho com **EmuELEC 4.3 ou mais novo**, em **aarch64**. O Y6 tem um Amlogic S905X2 e
   vem com o EmuELEC 4.3.
-- O cartão de memória do aparelho, e um PC com leitor de cartão. Ou o stick na mesma rede do
-  PC (veja a opção B abaixo).
+- O stick na mesma rede do PC (Wi-Fi ou cabo): o atalho precisa ser copiado com o stick
+  ligado (ver abaixo).
 - O pacote `Tank1990-emuelec`. Para conseguir, escolha uma das duas formas:
   - **Baixar pronto:** no GitHub, abra *Actions → build*, entre na execução mais recente
     (verde) e baixe o artefato **Tank1990-emuelec** no fim da página.
@@ -86,8 +86,10 @@ o atalho `Tank1990.sh` a junta ao `gamelist.xml` toda vez que abre o jogo
   `gamelist.xml` que não dá para entender fica como está (o motivo vai para
   `ports/tank1990/gamelist.log`).
 
-**Na primeira vez**, o jogo aparece na lista com o nome do arquivo (**Tank1990**) e sem arte.
-Abra-o uma vez: ao fechar, o menu já mostra o nome, a descrição e a arte.
+O `make emuelec-install` faz a mesma fusão logo depois de copiar, e a entrada já está lá desde
+o começo. Copiado pela pasta compartilhada, na primeira vez o jogo aparece na lista com o nome
+do arquivo (**Tank1990**) e sem arte. Abra-o uma vez: ao fechar, o menu já mostra o nome, a
+descrição e a arte.
 
 Se você juntou o bloco `<game>` à mão numa versão antiga, não precisa fazer nada: a entrada é
 trocada pela nova, sem duplicar.
@@ -108,45 +110,59 @@ O menu principal tem a opção **Credits**: o remake (Gabryel Lima da Silva, Rio
 github.com/Gabryel-lima), a base do motor (Tanks, de Krystian Kałużny, 2015, MIT) e o jogo
 original (Battle City, Namco, 1985). B/Back ou **Back** voltam ao menu.
 
-## Levar para o cartão de memória
+## Levar para o stick
 
 As duas pastas vão para a **raiz da pasta de ROMs** do EmuELEC, a que já tem `nes/`, `snes/`,
 `psx/` etc. Se já existirem `ports/` e `ports_scripts/`, junte as pastas: não apague o que
 já está lá.
 
-### Opção A: cartão no PC
+**Copie com o stick ligado, pela rede.** Copiar o `ports_scripts/` para o cartão de memória num
+leitor no PC não funciona no EmuELEC 4.3. No boot, o EmuELEC monta uma pasta dele por cima de
+`roms/ports_scripts` (um overlay dos ports que vêm com o sistema, `/usr/bin/ports`, com
+`/emuelec/ports`, na partição **STORAGE** do sistema). O que o PC gravou em
+`EEROMS/ports_scripts` fica embaixo dessa montagem, escondido: os arquivos estão no cartão, mas
+o EmuELEC nunca os lista. Uma cópia feita com o stick ligado cai na pasta montada e aparece.
+(O `ports/` não tem montagem por cima, então a pasta do jogo daria certo dos dois jeitos; é o
+atalho em `ports_scripts/` que precisa ir pela rede.)
 
-1. Desligue o stick pelo menu (*Start → Quit → Shutdown*) e tire o cartão.
-2. Coloque o cartão no PC. Abra a partição **EEROMS**, a que tem as pastas dos consoles.
-   (As outras partições, `COREELEC`/`EMUELEC` e `STORAGE`, são do sistema: não mexa.)
-3. Descompacte o pacote ali, de modo que fiquem `EEROMS/ports_scripts/Tank1990.sh` e
-   `EEROMS/ports/tank1990/Tanks`. Se o programa perguntar se junta as pastas, diga que sim:
-   nenhum arquivo do pacote substitui o de outro jogo.
-4. Ejete o cartão com segurança, devolva-o ao stick e ligue.
+Antes, no stick, conecte ao Wi-Fi ou ao cabo (*Start → Network Settings*) e anote o IP. Depois,
+um dos dois jeitos abaixo.
 
-### Opção B: pela rede (stick no Wi-Fi)
+### Opção A: script de instalação (SSH)
 
-1. No stick, conecte ao Wi-Fi (*Start → Network Settings*) e anote o IP.
-2. No PC, abra a pasta compartilhada do stick:
+No Linux, macOS ou WSL, no repositório:
+
+```sh
+make emuelec-install HOST=192.168.0.42      # o IP do stick; ou: sh tools/emuelec/install.sh <IP> [pacote.zip]
+```
+
+Ele manda o pacote (por padrão o que o `make emuelec` gerou; `ZIP=...` escolhe outro, como o
+baixado do GitHub) para `/storage/roms` e junta a entrada do menu ao `gamelist.xml` dos Ports
+pela API do EmulationStation. O jogo aparece na hora, com nome e arte, sem reiniciar. O SSH
+precisa estar ligado (*Start → Network Settings → Enable SSH*); a senha é `emuelec`, se você
+não a trocou.
+
+### Opção B: pasta compartilhada
+
+1. No PC, abra a pasta compartilhada do stick:
    - no Windows, `\\EMUELEC\roms` (ou `\\<IP>\roms`) no Explorador de Arquivos;
    - no Linux ou macOS, `smb://<IP>/roms`.
 
    O compartilhamento costuma abrir sem senha. Se pedir uma, use a do sistema: usuário
    `root`, senha `emuelec` (o padrão, se você não a trocou).
-3. Copie para dentro dela as pastas `ports_scripts` e `ports` do pacote.
+2. Copie para dentro dela as pastas `ports_scripts` e `ports` do pacote.
+3. Reinicie o EmulationStation (*Start → Quit → Restart EmulationStation*) ou o stick.
 
 ## Jogar
 
-1. No EmuELEC, atualize a lista de jogos: *Start → Game Settings → Update Gamelists*, ou
-   reinicie o aparelho.
-2. Abra o sistema **Ports** e escolha **Tank 1990 Remake**. Na primeira vez, o nome que
-   aparece é o do arquivo, **Tank1990**, sem arte: a entrada do menu entra quando o jogo abre
-   (ver acima).
-3. Os controles do stick funcionam como no PC (ver *Controles* no [README](README.md#-controles)):
+1. Abra o sistema **Ports** e escolha **Tank 1990 Remake**. Instalado pela pasta
+   compartilhada, na primeira vez o nome que aparece é o do arquivo, **Tank1990**, sem arte: a
+   entrada do menu entra quando o jogo abre (ver acima).
+2. Os controles do stick funcionam como no PC (ver *Controles* no [README](README.md#-controles)):
    direcional ou analógico esquerdo para andar, qualquer botão frontal (A, B, X, Y) para atirar,
    LB para o poder guardado, Start para pausar. No menu, A/Start confirma e B/Back volta. Os
    dois controles do Y6 são os jogadores 1 e 2; com mais controles (USB), até 4 na campanha.
-4. Para sair, use **Exit** no menu principal do jogo: o EmuELEC volta sozinho.
+3. Para sair, use **Exit** no menu principal do jogo: o EmuELEC volta sozinho.
 
 ## Problemas
 
@@ -154,10 +170,16 @@ já está lá.
   entra no `gamelist.xml`. Se ainda faltar, veja o que aconteceu em
   `ports/tank1990/gamelist.log`, e confira se a pasta `images/` está dentro de
   `ports_scripts/`, ao lado do `Tank1990.sh`.
-- **"Ports" não aparece, ou o Tank1990 não está na lista.** Confira o caminho:
-  `ports_scripts/Tank1990.sh`, na raiz das ROMs, e não dentro de outra pasta. Algumas versões
-  de firmware dos sticks listam os ports em `ports/` em vez de `ports_scripts/`: nesse caso
-  copie também o `Tank1990.sh` para `ports/`. Depois disso, *Update Gamelists*.
+- **"Ports" não aparece, ou o Tank1990 não está na lista, mas os arquivos estão no cartão.**
+  O mais provável é que tenham sido copiados com o cartão no PC: o EmuELEC esconde esse
+  `ports_scripts/` atrás de uma montagem dele (ver [Levar para o stick](#levar-para-o-stick)).
+  Instale de novo pela rede. Confira também o caminho: `ports_scripts/Tank1990.sh`, na raiz das
+  ROMs, e não dentro de outra pasta.
+- **Copiado pela rede e ainda fora da lista.** Se a opção *Parse gamelists only* do
+  EmulationStation estiver ligada (algumas imagens de stick vêm assim, para abrir mais rápido
+  com milhares de jogos), o menu só mostra o que já está no `gamelist.xml` e nunca procura
+  arquivo novo. Use o `make emuelec-install`, que junta a entrada ele mesmo, ou desligue a opção
+  e reinicie o EmulationStation.
 - **Abre e volta direto para o menu, ou fica tela preta.** O jogo grava o que aconteceu em
   `ports/tank1990/log.txt`. Abra esse arquivo no PC (ou pela rede) e veja a mensagem de erro.
 - **O controle não responde.** O jogo usa os mapeamentos de controle que o EmuELEC já conhece
@@ -191,5 +213,7 @@ já está lá.
   gamelist cita (o atalho e as imagens), ou se o pacote trouxer um `ports_scripts/gamelist.xml`.
 - **`make gamelist-test`** (`tools/emuelec/gamelist-test.sh`) confere a fusão sem o EmuELEC:
   a entrada entra sem apagar os outros ports, sem duplicar, guardando favorito e partidas, e
-  pela API do EmulationStation (imitada com um servidor em Python). A CI roda esse teste e publica o pacote. O teste não cobre a
+  pela API do EmulationStation (imitada com um servidor em Python). Roda também o `install.sh`
+  com um `ssh` de mentira: o pacote cai na pasta de ROMs e a entrada é juntada sem mexer nos
+  outros ports. A CI roda esse teste e publica o pacote. O teste não cobre a
   GPU e os controles de verdade: isso só se confere no stick.
