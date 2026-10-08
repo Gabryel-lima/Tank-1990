@@ -41,11 +41,14 @@ status=0
 TANK_FULLSCREEN=1 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy LD_LIBRARY_PATH="$SYSROOT/lib" \
     timeout 15 qemu-aarch64 -L "$SYSROOT" ./Tanks > ../smoke.log 2>&1 || status=$?
 
-# 124: o timeout fechou o jogo, que ainda estava rodando (o esperado)
-if [ "$status" -ne 124 ] || [ -s ../smoke.log ]; then
+# 124: o timeout fechou o jogo, que ainda estava rodando (o esperado). A linha "Audio: driver=..."
+# é informação do jogo (o que o SDL abriu), não reclamação: tem de estar lá, e nada mais pode vir
+grep -v '^Audio: driver=' ../smoke.log > ../smoke.rest || true
+if [ "$status" -ne 124 ] || [ -s ../smoke.rest ]; then
     echo "smoke.sh: o jogo saiu com $status ou reclamou de algo:" >&2
     cat ../smoke.log >&2
     exit 1
 fi
-rm -f ../smoke.log
+grep -q '^Audio: driver=' ../smoke.log || { echo "smoke.sh: o jogo não registrou o áudio que abriu" >&2; cat ../smoke.log >&2; exit 1; }
+rm -f ../smoke.log ../smoke.rest
 echo "smoke.sh: o binário aarch64 abriu e rodou 15 s sem erros"
