@@ -8,7 +8,9 @@ SoundManager& SoundManager::getInstance() {
 }
 
 bool SoundManager::init() {
-    if (Mix_OpenAudio(48000, MIX_DEFAULT_FORMAT, 2, 1024) == -1) {
+    // Mesmo formato e bloco do CharyRick (float, 512 amostras), que toca no EmuELEC com este mesmo
+    // SDL: o padrão do mixer (S16, 1024) abria o dispositivo sem erro e sem nenhum som no Y6
+    if (Mix_OpenAudioDevice(48000, AUDIO_F32SYS, 2, 512, nullptr, 0) == -1) {
         std::cerr << "Mix_OpenAudio: " << Mix_GetError() << "\n";
         return false;
     }
@@ -55,9 +57,19 @@ void SoundManager::playSound(const std::string& name, int loops) {
     auto it = m_sounds.find(name);
     if (it != m_sounds.end() && it->second) {
         // Falha ao tocar (sem canal livre, áudio fechado): avisa uma vez, para o log mostrar
-        if (Mix_PlayChannel(-1, it->second, loops) < 0 && !m_play_error_shown) {
+        int channel = Mix_PlayChannel(-1, it->second, loops);
+        if (channel < 0 && !m_play_error_shown) {
             std::cerr << "Erro ao tocar som [" << name << "]: " << Mix_GetError() << "\n";
             m_play_error_shown = true;
+        }
+        // O primeiro som que o jogo toca de verdade fica no log: canal, volume e quantos canais
+        // tocam, para separar "o mixer não tocou" de "tocou e o sistema não reproduziu"
+        if (channel >= 0 && !m_first_play_logged) {
+            std::cout << "Primeiro som [" << name << "]: canal " << channel << ", volume "
+                      << Mix_Volume(channel, -1) << "/" << Mix_VolumeChunk(it->second, -1)
+                      << ", tocando " << Mix_Playing(-1) << ", canais " << Mix_AllocateChannels(-1)
+                      << std::endl;
+            m_first_play_logged = true;
         }
     }
 }

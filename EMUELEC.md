@@ -232,7 +232,9 @@ não a trocou.
   diagnóstico (`TANK_PAD_LOG=1`) e o jogo escreve no `log.txt`:
   - a linha `Audio: driver=... 48000 Hz, 2 canais, formato 0x...`: o que o SDL abriu para o som
     (um driver `dummy` ou `disk` é silêncio); e `Erro ao tocar som [...]` se um som falhar ao
-    tocar;
+    tocar; e `Primeiro som [...]: canal ...`, o primeiro som que o mixer realmente tocou (se essa
+    linha aparece e não há som, o mixer tocou e o sistema não reproduziu; se não aparece, o jogo
+    nem pediu o som). O dispositivo abre em float, 512 amostras, como o CharyRick;
   - o `mapeamento:` de cada controle (nome e botões que o SDL usa) e, a cada aperto, o botão
     **cru** que o controle manda e o que o jogo **vê** (`A`, `B`, `X`, `Y`, `leftshoulder`...),
     e o D-pad e o analógico quando mudam de direção. Aperte cada botão e cada direção, uma por
