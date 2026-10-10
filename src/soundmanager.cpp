@@ -1,5 +1,7 @@
 // sound_manager.cpp
 #include "soundmanager.h"
+#include <algorithm>
+#include <cstdlib>
 #include <iostream>
 
 SoundManager& SoundManager::getInstance() {
@@ -8,9 +10,10 @@ SoundManager& SoundManager::getInstance() {
 }
 
 bool SoundManager::init() {
-    // Mesmo formato e bloco do CharyRick (float, 512 amostras), que toca no EmuELEC com este mesmo
-    // SDL: o padrão do mixer (S16, 1024) abria o dispositivo sem erro e sem nenhum som no Y6
-    if (Mix_OpenAudioDevice(48000, AUDIO_F32SYS, 2, 512, nullptr, 0) == -1) {
+    // Mesma taxa, formato e bloco do CharyRick (44,1 kHz, float, 512 amostras), que toca no
+    // EmuELEC com este mesmo SDL: o padrão do mixer (S16, 1024) abria o dispositivo sem erro e sem
+    // nenhum som no Y6. Os sons do jogo são de 44,1 e 48 kHz; o mixer converte cada um
+    if (Mix_OpenAudioDevice(44100, AUDIO_F32SYS, 2, 512, nullptr, 0) == -1) {
         std::cerr << "Mix_OpenAudio: " << Mix_GetError() << "\n";
         return false;
     }
@@ -43,11 +46,23 @@ void SoundManager::loadSounds() {
     m_sounds["fexplosion"] = Mix_LoadWAV("resources/sound/test/fexplosion.ogg");
     m_sounds["eexplosion"] = Mix_LoadWAV("resources/sound/test/eexplosion.ogg");
 
+    // 64 de 128 (50%) é o volume de sempre. Os sons têm pico entre -11 e -24 dBFS e, a 50%, o
+    // jogo sai uns 10 dB mais baixo que o CharyRick: na TV, com o volume do sistema baixo, quase
+    // some. TANK_VOLUME (0 a 128) troca o valor sem recompilar; o lançador do EmuELEC a define
+    int volume = 64;
+    if (const char* v = std::getenv("TANK_VOLUME"); v != nullptr) {
+        char* end = nullptr;
+        long n = std::strtol(v, &end, 10);
+        // Valor que não é número fica de fora: "abc" não pode virar 0 e calar o jogo
+        if (end != v && *end == '\0')
+            volume = static_cast<int>(std::clamp(n, 0L, static_cast<long>(MIX_MAX_VOLUME)));
+    }
+
     for (auto& [name, chunk] : m_sounds) {
         if (!chunk) {
             std::cerr << "Erro ao carregar som [" << name << "]: " << Mix_GetError() << "\n";
         } else {
-            Mix_VolumeChunk(chunk, 64);  // 50% volume
+            Mix_VolumeChunk(chunk, volume);
         }
     }
 }

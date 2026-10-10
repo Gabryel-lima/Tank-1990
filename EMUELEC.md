@@ -234,7 +234,7 @@ não a trocou.
     (um driver `dummy` ou `disk` é silêncio); e `Erro ao tocar som [...]` se um som falhar ao
     tocar; e `Primeiro som [...]: canal ...`, o primeiro som que o mixer realmente tocou (se essa
     linha aparece e não há som, o mixer tocou e o sistema não reproduziu; se não aparece, o jogo
-    nem pediu o som). O dispositivo abre em float, 512 amostras, como o CharyRick;
+    nem pediu o som). O dispositivo abre em 44100 Hz, float, 512 amostras, como o CharyRick;
   - o `mapeamento:` de cada controle (nome e botões que o SDL usa) e, a cada aperto, o botão
     **cru** que o controle manda e o que o jogo **vê** (`A`, `B`, `X`, `Y`, `leftshoulder`...),
     e o D-pad e o analógico quando mudam de direção. Aperte cada botão e cada direção, uma por
@@ -246,8 +246,12 @@ não a trocou.
   dele. Gere a linha num PC com o mesmo controle (o `padprobe` mostra o GUID, ver CONTROLES.md;
   ou use o [SDL2 Gamepad Tool](https://generalarcade.com/gamepadtool/)) e acrescente-a ao
   arquivo.
-- **Sem som.** Confira o volume em *Start → Sound Settings* do EmuELEC: o jogo usa a saída de
-  áudio do sistema.
+- **Sem som, ou muito baixo.** Confira o volume em *Start → Sound Settings* do EmuELEC: o jogo
+  usa a saída de áudio do sistema. Os sons do Tank são fracos (pico entre -11 e -24 dBFS, contra
+  -6 dBFS do CharyRick); o lançador define `TANK_VOLUME=128` (0 a 128, o máximo do mixer; no PC o
+  padrão é 64). Para abaixar, troque esse número no `Tank1990.sh`. O `log.txt` mostra o volume na
+  linha `Primeiro som [...]: canal N, volume V/C` (C é o volume do som). Se essa linha aparece com
+  `C` = 128 e ainda não há som, o problema está abaixo do jogo (volume ou saída do sistema).
 
 ## Mapeamentos de controles
 

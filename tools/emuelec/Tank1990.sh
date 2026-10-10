@@ -27,6 +27,10 @@ export TANK_DATA_DIR="$GAMEDIR"
 # Cada botão apertado e o mapeamento do controle vão para o log.txt (para achar por que um
 # controle genérico "troca" botões); ver CONTROLES.md
 export TANK_PAD_LOG=1
+# Volume dos efeitos, de 0 a 128 (no PC o padrão é 64). Os sons do jogo são fracos (pico de uns
+# -16 dBFS a 64) e, na TV, o jogo ficava baixo demais perto do CharyRick: aqui vai no máximo do
+# mixer. Se ainda estiver baixo, aumente o volume do sistema em Start → Sound Settings
+export TANK_VOLUME=128
 
 # Os mapeamentos de controles que o EmuELEC já conhece. O arquivo inteiro passa de 128 KiB, o
 # máximo de UMA variável de ambiente no Linux (MAX_ARG_STRLEN): com ele exportado, todo exec
