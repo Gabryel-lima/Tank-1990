@@ -118,6 +118,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | O quê | Duelo | Sobrevivência | Por quê |
 |-------|-------|---------------|---------|
 | Jogadores | 2 a 4, em equipes | 1 a 4, juntos | J1, J2 |
+| Colisão entre jogadores | colidem | atravessam uns aos outros | a sobrevivência é cooperativa |
 | Cor do tanque | da equipe | do jogador | C1 |
 | Bônus | da cor da equipe ou cinza | sempre cinza | C2 |
 | Mina | respeita escudo e barco | destrói qualquer inimigo | W7: escudo é proteção entre jogadores |

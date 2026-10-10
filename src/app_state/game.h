@@ -245,11 +245,11 @@ protected:
     virtual bool sameSide(const Tank* a, const Tank* b) const;
 
     /**
-     * Os dois tanques se atravessam: do mesmo lado e um deles é torreta ou bot (o reforço do
-     * computador). Os jogadores entre si continuam colidindo, como na campanha (que não tem
-     * torreta nem bot: nada muda nela).
+     * Os dois tanques se atravessam: padrão, do mesmo lado e um deles é torreta ou bot (o
+     * reforço do computador). Modos podem especializar o filtro; na campanha os jogadores
+     * continuam colidindo.
      */
-    bool passThrough(const Tank* a, const Tank* b) const;
+    virtual bool passThrough(const Tank* a, const Tank* b) const;
 
     /**
      * Assistência de curva: se o jogador foi parado pela quina de um obstáculo, mas estaria livre

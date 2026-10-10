@@ -76,6 +76,8 @@ protected:
     void drawStatus() override;
     void drawOverlay() override;
     void drawPause() override { drawPauseBox(); }
+    /** Jogadores cooperativos se atravessam; os demais pares seguem a regra comum de Game. */
+    bool passThrough(const Tank* a, const Tank* b) const override;
     /** Tiro de torreta ou de aliado na águia (passou do alvo): some, sem ferir (G1). */
     void onBaseHit(Eagle* base, Bullet* bullet) override;
 

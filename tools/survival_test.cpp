@@ -15,8 +15,8 @@
 //              o botão usa a escolhida com L2 / R2
 //   loja       a caixa de texto da loja, com a borda, fica inteira dentro do mapa; uma loja
 //              por jogador, sem uma cobrir a outra, e só o dono compra nela
-//   aliados    torreta e reforço atravessam os tanques do mesmo lado; o tiro aliado não
-//              detona a mina
+//   aliados    jogadores, torreta e reforço atravessam os tanques do mesmo lado; o tiro
+//              aliado não detona a mina
 //   torreta    torreta e mina ficam até serem destruídas, na sobrevivência e no duelo (o
 //              duelo ainda as fazia sumir com o tempo); até 3 torretas por jogador
 
@@ -297,7 +297,19 @@ struct SurvivalTest
             }
     }
 
-    // ===== Aliados se atravessam; o tiro aliado não detona a mina =====
+    // ===== Jogadores e aliados se atravessam; o tiro aliado não detona a mina =====
+    static void playersPassThrough()
+    {
+        std::srand(18);
+        Survival s(2, 0);
+        if(s.m_players.size() != 2)
+        {
+            expect(false, "dois jogadores entram no modo sobrevivência");
+            return;
+        }
+        expect(s.passThrough(s.m_players[0], s.m_players[1]), "jogadores se atravessam na sobrevivência");
+    }
+
     static void friendlyFire()
     {
         std::srand(19);
@@ -429,6 +441,7 @@ int main(int, char*[])
     SurvivalTest::slots();
     SurvivalTest::shopBox();
     SurvivalTest::ownShops();
+    SurvivalTest::playersPassThrough();
     SurvivalTest::friendlyFire();
     SurvivalTest::permanentPowers();
 

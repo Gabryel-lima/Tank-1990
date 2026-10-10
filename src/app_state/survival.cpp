@@ -711,6 +711,14 @@ void Survival::onBaseHit(Eagle* base, Bullet* bullet)
     Game::onBaseHit(base, bullet);
 }
 
+bool Survival::passThrough(const Tank* a, const Tank* b) const
+{
+    // No modo cooperativo os jogadores não devem se bloquear; preserve as demais regras comuns.
+    if(dynamic_cast<const Player*>(a) != nullptr && dynamic_cast<const Player*>(b) != nullptr)
+        return true;
+    return Game::passThrough(a, b);
+}
+
 // ======================== Tropa de reforço ========================
 
 SDL_Point Survival::allySpawn() const
