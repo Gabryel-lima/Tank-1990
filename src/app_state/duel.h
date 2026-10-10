@@ -135,6 +135,8 @@ protected:
     std::vector<Eagle*> bases() override;
     void onBaseHit(Eagle* base, Bullet* bullet) override;
     bool bulletCanDamage(Bullet* bullet, int row, int column) override;
+    /** Mesma equipe (a torreta e o bot da equipe não colidem com ela). */
+    bool sameSide(const Tank* a, const Tank* b) const override { return a->team == b->team; }
     bool powerAppliesAt(Bullet* bullet, int row, int column) override;
 
     /**

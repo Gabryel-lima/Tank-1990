@@ -9,10 +9,14 @@
 //              tijolo, pedra ou água, nem na águia, e num lugar aonde se chega andando
 //   contagem   o número na tela ("NEXT WAVE IN" e "START IN") é o tempo real até o primeiro
 //              inimigo surgir, e chega a 0 exatamente quando a onda começa
-//   compra     poder comprado vai para o espaço de poder: nada vale na hora da compra (a
-//              trégua e o escudo não correm no intervalo) e só vale quando faz efeito
-//   espaços    cada espaço guarda uma unidade; a unidade colocada no mapa sai do estoque
-//   loja       a caixa de texto da loja, com a borda, fica inteira dentro do mapa
+//   compra     o colocável comprado vai para o espaço de poder; o resto vale na compra
+//              (reviver, reparo), a trégua e o escudo armados para a próxima onda
+//   espaços    cada espaço guarda uma unidade; a unidade colocada no mapa sai do estoque;
+//              o botão usa a escolhida com L2 / R2
+//   loja       a caixa de texto da loja, com a borda, fica inteira dentro do mapa; uma loja
+//              por jogador, sem uma cobrir a outra, e só o dono compra nela
+//   aliados    torreta e reforço atravessam os tanques do mesmo lado; o tiro aliado não
+//              detona a mina
 //   torreta    torreta e mina ficam até serem destruídas, na sobrevivência e no duelo (o
 //              duelo ainda as fazia sumir com o tempo); até 3 torretas por jogador
 
@@ -158,7 +162,7 @@ struct SurvivalTest
         expect(shown.back().second <= 1, "a contagem chega ao fim quando o inimigo surge");
     }
 
-    // ===== Compra: guardado, vale quando usado =====
+    // ===== Compra: o colocável fica guardado, o resto vale na hora =====
     static void purchases()
     {
         std::srand(11);
@@ -169,39 +173,29 @@ struct SurvivalTest
         p->power_slots = AppConfig::survival_max_slots;
         clearWave(s);
 
-        for(SpriteType type : {ST_BONUS_TRUCE, ST_BONUS_TEAM_SHIELD, ST_BONUS_REPAIR, ST_BONUS_REVIVE})
-        {
-            p->held_power = ST_NONE;
-            p->power_stock.clear();
-            p->clearFlag(TSF_SHIELD);
-            int lives = p->lives_count;
-            Survival::ShopItem i = item(type);
-            if(i.price < 0) continue; // fora da loja nesta configuração
-            std::string name = Survival::shopName(type);
-            expect(s.buy(p, i), name + ": compra");
-            expect(p->held_power == type, name + ": vai para o espaço de poder");
-            expect(s.m_truce_time == 0 && !p->testFlag(TSF_SHIELD) && p->lives_count == lives, name + ": nada vale na hora da compra");
-        }
+        // Reviver: vale na compra (ninguém caído: uma vida a mais), sem ocupar espaço
+        int lives = p->lives_count;
+        expect(s.buy(p, item(ST_BONUS_REVIVE)), "reviver: compra");
+        expect(p->lives_count == lives + 1 && p->storedPowers() == 0, "reviver: a vida vale na compra, sem ocupar espaço");
 
-        // No intervalo, a trégua e o escudo continuam guardados (sem inimigos, seriam perdidos)
-        p->held_power = ST_BONUS_TRUCE;
-        expect(!s.usePower(p) && s.m_truce_time == 0, "trégua no intervalo: continua guardada");
-        p->held_power = ST_BONUS_TEAM_SHIELD;
-        expect(!s.usePower(p), "escudo de equipe no intervalo: continua guardado");
-        p->held_power = ST_BONUS_REPAIR;
-        expect(!s.usePower(p), "reparo com a muralha inteira: continua guardado");
-
-        // Durante a onda, valem
-        s.m_phase = Survival::PHASE_PLAY;
-        p->held_power = ST_BONUS_TRUCE;
-        expect(s.usePower(p) && s.m_truce_time > 0, "trégua na onda: vale");
-        p->held_power = ST_BONUS_TEAM_SHIELD;
-        expect(s.usePower(p) && p->testFlag(TSF_SHIELD), "escudo de equipe na onda: vale");
+        // Reparo: no intervalo a muralha já foi refeita; furada, a compra a refaz na hora
+        expect(s.cannotBuy(item(ST_BONUS_REPAIR), p) == "WALL OK", "reparo com a muralha inteira: não vende (WALL OK)");
         SDL_Point wall = s.baseWallTiles().front();
         delete s.m_level.at(wall.y).at(wall.x);
         s.m_level.at(wall.y).at(wall.x) = nullptr;
-        p->held_power = ST_BONUS_REPAIR;
-        expect(s.usePower(p) && s.baseWallIntact(), "reparo com a muralha furada: refaz");
+        expect(s.buy(p, item(ST_BONUS_REPAIR)) && s.baseWallIntact() && p->storedPowers() == 0, "reparo com a muralha furada: refaz na compra");
+
+        // Trégua e escudo: no intervalo correriam sem inimigos; ficam armados para a onda
+        expect(s.buy(p, item(ST_BONUS_TRUCE)) && s.m_truce_time == 0 && s.m_truce_armed, "trégua no intervalo: armada para a próxima onda");
+        expect(s.cannotBuy(item(ST_BONUS_TRUCE), p) == "READY", "trégua já armada: não compra outra");
+        expect(s.buy(p, item(ST_BONUS_TEAM_SHIELD)) && s.m_shield_armed && p->storedPowers() == 0, "escudo de equipe no intervalo: armado");
+        s.startWave(s.m_wave + 1);
+        run(s, static_cast<int>(AppConfig::survival_wave_intro_time / 16) + 2);
+        expect(s.m_phase == Survival::PHASE_PLAY && s.m_truce_time > 0 && p->testFlag(TSF_SHIELD), "trégua e escudo começam com a onda");
+
+        // Colocáveis e os que dependem de onde e quando: guardados
+        for(SpriteType type : {ST_BONUS_MINE, ST_BONUS_BARRICADE, ST_BONUS_TURRET, ST_BONUS_RECALL, ST_BONUS_TURBO})
+            expect(Survival::storesPower(type), Survival::shopName(type) + ": fica guardado");
     }
 
     // ===== Espaços de poder =====
@@ -223,6 +217,13 @@ struct SurvivalTest
         expect(s.usePower(p), "coloca uma mina");
         p->consumeHeldPower();
         expect(p->storedPowers() == 2 && s.m_mines.size() == 1, "2 guardadas, 1 no mapa (a do mapa não ocupa espaço)");
+
+        // L2 / R2: o botão usa o espaço escolhido, e os outros ficam na ordem
+        p->setUnits({ST_BONUS_MINE, ST_BONUS_TURBO, ST_BONUS_MINE});
+        p->power_selected = 1;
+        expect(s.useSelected(p) && p->boosted(), "usa o espaço escolhido (o turbo, no meio)");
+        expect(p->units() == std::vector<SpriteType>({ST_BONUS_MINE, ST_BONUS_MINE}) && p->power_selected == 1,
+               "o turbo sai; as minas ficam, e a escolha fica no último");
     }
     // ===== Caixa da loja =====
     static void shopBox()
@@ -236,8 +237,7 @@ struct SurvivalTest
                 for(int w = 30; w <= 220; w += 10)
                     for(int h = 20; h <= 120; h += 10)
                     {
-                        s.m_shop_pad = {column * t, row * t};
-                        SDL_Rect box = s.shopBoxRect(w, h);
+                        SDL_Rect box = s.shopBoxRect({column * t, row * t}, w, h);
                         SDL_Rect border = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
                         checked++;
                         if(border.x < 0 || border.y < 0 || border.x + border.w > map_w || border.y + border.h > map_h)
@@ -248,12 +248,91 @@ struct SurvivalTest
                     }
         expect(outside == 0, "a borda da caixa da loja fica dentro do mapa (" + std::to_string(outside) + " de " + std::to_string(checked) + " fora)");
         // A caixa continua ao lado da loja, do lado de fora, quando cabe (sem tapar a loja)
-        s.m_shop_pad = {10 * t, 20 * t};
-        SDL_Rect box = s.shopBoxRect(80, 40);
+        SDL_Rect box = s.shopBoxRect({10 * t, 20 * t}, 80, 40);
         expect(box.x + box.w + 3 == 10 * t, "loja à esquerda do meio: caixa à esquerda dela");
-        s.m_shop_pad = {14 * t, 20 * t};
-        box = s.shopBoxRect(80, 40);
+        box = s.shopBoxRect({14 * t, 20 * t}, 80, 40);
         expect(box.x == 16 * t + 3, "loja à direita do meio: caixa à direita dela");
+    }
+
+    // ===== Uma loja por jogador =====
+    static void ownShops()
+    {
+        const int t = AppConfig::tile_rect.w;
+        for(int map = 0; map < static_cast<int>(AppConfig::survival_maps.size()); map++)
+            for(bool shared : {true, false})
+            {
+                std::srand(300 + map);
+                Survival s(4, map, shared);
+                run(s, 80);
+                clearWave(s);
+                std::string name = AppConfig::survival_maps[map].first + (shared ? " (equipe)" : " (cada um)");
+                int placed = 0, overlapping = 0, wrong_side = 0;
+                for(int i = 0; i < 4; i++)
+                {
+                    if(!s.hasShop(i)) continue;
+                    placed++;
+                    SDL_Rect a = {s.m_shop_pads[i].x, s.m_shop_pads[i].y, 2 * t, 2 * t};
+                    if((a.x + t < 11 * t) != (i % 2 == 0)) wrong_side++;
+                    for(int j = 0; j < i; j++)
+                    {
+                        SDL_Rect b = {s.m_shop_pads[j].x, s.m_shop_pads[j].y, 2 * t, 2 * t};
+                        if(s.hasShop(j) && SDL_HasIntersection(&a, &b)) overlapping++;
+                    }
+                }
+                expect(placed == 4 && overlapping == 0, name + ": 4 lojas, uma por jogador, sem uma cobrir a outra");
+                if(wrong_side > 0) std::printf("        %s: %d loja(s) do outro lado (sem lugar no dela)\n", name.c_str(), wrong_side);
+                if(map > 0) continue;
+
+                // Só o dono compra na loja dele; o outro, em cima dela, anda e atira normalmente
+                Player* p1 = s.m_players[0];
+                Player* p2 = s.m_players[1];
+                p1->pos_x = s.m_shop_pads[1].x;
+                p1->pos_y = s.m_shop_pads[1].y;
+                p2->pos_x = s.m_shop_pads[1].x;
+                p2->pos_y = s.m_shop_pads[1].y;
+                expect(!s.onShop(p1) && s.onShop(p2), name + ": a loja do P2 é só do P2");
+                p1->pos_x = s.m_shop_pads[0].x;
+                p1->pos_y = s.m_shop_pads[0].y;
+                expect(s.onShop(p1), name + ": a loja do P1 é do P1");
+            }
+    }
+
+    // ===== Aliados se atravessam; o tiro aliado não detona a mina =====
+    static void friendlyFire()
+    {
+        std::srand(19);
+        Survival s(1, 0);
+        s.m_phase = Survival::PHASE_PLAY;
+        Player* p = readyPlayer(s);
+        if(p == nullptr) { expect(false, "um jogador entra no mapa"); return; }
+        Turret* turret = nullptr;
+        for(int d = 0; d < 4 && turret == nullptr; d++)
+        {
+            p->direction = static_cast<Direction>(d);
+            p->held_power = ST_BONUS_TURRET;
+            if(s.usePower(p)) turret = s.m_turrets.back();
+        }
+        expect(turret != nullptr && s.passThrough(p, turret), "jogador e a própria torreta se atravessam");
+        expect(s.callReinforcement(p) && s.passThrough(p, s.m_allies.back()), "jogador e o reforço se atravessam");
+        if(turret != nullptr) expect(s.passThrough(s.m_allies.back(), turret), "reforço e torreta se atravessam");
+        if(!s.m_enemies.empty() && turret != nullptr) expect(!s.passThrough(s.m_enemies.front(), turret), "inimigo bate na torreta");
+
+        // Torreta fora do caminho; mina debaixo do jogador, que atira para baixo dela
+        p->held_power = ST_BONUS_MINE;
+        s.usePower(p);
+        Mine* mine = s.m_mines.back();
+        p->clearFlag(TSF_SHIELD);
+        Bullet* b = p->fire();
+        if(b != nullptr)
+        {
+            b->pos_x = mine->collision_rect.x;
+            b->pos_y = mine->collision_rect.y;
+            b->collision_rect.x = mine->collision_rect.x;
+            b->collision_rect.y = mine->collision_rect.y;
+        }
+        size_t mines = s.m_mines.size();
+        s.updateFriendlyPowers(16); // a mina detonada sairia daqui
+        expect(b != nullptr && s.m_mines.size() == mines, "o tiro do jogador passa pela mina sem detonar");
     }
 
     // ===== Torreta e mina permanentes, nos dois modos =====
@@ -349,6 +428,8 @@ int main(int, char*[])
     SurvivalTest::purchases();
     SurvivalTest::slots();
     SurvivalTest::shopBox();
+    SurvivalTest::ownShops();
+    SurvivalTest::friendlyFire();
     SurvivalTest::permanentPowers();
 
     std::printf("\n%s: %d falha(s)\n", g_failures == 0 ? "PASSOU" : "FALHOU", g_failures);

@@ -712,6 +712,7 @@ void Game::checkCollisionTankWithLevel(Tank* tank, Uint32 dt)
 // Verifica colisão entre dois tanques
 void Game::checkCollisionTwoTanks(Tank* tank1, Tank* tank2, Uint32 dt)
 {
+    if(passThrough(tank1, tank2)) return;
     SDL_Rect cr1 = tank1->nextCollisionRect(dt);
     SDL_Rect cr2 = tank2->nextCollisionRect(dt);
     SDL_Rect intersect_rect = intersectRect(&cr1, &cr2);
@@ -755,7 +756,7 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
 
     // Outros tanques: posição atual e prevista para este frame
     auto blocked_by = [&](Tank* other) {
-        if(other == tank || other->to_erase) return false;
+        if(other == tank || other->to_erase || passThrough(tank, other)) return false;
         SDL_Rect next_rect = other->nextCollisionRect(dt);
         SDL_Rect r1 = intersectRect(&other->collision_rect, &area);
         SDL_Rect r2 = intersectRect(&next_rect, &area);
@@ -767,6 +768,24 @@ bool Game::isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt)
     for(auto ally : m_allies) if(blocked_by(ally)) return false;
 
     return true;
+}
+
+bool Game::sameSide(const Tank* a, const Tank* b) const
+{
+    auto friendly = [this](const Tank* t) {
+        return std::find(m_players.begin(), m_players.end(), t) != m_players.end() ||
+               std::find(m_turrets.begin(), m_turrets.end(), t) != m_turrets.end() ||
+               std::find(m_allies.begin(), m_allies.end(), t) != m_allies.end();
+    };
+    return friendly(a) && friendly(b);
+}
+
+bool Game::passThrough(const Tank* a, const Tank* b) const
+{
+    auto helper = [](const Tank* t) {
+        return dynamic_cast<const Turret*>(t) != nullptr || dynamic_cast<const Bot*>(t) != nullptr;
+    };
+    return (helper(a) || helper(b)) && sameSide(a, b);
 }
 
 // Desliza o jogador para o lado quando ele bate na quina de um obstáculo
@@ -1011,13 +1030,6 @@ void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
     {
         SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->held_power)->rect;
         engine.getRenderer()->drawObject(&icon, &slot);
-        // Mais de um guardado (os espaços da sobrevivência): quantos, no canto de baixo
-        if(!player->power_stock.empty())
-        {
-            std::string count = Engine::intToString(player->storedPowers());
-            SDL_Point size = engine.getRenderer()->textSize(count, 3);
-            engine.getRenderer()->drawTextOutlined({slot.x + slot.w - size.x + 1, slot.y + slot.h - size.y + 2}, count, {255, 255, 255, 255}, 3);
-        }
     }
     else if(player != nullptr && player->activePower(nullptr) != ST_NONE)
     {
@@ -1031,6 +1043,32 @@ void Game::drawPowerSlot(const Player* player, const SDL_Rect& slot)
     }
     else
         engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);
+}
+
+void Game::drawPowerSlots(const Player* player, SDL_Point at, int size, int gap)
+{
+    Engine& engine = Engine::getEngine();
+    int slots = player != nullptr ? std::max(1, player->power_slots) : 1;
+    for(int k = 0; k < slots; k++)
+    {
+        SDL_Rect slot = {at.x + k * (size + gap), at.y, size, size};
+        size_t stock = static_cast<size_t>(k - 1);
+        if(k == 0) drawPowerSlot(player, slot);
+        else if(stock < player->power_stock.size())
+        {
+            SDL_Rect icon = engine.getSpriteConfig()->getSpriteData(player->power_stock[stock])->rect;
+            engine.getRenderer()->drawObject(&icon, &slot);
+        }
+        else
+            engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);
+    }
+    // Com mais de um guardado, a moldura branca marca o que o botão de poder vai usar
+    if(player != nullptr && player->storedPowers() > 1)
+    {
+        int k = std::max(0, std::min(player->power_selected, player->storedPowers() - 1));
+        SDL_Rect frame = {at.x + k * (size + gap) - 1, at.y - 1, size + 2, size + 2};
+        engine.getRenderer()->drawRect(&frame, {255, 255, 255, 255}, false);
+    }
 }
 
 bool Game::breaksBlock(Bullet* bullet, int row, int column)
@@ -1675,7 +1713,7 @@ void Game::updateFriendlyPowers(Uint32 dt)
             tanks.insert(tanks.end(), m_allies.begin(), m_allies.end());
             for(Tank* tank : tanks)
             {
-                if(tank->to_erase) continue;
+                if(tank->to_erase || passThrough(tank, turret)) continue;
                 SDL_Rect next = tank->nextCollisionRect(dt);
                 SDL_Rect hit = intersectRect(&next, &area);
                 if(hit.w > 0 && hit.h > 0) tank->collide(hit);
@@ -1730,8 +1768,8 @@ void Game::updateFriendlyPowers(Uint32 dt)
         checkCollisionTankWithLevel(ally, dt);
     }
 
-    // Minas: explodem o inimigo que passar por cima (de vez, como a granada) e somem com
-    // qualquer tiro (dá para limpar o caminho atirando nelas)
+    // Minas: explodem o inimigo que passar por cima (de vez, como a granada) e somem com o
+    // tiro dos inimigos; o tiro aliado (jogadores, torretas, reforço) passa por cima
     for(auto mine : m_mines)
     {
         if(mine->to_erase) continue;
@@ -1743,11 +1781,7 @@ void Game::updateFriendlyPowers(Uint32 dt)
                 break;
             }
         if(mine->to_erase) continue;
-        std::vector<Tank*> shooters(m_players.begin(), m_players.end());
-        shooters.insert(shooters.end(), m_enemies.begin(), m_enemies.end());
-        shooters.insert(shooters.end(), m_turrets.begin(), m_turrets.end());
-        shooters.insert(shooters.end(), m_allies.begin(), m_allies.end());
-        for(Tank* shooter : shooters)
+        for(Tank* shooter : m_enemies)
             for(auto bullet : shooter->bullets)
                 if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(bullet->collision_rect, mine->collision_rect, 1))
                 {

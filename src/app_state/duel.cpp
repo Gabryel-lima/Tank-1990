@@ -715,10 +715,11 @@ void Duel::updatePowers(Uint32 dt)
             mine->detonate();
             break;
         }
-        // Qualquer tiro acerta a mina e ela some (dá para limpar o caminho)
+        // Tiro da outra equipe acerta a mina e ela some (dá para limpar o caminho); o da
+        // própria equipe passa por cima
         for(Tank* t : tanks)
             for(auto bullet : t->bullets)
-                if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(mine->collision_rect, bullet->collision_rect, 1))
+                if(t->team != mine->team && !mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(mine->collision_rect, bullet->collision_rect, 1))
                 {
                     bullet->destroy();
                     mine->detonate();
