@@ -73,6 +73,8 @@ void Player::update(Uint32 dt)
             shoot = key_state[keys->fire];
             power = key_state[keys->power];
             shop_right = power; // no teclado, o botão de poder avança na loja
+            slot_left = key_state[keys->slot_prev];
+            slot_right = key_state[keys->slot_next];
         }
 
         // Controle: D-pad ou analógico esquerdo; qualquer botão frontal atira
@@ -96,8 +98,8 @@ void Player::update(Uint32 dt)
             shop_left = lb;
             shop_right = shop_right || rb;
             // Gatilhos (eixos de 0 a 32767): passam de metade, contam como apertados
-            slot_left = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 16000;
-            slot_right = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000;
+            slot_left = slot_left || SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 16000;
+            slot_right = slot_right || SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000;
         }
 
         // Movimentação: uma direção por vez, na ordem cima/baixo/esquerda/direita

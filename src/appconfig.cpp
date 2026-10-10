@@ -90,10 +90,14 @@ vector<SDL_Point> AppConfig::enemy_starting_point =
 vector<Player::PlayerKeys> AppConfig::keyboard_layouts =
 []{
     vector<Player::PlayerKeys> v;
-    // W, S, A, D + Espaço (tiro) + Shift esquerdo (poder dos modos extras)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, SDL_SCANCODE_LSHIFT, "WASD"));
-    // Setas + Ctrl direito (Alt direito no Mac) + Shift direito (poder dos modos extras)
-    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, SDL_SCANCODE_RSHIFT, "ARROWS"));
+    // W, S, A, D + Espaço (tiro) + Shift esquerdo (poder dos modos extras) + Q / E (escolhem
+    // o poder guardado, como L2 / R2)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, P1_FIRE_KEY, SDL_SCANCODE_LSHIFT,
+                                   SDL_SCANCODE_Q, SDL_SCANCODE_E, "WASD"));
+    // Setas + Ctrl direito (Alt direito no Mac) + Shift direito (poder dos modos extras) +
+    // as duas teclas ao lado do Shift direito ("." e "/" no teclado americano; posição física)
+    v.push_back(Player::PlayerKeys(SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, P2_FIRE_KEY, SDL_SCANCODE_RSHIFT,
+                                   SDL_SCANCODE_PERIOD, SDL_SCANCODE_SLASH, "ARROWS"));
     return v;
 }();
 

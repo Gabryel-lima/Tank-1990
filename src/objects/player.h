@@ -32,10 +32,13 @@ public:
         SDL_Scancode right;
         SDL_Scancode fire;
         SDL_Scancode power; ///< usa o poder guardado (modos extras)
+        SDL_Scancode slot_prev; ///< escolhe o poder guardado à esquerda (sobrevivência, como o L2)
+        SDL_Scancode slot_next; ///< escolhe o poder guardado à direita (como o R2)
         const char* name; ///< nome mostrado na tela (ex.: "WASD")
 
-        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f, SDL_Scancode p, const char* n)
-            : up(u), down(d), left(l), right(r), fire(f), power(p), name(n) {}
+        PlayerKeys(SDL_Scancode u, SDL_Scancode d, SDL_Scancode l, SDL_Scancode r, SDL_Scancode f, SDL_Scancode p,
+                   SDL_Scancode sp, SDL_Scancode sn, const char* n)
+            : up(u), down(d), left(l), right(r), fire(f), power(p), slot_prev(sp), slot_next(sn), name(n) {}
     };
 
     /**
