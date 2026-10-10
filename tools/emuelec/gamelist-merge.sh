@@ -6,7 +6,7 @@
 #
 # O pacote não traz mais um ports_scripts/gamelist.xml: descompactado por cima, ele apagaria as
 # entradas dos outros ports. A entrada do jogo vai dentro da pasta dele (ports/<jogo>/) e entra
-# no gamelist.xml por aqui. Mesmo arquivo no Tank 1990 e no CharyRick.
+# no gamelist.xml por aqui. Mesmo arquivo no Tank 1990, no CharyRick e no MK64.
 #
 # Caminho principal: a API local do EmulationStation (POST /addgames/ports, porta 1234, presente
 # desde o EmuELEC 4.3). O EmulationStation põe a entrada na memória e regrava só ela no arquivo.

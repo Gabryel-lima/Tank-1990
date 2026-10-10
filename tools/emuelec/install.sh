@@ -15,7 +15,7 @@
 #
 # Precisa de ssh e tar no PC (Linux, macOS, WSL) e do SSH ligado no stick (Start -> Network
 # Settings -> Enable SSH). Usuário root, senha emuelec, se não foi trocada. Mesmo arquivo no
-# Tank 1990 e no CharyRick.
+# Tank 1990, no CharyRick e no MK64.
 set -eu
 
 HOST=${1:-}

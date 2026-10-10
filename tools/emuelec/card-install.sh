@@ -19,7 +19,7 @@
 #   de caractere 0,0, o que o overlay grava quando um arquivo de baixo é apagado) dá lugar ao
 #   arquivo do pacote.
 #
-# A STORAGE é do root: as cópias para lá usam sudo. Mesmo arquivo no Tank 1990 e no CharyRick.
+# A STORAGE é do root: as cópias para lá usam sudo. Mesmo arquivo no Tank 1990, no CharyRick e no MK64.
 set -eu
 
 ZIP=${1:-}
