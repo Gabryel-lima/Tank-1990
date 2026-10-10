@@ -11,7 +11,8 @@
 //              inimigo surgir, e chega a 0 exatamente quando a onda começa
 //   compra     o colocável comprado vai para o espaço de poder; o resto vale na compra
 //              (reviver, reparo), a trégua e o escudo armados para a próxima onda
-//   espaços    cada espaço guarda uma unidade; a unidade colocada no mapa sai do estoque
+//   espaços    cada espaço guarda uma unidade; a unidade colocada no mapa sai do estoque;
+//              o botão usa a escolhida com L2 / R2
 //   loja       a caixa de texto da loja, com a borda, fica inteira dentro do mapa; uma loja
 //              por jogador, sem uma cobrir a outra, e só o dono compra nela
 //   aliados    torreta e reforço atravessam os tanques do mesmo lado; o tiro aliado não
@@ -216,6 +217,13 @@ struct SurvivalTest
         expect(s.usePower(p), "coloca uma mina");
         p->consumeHeldPower();
         expect(p->storedPowers() == 2 && s.m_mines.size() == 1, "2 guardadas, 1 no mapa (a do mapa não ocupa espaço)");
+
+        // L2 / R2: o botão usa o espaço escolhido, e os outros ficam na ordem
+        p->setUnits({ST_BONUS_MINE, ST_BONUS_TURBO, ST_BONUS_MINE});
+        p->power_selected = 1;
+        expect(s.useSelected(p) && p->boosted(), "usa o espaço escolhido (o turbo, no meio)");
+        expect(p->units() == std::vector<SpriteType>({ST_BONUS_MINE, ST_BONUS_MINE}) && p->power_selected == 1,
+               "o turbo sai; as minas ficam, e a escolha fica no último");
     }
     // ===== Caixa da loja =====
     static void shopBox()

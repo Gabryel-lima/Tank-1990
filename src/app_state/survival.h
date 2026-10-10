@@ -265,6 +265,12 @@ private:
     /** Usa o poder guardado do jogador. @return false se não deu (sem espaço, ponto ocupado) */
     bool usePower(Player* player);
 
+    /**
+     * Usa o poder do espaço escolhido com L2 / R2 (Player::power_selected) e o tira da lista.
+     * @return false se não deu (continua guardado)
+     */
+    bool useSelected(Player* player);
+
 
     Phase m_phase;
     Uint32 m_phase_time;

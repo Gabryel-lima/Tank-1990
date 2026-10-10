@@ -202,6 +202,24 @@ public:
     void consumeHeldPower();
 
     /**
+     * Espaço escolhido com L2 / R2 (sobrevivência, com mais de um poder guardado): índice
+     * em units(); o botão de poder usa este (Survival::usePower).
+     */
+    int power_selected = 0;
+
+    /** Os poderes guardados em ordem: o held_power e depois o estoque. */
+    std::vector<SpriteType> units() const;
+
+    /** Troca os poderes guardados por @a list (na mesma ordem de units()). */
+    void setUnits(const std::vector<SpriteType>& list);
+
+    /**
+     * Passos na escolha do espaço desde a última chamada: -1 por aperto do L2, +1 por
+     * aperto do R2.
+     */
+    int takeSlotStep();
+
+    /**
      * O botão de poder foi apertado desde a última chamada (Shift do layout de teclado, LB
      * do controle ou o comando da IA). Conta uma vez por aperto.
      */
@@ -257,6 +275,9 @@ private:
     bool m_shop_left_down = false;  ///< LB segurado no quadro anterior
     bool m_shop_right_down = false; ///< RB (ou poder do teclado) segurado no quadro anterior
     int m_shop_step = 0;            ///< passos na loja ainda não consumidos por takeShopStep
+    bool m_slot_left_down = false;  ///< L2 apertado no quadro anterior
+    bool m_slot_right_down = false; ///< R2 apertado no quadro anterior
+    int m_slot_step = 0;            ///< passos de espaço ainda não consumidos por takeSlotStep
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
     bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 

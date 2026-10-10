@@ -1062,6 +1062,13 @@ void Game::drawPowerSlots(const Player* player, SDL_Point at, int size, int gap)
         else
             engine.getRenderer()->drawRect(&slot, {0, 0, 0, 255}, false);
     }
+    // Com mais de um guardado, a moldura branca marca o que o botão de poder vai usar
+    if(player != nullptr && player->storedPowers() > 1)
+    {
+        int k = std::max(0, std::min(player->power_selected, player->storedPowers() - 1));
+        SDL_Rect frame = {at.x + k * (size + gap) - 1, at.y - 1, size + 2, size + 2};
+        engine.getRenderer()->drawRect(&frame, {255, 255, 255, 255}, false);
+    }
 }
 
 bool Game::breaksBlock(Bullet* bullet, int row, int column)

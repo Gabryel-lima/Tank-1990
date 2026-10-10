@@ -468,6 +468,13 @@ void Survival::updateShop()
         bool power = player->takePowerPress();
         bool fire = player->takeFirePress();
         int step = player->takeShopStep();
+        // L2 / R2 escolhem qual poder guardado o botão usa (dando a volta), também na loja
+        int slot_step = player->takeSlotStep();
+        int units = player->storedPowers();
+        if(units > 0)
+            player->power_selected = ((player->power_selected + slot_step) % units + units) % units;
+        else
+            player->power_selected = 0;
         player->shop_mode = shopping;
         if(shopping)
         {
@@ -480,9 +487,25 @@ void Survival::updateShop()
         }
         // Fora da loja: o botão de poder usa o poder guardado (sem espaço, continua guardado);
         // o próximo do estoque toma o lugar
-        if(power && player->held_power != ST_NONE && player->testFlag(TSF_LIFE) && usePower(player))
-            player->consumeHeldPower();
+        if(power && player->held_power != ST_NONE && player->testFlag(TSF_LIFE))
+            useSelected(player);
     }
+}
+
+bool Survival::useSelected(Player* player)
+{
+    // usePower usa o held_power: o escolhido vai para lá só durante o uso. Usado, sai da
+    // lista e os outros ficam na ordem em que estavam; sem efeito, nada muda
+    std::vector<SpriteType> list = player->units();
+    if(list.empty()) return false;
+    int selected = std::max(0, std::min(player->power_selected, static_cast<int>(list.size()) - 1));
+    player->held_power = list[selected];
+    bool used = usePower(player);
+    if(used) list.erase(list.begin() + selected);
+    player->setUnits(list);
+    int left = static_cast<int>(list.size());
+    player->power_selected = left == 0 ? 0 : std::min(selected, left - 1);
+    return used;
 }
 
 bool Survival::buy(Player* player, const ShopItem& item)
@@ -1036,50 +1059,29 @@ SDL_Rect Survival::shopBoxRect(SDL_Point pad, int width, int height) const
 
 void Survival::drawShop(int index)
 {
-    // Caixa ao lado da loja, do lado de fora (loja à esquerda da base: caixa à esquerda), para
-    // não tapar a águia. Sem o dono em cima, só "P1 $"; com ele, o item escolhido: nome,
-    // preço, o que o jogador já tem dele, as moedas e se dá para comprar (ou por que não)
+    // Caixa pequena ao lado da loja, do lado de fora (loja à esquerda da base: caixa à
+    // esquerda), para não tapar a águia, e só com o dono em cima: o ícone e o nome do item e,
+    // embaixo, o preço (dourado se dá para comprar) ou, em vermelho, por que não dá. Sem o
+    // dono em cima, nada: o chão na cor dele já diz de quem é. Pouca coisa para não virar
+    // bagunça com 4 lojas abertas; as moedas ficam no painel
     if(!shopOpen() || !hasShop(index)) return;
     Renderer* renderer = Engine::getEngine().getRenderer();
     std::vector<ShopItem> items = shopItems();
-    const Player* owner = nullptr;
-    for(const Player* p : m_players) if(p->playerIndex() == index && !p->to_erase) owner = p;
-    if(owner == nullptr) return; // caído (volta no começo do intervalo; o reviver da onda)
-    const Player* user = owner->shop_mode ? owner : nullptr;
-    SDL_Color color = owner->color;
+    const Player* user = nullptr;
+    for(const Player* p : m_players) if(p->playerIndex() == index && !p->to_erase && p->shop_mode) user = p;
+    if(user == nullptr) return;
+    SDL_Color color = user->color;
 
     struct Line { std::string text; SDL_Color color; };
     std::vector<Line> lines;
-    bool has_icon = false;
+    const bool has_icon = true;
     ShopItem item = items.at(m_shop_item[index] % items.size());
-    if(user != nullptr)
-    {
-        has_icon = true;
-        lines.push_back({shopName(item.type), WHITE});
-        std::string why = cannotBuy(item, user);
-        int cost = price(item, user);
-        bool at_max = why == "MAX LEVEL" || why == "MAX SLOTS";
-        lines.push_back({at_max ? "SOLD OUT" : "PRICE $" + Engine::intToString(cost), coins(user) >= cost && !at_max ? GOLD : RED});
-        // O que o jogador já tem: unidades e espaços, nível, espaços, aliados no mapa
-        std::string have;
-        if(storesPower(item.type))
-        {
-            int units = (user->held_power == item.type ? 1 : 0) +
-                        static_cast<int>(std::count(user->power_stock.begin(), user->power_stock.end(), item.type));
-            have = "HAVE " + Engine::intToString(units) + "  SLOTS " + Engine::intToString(user->storedPowers()) + "/" + Engine::intToString(user->power_slots);
-        }
-        else if(item.type == ST_BONUS_STAR) have = "LEVEL " + Engine::intToString(user->stars()) + "/3";
-        else if(item.type == ST_NONE) have = "SLOTS " + Engine::intToString(user->power_slots) + "/" + Engine::intToString(AppConfig::survival_max_slots);
-        else if(item.type == ST_BONUS_TANK) have = "ALLIES " + Engine::intToString(static_cast<int>(m_allies.size())) + "/" + Engine::intToString(AppConfig::survival_reinforce_max);
-        if(!have.empty()) lines.push_back({have, LIGHT_GRAY});
-        lines.push_back({(m_shared_coins ? "TEAM $" : "YOUR $") + Engine::intToString(coins(user)), GOLD});
-        lines.push_back(why.empty() ? Line{"FIRE: BUY", WHITE} : Line{why, RED});
-        // Na loja, LB escolhe o item em vez de usar o poder guardado: para usar, é sair dela
-        if(user->held_power != ST_NONE)
-            lines.push_back({"USE OUTSIDE", GRAY});
-    }
-    else
-        lines.push_back({"P" + Engine::intToString(index + 1) + " $" + Engine::intToString(coins(owner)), color});
+    lines.push_back({shopName(item.type), WHITE});
+    std::string why = cannotBuy(item, user);
+    int cost = price(item, user);
+    if(why.empty()) lines.push_back({"$" + Engine::intToString(cost), GOLD});
+    else if(why.compare(0, 4, "NEED") == 0) lines.push_back({"$" + Engine::intToString(cost), RED});
+    else lines.push_back({why, RED});
 
     // Primeira linha com o item: "◀ ícone ▶  NOME"
     const int pad_x = 5, pad_y = 5, gap = 4, icon_size = 16, arrow = 5;

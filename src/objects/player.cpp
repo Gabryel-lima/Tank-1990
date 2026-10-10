@@ -47,6 +47,7 @@ void Player::update(Uint32 dt)
     {
         bool up = false, down = false, left = false, right = false, shoot = false, power = false;
         bool shop_left = false, shop_right = false; // navegação na loja (sobrevivência)
+        bool slot_left = false, slot_right = false; // escolha do espaço de poder (L2 / R2)
 
         // Jogador do computador: a IA do modo de jogo decide no lugar do teclado
         if(cpu)
@@ -94,6 +95,9 @@ void Player::update(Uint32 dt)
             power = power || lb;
             shop_left = lb;
             shop_right = shop_right || rb;
+            // Gatilhos (eixos de 0 a 32767): passam de metade, contam como apertados
+            slot_left = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 16000;
+            slot_right = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 16000;
         }
 
         // Movimentação: uma direção por vez, na ordem cima/baixo/esquerda/direita
@@ -109,6 +113,10 @@ void Player::update(Uint32 dt)
         if(shop_right && !m_shop_right_down) m_shop_step++;
         m_shop_left_down = shop_left;
         m_shop_right_down = shop_right;
+        if(slot_left && !m_slot_left_down) m_slot_step--;
+        if(slot_right && !m_slot_right_down) m_slot_step++;
+        m_slot_left_down = slot_left;
+        m_slot_right_down = slot_right;
 
         if(up || down || left || right)
             speed = default_speed * (m_turbo_time > 0 ? AppConfig::power_turbo_factor : 1.0);
@@ -210,6 +218,7 @@ void Player::destroy()
         changeStarCountBy(-3);
         held_power = ST_NONE;
         power_stock.clear();
+        power_selected = 0;
         Tank::destroy();
     }
 }
@@ -395,6 +404,27 @@ void Player::storePower(SpriteType type)
 {
     if(held_power == ST_NONE) held_power = type;
     else power_stock.push_back(type);
+}
+
+std::vector<SpriteType> Player::units() const
+{
+    std::vector<SpriteType> list;
+    if(held_power != ST_NONE) list.push_back(held_power);
+    list.insert(list.end(), power_stock.begin(), power_stock.end());
+    return list;
+}
+
+void Player::setUnits(const std::vector<SpriteType>& list)
+{
+    held_power = list.empty() ? ST_NONE : list.front();
+    power_stock.assign(list.empty() ? list.end() : list.begin() + 1, list.end());
+}
+
+int Player::takeSlotStep()
+{
+    int step = m_slot_step;
+    m_slot_step = 0;
+    return step;
 }
 
 void Player::consumeHeldPower()
