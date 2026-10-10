@@ -57,12 +57,12 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 
 | # | Regra | Onde |
 |---|-------|------|
-| W1 | Uma classificação só: o que depende de **onde e quando** é usado é **guardável** (mina, barricada, torreta, retorno, turbo); o resto é imediato. Exceção: poder **comprado** (a loja da sobrevivência) é sempre guardado, porque a compra acontece fora da hora de usar. | `Powers::storable`, `Survival::storesPower` |
+| W1 | Uma classificação só: o que depende de **onde e quando** é usado é **guardável** (mina, barricada, torreta, retorno, turbo); o resto é imediato, **também na compra** (a loja da sobrevivência). O imediato que no momento correria sem efeito (trégua e escudo de equipe no intervalo) fica **armado** para quando faz efeito, em vez de ocupar espaço; o que não faria nada (reparo com a muralha inteira) não é vendido nem pego. | `Powers::storable`, `Survival::storesPower`, `Survival::applyNow` |
 | W2 | Cada modo tem a **sua tabela de sorteio**, sem poder que não faça nada nele (a trégua não entra no duelo, onde nada surge). | `Powers::duelTable`, `Powers::survivalTable` |
 | W3 | Com os espaços de poder cheios, o jogador **não pega outro bônus** (os bônus continuam no mapa). **Morrer perde** os poderes guardados. Um espaço guarda uma unidade; o modo pode dar mais espaços (a sobrevivência vende) e o botão usa as unidades na ordem em que entraram. | `Player::held_power`, `Player::power_stock`, `Player::destroy` |
-| W4 | O painel mostra o **espaço do poder de cada jogador**: o ícone, ou uma moldura vazia. | `Game::drawPowerSlot` |
+| W4 | O painel mostra o **espaço do poder de cada jogador**: o ícone, ou uma moldura vazia. Com mais de um espaço, **um quadrado por espaço**, cada um com o que guarda. | `Game::drawPowerSlot`, `Game::drawPowerSlots` |
 | W5 | Barricada e torreta só vão em área livre: dentro do mapa, sem cenário, **arbusto**, base, tanque ou torreta, e fora dos blocos que o modo reserva (pontos de nascimento). | `Game::areaFree`, `Game::rectFree`, `reservedTile()` do modo |
-| W6 | Torreta e mina **ficam até serem destruídas**, em todos os modos (sem tempo nem munição): a torreta sai com um tiro no **corpo** (não no vão ao lado do cano), a mina quando explode. Cada jogador tem até `power_turret_max_per_player` torretas no mapa; a seguinte desmonta a mais antiga dele. | `AppConfig::power_turret_*`, `Game::placeTurret`, `Turret::hitRect` |
+| W6 | Torreta e mina **ficam até serem destruídas**, em todos os modos (sem tempo nem munição): a torreta sai com um tiro no **corpo** (não no vão ao lado do cano), a mina quando explode (com um inimigo em cima ou um tiro **adversário**: o tiro aliado passa por cima). Cada jogador tem até `power_turret_max_per_player` torretas no mapa; a seguinte desmonta a mais antiga dele. | `AppConfig::power_turret_*`, `Game::placeTurret`, `Turret::hitRect` |
 | W7 | Competitivo: as proteções do jogador (**escudo, barco**) valem contra os poderes do adversário. Contra os inimigos da IA, o poder pode ser total. | `Duel::hitTank`, `Game::killEnemy` |
 | W8 | **Poder com duração** (tempo ou munição) avisa que está acabando com a **névoa branca** do V1, a partir do último quarto, sobre o que o representa no mapa (o objeto, se houver; o tanque, como no turbo). O que fica no jogador também aparece no **espaço de poder do painel enquanto dura**, com a mesma névoa. **Vale para todo poder novo, em qualquer modo.** Hoje segue: turbo (mina e torreta não têm duração: W6). Ainda sem a névoa (só mudam quando pedido): trégua (tem a contagem em texto), escudo de equipe e os originais da campanha (capacete, relógio, pá). | `Object::drawHaze`, `Object::hazeAlpha`, `Player::activePower`, `Game::drawPowerSlot` |
 | W9 | **Poder colocado à frente** (barricada, torreta e os próximos) vai **logo à frente do tanque, na direção dele, nunca com um bloco vazio inteiro no meio**. O tanque para em qualquer pixel (anda `speed * dt`; só o lado se encaixa na grade ao virar). O que não precisa da grade (a torreta, que é um tanque parado) fica **encostado** no tanque e alinhado com ele; o que vira bloco do mapa (a barricada) vai na **primeira fileira de blocos que não toca o tanque**, com um vão menor que um bloco. Sem espaço ali, o poder **não procura outro lugar mais longe**: continua guardado. A mina é deixada **debaixo** do tanque (fica para trás quando ele anda), não à frente. Poder novo colocado à frente usa `frontArea`. | `Game::frontArea`, `Game::frontCell` |
@@ -84,6 +84,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | G1 | **Fogo amigo:** tiro não fere companheiro; o tiro de um **jogador** fere a **própria base** e derruba a **própria estrutura**, como no original. Tiro de bot aliado e de torreta não. | `Duel::bulletCanDamage`, `Duel::breaksBlock`, `Survival::onBaseHit` |
 | G2 | A IA **nunca atira** na direção da própria base ou da própria muralha. | `Duel::firesAtOwnBase` |
 | G3 | Modo com IA não pode travar: se a rodada entrar num impasse, alguém sai do lugar (a simulação acusa partidas "travadas"). | `Duel::roleOf`, `tools/duel_sim.cpp` |
+| G4 | **Aliados se atravessam:** torreta e bot (o reforço) não colidem com os tanques do mesmo lado; os jogadores entre si colidem, como na campanha. | `Game::passThrough`, `Game::sameSide` |
 
 ## 8. Código
 
@@ -122,11 +123,11 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | Mina | respeita escudo e barco | destrói qualquer inimigo | W7: escudo é proteção entre jogadores |
 | Trégua | fora do sorteio | existe | W2: no duelo nada surge |
 | Tiro demolidor e pedra colorida | existem | não existem | estrutura com dono só existe com adversário humano (C3) |
-| Poderes novos | caem como bônus, no sorteio | comprados na loja da equipe, ao lado da base, no intervalo entre as ondas, com as moedas da equipe (`survival_shop`) | com adversário humano o bônus no mapa é disputa; contra a IA, a loja vira decisão da equipe (onde e quando usar) |
+| Poderes novos | caem como bônus, no sorteio | comprados na loja de cada jogador (na cor dele), ao lado da base, no intervalo entre as ondas, com as moedas da equipe ou de cada um (`survival_shop`) | com adversário humano o bônus no mapa é disputa; contra a IA, a loja vira decisão da equipe (onde e quando usar) |
 | Tiro em tanque com estrela | destrói (`duel_star_armor`) | rebaixa um estágio, como na campanha | no duelo a armadura virava vidas extras para quem pega o canhão (desequilíbrio medido) |
 | Espaços de poder | 1 | 1, e a loja vende até 3 | W3: a loja é o lugar de planejar a defesa |
 | Aliados do computador | bots de reforço da equipe, entre os inimigos, com a IA do duelo | tropa de reforço comprada na loja (`Game::m_allies`), atira só com o inimigo na mira | no duelo o bot é jogador de uma equipe; na sobrevivência, um ajudante contra a IA |
 | Pedra | quebra só com o canhão | segura, mas raramente um inimigo a rompe (`survival_wall_breach_chance`) | evento raro de propósito, só contra a IA |
-| Poderes imediatos (reviver, reparo, trégua, escudo de equipe) | valem na hora em que o bônus é pego | comprados, ficam guardados e valem no botão, quando fazem efeito | W1: comprado no intervalo, o imediato se perderia |
+| Trégua e escudo de equipe | valem na hora em que o bônus é pego | comprados no intervalo, ficam armados e começam com a próxima onda | W1: no intervalo correriam sem inimigos |
 | Moedas | não há | da equipe ou de cada um (escolha no menu) | |
 | Quando dá para pausar | durante a rodada | durante a onda e o aviso dela (os jogadores já se movem) | M4 |

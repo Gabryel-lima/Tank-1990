@@ -16,8 +16,9 @@
  * @li a cada AppConfig::survival_life_every_waves ondas, todos ganham uma vida e quem
  *     já tinha caído volta ao jogo;
  * @li cada jogador tem a sua cor (P1 amarelo, P2 verde, P3 azul, P4 vermelho);
- * @li nos intervalos, a loja ao lado da base vende poderes, estrelas, espaços de poder e
- *     a tropa de reforço, com as moedas da equipe ou de cada um (escolha no menu);
+ * @li nos intervalos, cada jogador tem a sua loja ao lado da base, na cor dele, que vende
+ *     poderes, estrelas, espaços de poder e a tropa de reforço, com as moedas da equipe ou
+ *     de cada um (escolha no menu);
  * @li raramente, um inimigo rompe a parede de pedra em que bateu e passa
  *     (AppConfig::survival_wall_breach_chance);
  * @li acaba quando a águia cai ou todos os jogadores perdem as vidas: vale a onda alcançada.
@@ -102,21 +103,44 @@ private:
     /** Refaz os tijolos em volta da águia (sem cobrir tanques, nem a pedra da pá). */
     void rebuildBaseWalls();
 
-    /** Poder novo (mina, trégua, reparo...): na sobrevivência, todos ficam guardados até o botão. */
+    /**
+     * Poder novo que fica guardado até o botão: os que dependem de onde e quando são usados
+     * (Powers::storable: mina, barricada, torreta, retorno, turbo). Os outros (reviver,
+     * reparo, trégua, escudo de equipe) valem na hora, também na compra.
+     */
     static bool storesPower(SpriteType type);
 
     /** A muralha da águia está inteira (sem bloco faltando nem tijolo rachado). */
     bool baseWallIntact() const;
 
-    /** Dá o poder novo ao jogador: vai para o espaço de poder (ver storesPower). */
-    void givePower(Player* player, SpriteType type);
+    /**
+     * Dá o poder novo ao jogador: o guardável vai para o espaço de poder; o outro vale na
+     * hora (applyNow).
+     * @return false se o que vale na hora não teve efeito (ver applyNow)
+     */
+    bool givePower(Player* player, SpriteType type);
 
-    // ===== Loja (AppConfig::survival_shop): uma só, da equipe, aberta nos intervalos =====
+    /**
+     * Poder que vale na hora (o que não é storesPower). A trégua e o escudo de equipe pegos
+     * ou comprados fora da onda ficam armados para o começo da próxima (no intervalo eles
+     * correriam sem inimigos).
+     * @return false se não há o que fazer agora (reparo com a muralha inteira, já armado)
+     */
+    bool applyNow(Player* player, SpriteType type);
 
-    SDL_Point m_shop_pad = {-1, -1}; ///< canto do 2x2 da loja (pixels); x < 0: sem loja
-    int m_shop_item = 0;             ///< item escolhido (índice em shopItems())
-    int m_shop_user = -1;            ///< jogador em cima da loja (índice) ou -1
+    /** Por que o poder que vale na hora não faria nada agora, ou "" se faz. */
+    std::string noEffect(SpriteType type) const;
+
+    /** Escudo em todos os jogadores vivos, como o capacete da campanha. */
+    void shieldTeam();
+
+    // ===== Lojas (AppConfig::survival_shop): uma por jogador, abertas nos intervalos =====
+
+    SDL_Point m_shop_pads[4] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}}; ///< canto do 2x2 da loja de cada jogador (pixels); x < 0: sem loja
+    int m_shop_item[4] = {0, 0, 0, 0}; ///< item escolhido por cada jogador (índice em shopItems())
     bool m_shared_coins = true;      ///< moedas da equipe (true) ou de cada jogador
+    bool m_truce_armed = false;      ///< trégua comprada no intervalo: começa com a próxima onda
+    bool m_shield_armed = false;     ///< escudo de equipe comprado no intervalo: liga com a próxima onda
     int m_coins_spent[4] = {0, 0, 0, 0}; ///< moedas gastas por cada jogador (índice)
 
     /**
@@ -160,18 +184,25 @@ private:
     /** Duração da fase de intervalo (ms): o intervalo menos o aviso da próxima onda. */
     Uint32 breakTime() const;
 
-    /** Loja aberta: no intervalo, antes do aviso da próxima onda, e com lugar no mapa. */
+    /** Alguma loja aberta: no intervalo, antes do aviso da próxima onda, e com lugar no mapa. */
     bool shopOpen() const;
 
-    /** Escolhe o lugar da loja: ao lado da base, de um lado sorteado (SurvivalLayout::shopSpots). */
+    /** Há loja (no mapa) para o jogador @a index. */
+    bool hasShop(int index) const;
+
+    /**
+     * Escolhe o lugar da loja de cada jogador, ao lado da base (SurvivalLayout::shopSpots), sem
+     * uma cobrir a outra: P1 e P3 do lado esquerdo, P2 e P4 do direito (o lado de onde nascem);
+     * sem lugar ali, do outro lado.
+     */
     void placeShop();
 
-    /** O tanque está em cima da loja (até 8 px fora do lugar). */
+    /** O tanque está em cima da loja dele (até 8 px fora do lugar). */
     bool onShop(const Player* player) const;
 
     /**
-     * Quem está em cima da loja: LB e RB escolhem o item, tiro compra (sem disparar); os
-     * outros usam o poder guardado com o botão de poder, como sempre.
+     * Quem está em cima da própria loja: LB e RB escolhem o item, tiro compra (sem disparar);
+     * fora dela, o botão de poder usa o poder guardado, como sempre.
      */
     void updateShop();
 
@@ -213,12 +244,13 @@ private:
     void breach(Enemy* enemy);
 
     void drawFloor() override;
-    void drawShop();
+    /** Caixa de texto da loja do jogador @a index (o item escolhido, se ele está em cima). */
+    void drawShop(int index);
     /**
-     * Caixa de texto da loja (sem a borda de 1 px), de @a width x @a height: ao lado da loja,
-     * do lado de fora, e com a borda inteira dentro do mapa.
+     * Caixa de texto da loja em @a pad (sem a borda de 1 px), de @a width x @a height: ao lado
+     * da loja, do lado de fora, e com a borda inteira dentro do mapa.
      */
-    SDL_Rect shopBoxRect(int width, int height) const;
+    SDL_Rect shopBoxRect(SDL_Point pad, int width, int height) const;
     static std::string shopName(SpriteType type);
 
     /** Tiles da muralha da águia ({coluna, linha}): laterais e frente. */

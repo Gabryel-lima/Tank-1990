@@ -136,6 +136,13 @@ protected:
     void drawPowerSlot(const Player* player, const SDL_Rect& slot);
 
     /**
+     * Todos os espaços de poder do jogador (Player::power_slots), lado a lado a partir de
+     * @a at, de @a size px: o primeiro como drawPowerSlot, os outros com o poder guardado em
+     * cada um (Player::power_stock, na ordem de uso) ou a moldura vazia.
+     */
+    void drawPowerSlots(const Player* player, SDL_Point at, int size, int gap);
+
+    /**
      * Carrega o mapa do nível a partir de um arquivo.
      * @param path - caminho para o arquivo do mapa
      */
@@ -213,7 +220,8 @@ protected:
     void checkCollisionTankWithLevel(Tank* tank, Uint32 dt);
 
     /**
-     * Verifica se há colisão entre dois tanques; se sim, ambos são parados.
+     * Verifica se há colisão entre dois tanques; se sim, ambos são parados. Torreta e bot
+     * aliados não colidem com os tanques do mesmo lado (passThrough).
      * @param tank1
      * @param tank2
      * @param dt
@@ -229,6 +237,19 @@ protected:
      * @return true se a área estiver livre
      */
     bool isAreaFreeForTank(SDL_Rect area, Tank* tank, Uint32 dt);
+
+    /**
+     * Os dois tanques são do mesmo lado. Padrão: os jogadores, as torretas (m_turrets) e os
+     * aliados (m_allies) são um lado, os inimigos (m_enemies) o outro. O duelo compara a equipe.
+     */
+    virtual bool sameSide(const Tank* a, const Tank* b) const;
+
+    /**
+     * Os dois tanques se atravessam: do mesmo lado e um deles é torreta ou bot (o reforço do
+     * computador). Os jogadores entre si continuam colidindo, como na campanha (que não tem
+     * torreta nem bot: nada muda nela).
+     */
+    bool passThrough(const Tank* a, const Tank* b) const;
 
     /**
      * Assistência de curva: se o jogador foi parado pela quina de um obstáculo, mas estaria livre
