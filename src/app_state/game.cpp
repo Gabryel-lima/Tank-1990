@@ -1176,6 +1176,11 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
 
     SDL_Rect intersect_rect = intersectRect(&player->collision_rect, &bonus->collision_rect);
     if(intersect_rect.w > 0 && intersect_rect.h > 0)
+        collectBonus(player, bonus);
+}
+
+void Game::collectBonus(Player *player, Bonus *bonus)
+{
     {
 
         // sound
@@ -1533,6 +1538,12 @@ bool Game::placeTurret(Player* player)
 void Game::placeMine(Player* player)
 {
     SDL_Point center = {static_cast<int>(player->pos_x) + player->dest_rect.w / 2, static_cast<int>(player->pos_y) + player->dest_rect.h / 2};
+    // Além do limite por jogador, a mais antiga dele some (sem explodir), como as torretas
+    std::vector<Mine*> own;
+    for(Mine* other : m_mines)
+        if(other->owner == player->playerIndex() && !other->to_erase) own.push_back(other);
+    int excess = static_cast<int>(own.size()) + 1 - std::max(1, AppConfig::power_mine_max_per_player);
+    for(int i = 0; i < excess; i++) own[i]->to_erase = true;
     m_mines.push_back(new Mine(center, player->team, player->playerIndex(), player->color));
     SoundManager::getInstance().playSound("bonus");
 }
@@ -1652,7 +1663,7 @@ bool Game::clearShot(Tank* shooter, Direction d)
     return true;
 }
 
-void Game::hunt(Tank* tank, TankCommand& c, Uint32 dt)
+void Game::hunt(Tank* tank, TankCommand& c, Uint32 dt, const SDL_Rect* goal)
 {
     // Inimigo na mira: vira e atira parado (a direção atual primeiro)
     c.fire = false;
@@ -1663,14 +1674,15 @@ void Game::hunt(Tank* tank, TankCommand& c, Uint32 dt)
     }
     if(c.fire) return;
 
-    // Ninguém na mira: atrás do inimigo mais perto
-    Enemy* target = nullptr;
+    // Ninguém na mira: atrás do objetivo dado (um bônus) ou do inimigo mais perto
+    const SDL_Rect* target = goal;
     int best = 0;
     for(Enemy* e : m_enemies)
     {
+        if(goal != nullptr) break;
         if(e->to_erase || !e->testFlag(TSF_LIFE)) continue;
         int distance = std::abs(e->dest_rect.x - tank->dest_rect.x) + std::abs(e->dest_rect.y - tank->dest_rect.y);
-        if(target == nullptr || distance < best) { target = e; best = distance; }
+        if(target == nullptr || distance < best) { target = &e->dest_rect; best = distance; }
     }
     if(target == nullptr) { c.move = false; return; } // sem inimigos: espera
     c.move = true;
@@ -1688,7 +1700,7 @@ void Game::hunt(Tank* tank, TankCommand& c, Uint32 dt)
     }
     bool blocked = !isAreaFreeForTank(ahead, tank, dt);
     if(!blocked && rand() % 1000 >= static_cast<int>(2 * dt)) return;
-    int dx = target->dest_rect.x - tank->dest_rect.x, dy = target->dest_rect.y - tank->dest_rect.y;
+    int dx = target->x - tank->dest_rect.x, dy = target->y - tank->dest_rect.y;
     Direction toward_x = dx < 0 ? D_LEFT : D_RIGHT, toward_y = dy < 0 ? D_UP : D_DOWN;
     int roll = rand() % 100;
     if(roll < (blocked ? 40 : 15)) c.direction = static_cast<Direction>(rand() % 4);

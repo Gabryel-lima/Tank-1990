@@ -130,12 +130,14 @@ void Player::update(Uint32 dt)
         // esperava uma recarga inteira a mais, um atraso que variava conforme o encaixe
         if(shoot && !m_fire_down) m_fire_pressed = true;
         m_fire_down = shoot;
-        if(!shop_mode && shoot && m_fire_time > m_reload_time && fire() != nullptr)
+        Uint32 reload = m_rapid_time > 0 ? static_cast<Uint32>(m_reload_time * AppConfig::power_rapid_factor) : m_reload_time;
+        if(!shop_mode && shoot && m_fire_time > reload && fire() != nullptr)
             m_fire_time = 0;
     }
 
     m_fire_time += dt; // Atualiza tempo desde o último tiro
     m_turbo_time = m_turbo_time > dt ? m_turbo_time - dt : 0;
+    m_rapid_time = m_rapid_time > dt ? m_rapid_time - dt : 0;
 
     // Atualiza o frame do sprite conforme o estado de vida e power-up
     if(testFlag(TSF_LIFE))
@@ -175,7 +177,8 @@ void Player::respawn()
     dest_rect.h = m_sprite->rect.h;
     dest_rect.w = m_sprite->rect.w;
 
-    m_turbo_time = 0; // o turbo acaba com a morte (o poder guardado, não)
+    m_turbo_time = 0; // o turbo e a cadência acabam com a morte (o poder guardado, não)
+    m_rapid_time = 0;
 
     // Renasce apontando para cima; no duelo, a equipe de cima (B) renasce apontando para baixo
     setDirection(team == 1 ? D_DOWN : D_UP);
@@ -254,16 +257,22 @@ void Player::drawEffects()
     // Brilho rápido (120 ms a cada 1 s): diferente da névoa contínua de quem está acabando
     if(m_demolisher && testFlag(TSF_LIFE) && demolisherGlint(m_effect_time))
         Engine::getEngine().getRenderer()->drawWhite(&src_rect, &dest_rect, DEMOLISHER_GLINT_ALPHA);
-    // Turbo acabando: a névoa branca de tudo que está acabando (V1)
-    if(testFlag(TSF_LIFE)) drawHaze(turboEnding());
+    // Turbo ou cadência acabando: a névoa branca de tudo que está acabando (V1)
+    if(testFlag(TSF_LIFE)) drawHaze(std::max(turboEnding(), rapidEnding()));
 }
 
 SpriteType Player::activePower(double* ending) const
 {
-    if(m_turbo_time > 0)
+    // Os dois valendo: o que acaba primeiro (é o que precisa do aviso)
+    if(m_turbo_time > 0 && (m_rapid_time == 0 || m_turbo_time <= m_rapid_time))
     {
         if(ending != nullptr) *ending = turboEnding();
         return ST_BONUS_TURBO;
+    }
+    if(m_rapid_time > 0)
+    {
+        if(ending != nullptr) *ending = rapidEnding();
+        return ST_BONUS_RAPID;
     }
     if(ending != nullptr) *ending = 0;
     return ST_NONE;
@@ -327,7 +336,25 @@ bool Player::takePowerPress()
 
 void Player::boost(Uint32 ms)
 {
-    m_turbo_time = ms;
+    // Com o turbo valendo, soma (até 2 vezes o tempo): usar outro não joga fora o que restava
+    m_turbo_time = std::min(m_turbo_time + ms, 2 * ms);
+}
+
+void Player::rapidFire(Uint32 ms)
+{
+    m_rapid_time = std::min(m_rapid_time + ms, 2 * ms);
+}
+
+double Player::rapidEnding() const
+{
+    double quarter = AppConfig::power_rapid_time / 4.0;
+    if(m_rapid_time == 0 || quarter <= 0 || m_rapid_time >= quarter) return 0;
+    return 1.0 - m_rapid_time / quarter;
+}
+
+unsigned Player::extraBullets() const
+{
+    return m_rapid_time > 0 ? AppConfig::power_rapid_bullets : 0;
 }
 
 void Player::teleport(double x, double y)

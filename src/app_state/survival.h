@@ -69,7 +69,16 @@ public:
     std::vector<SDL_Point> bonusSpots() const;
 
 protected:
-    void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus) override;
+    void collectBonus(Player* player, Bonus* bonus) override;
+
+    /**
+     * Reforço que passa por cima de um bônus o pega para quem o chamou (ou, com ele caído,
+     * para o primeiro jogador em jogo): o efeito é o mesmo de o jogador pegar.
+     */
+    void alliesCollectBonuses();
+
+    /** Quem recebe o que o reforço pega: quem o chamou, ou (caído) o primeiro em jogo. */
+    Player* allyOwner(const Bot* ally) const;
     bool reservedTile(int row, int column) override;
     int enemyLimit() const override;
     Uint32 enemySpawnDelay() const override;
@@ -103,6 +112,12 @@ private:
 
     /** Dificuldade da onda na escala das fases da campanha (1 a 35). */
     int difficulty() const;
+
+    /**
+     * Degrau do reforço lento da dificuldade: 0 nas ondas 1 a 10, 1 nas 11 a 20... até
+     * AppConfig::survival_ramp_max_steps (ver survival_ramp_*).
+     */
+    int rampStep() const;
 
     /** Refaz os tijolos em volta da águia (sem cobrir tanques, nem a pedra da pá). */
     void rebuildBaseWalls();

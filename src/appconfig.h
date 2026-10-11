@@ -293,6 +293,14 @@ public:
     static double power_turbo_factor;
     /** Duração (ms) da trégua (sobrevivência: os inimigos param de surgir). */
     static unsigned power_truce_time;
+    /** Cadência de tiro: duração (ms) */
+    static unsigned power_rapid_time;
+    /** Cadência: a recarga do tiro é multiplicada por este fator (0,5 = metade) */
+    static double power_rapid_factor;
+    /** Cadência: tiros a mais na tela ao mesmo tempo, por cima das estrelas */
+    static unsigned power_rapid_bullets;
+    /** Minas no mapa por jogador; a seguinte tira a mais antiga dele (como as torretas) */
+    static int power_mine_max_per_player;
     /**
      * Sobrevivência: os poderes de lugar e momento (mina, barricada, torreta, retorno e turbo)
      * ficam guardados até o jogador usar (true) ou valem na hora em que são pegos (false).
@@ -390,6 +398,16 @@ public:
 
     /** A cada quantas ondas vencidas todos ganham uma vida (quem caiu volta em toda onda). */
     static int survival_life_every_waves;
+    /** A cada quantas ondas a dificuldade sobe um degrau (além da escala da campanha) */
+    static int survival_ramp_every_waves;
+    /** Por degrau: velocidade dos inimigos a mais (0,05 = 5%) */
+    static double survival_ramp_speed;
+    /** Por degrau: chance de um inimigo vir com uma blindagem a mais (0,1 = 10%) */
+    static double survival_ramp_armor;
+    /** Degraus no máximo (o jogo não fica impossível) */
+    static int survival_ramp_max_steps;
+    /** Distância (tiles, em linha reta por x + y) até onde o reforço vai buscar um bônus */
+    static int survival_ally_bonus_range;
 
     /**
      * Velocidade padrão dos projéteis disparados.

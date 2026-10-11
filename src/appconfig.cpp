@@ -193,6 +193,11 @@ int AppConfig::power_turret_range = 12;
 unsigned AppConfig::power_turbo_time = 8000;
 double AppConfig::power_turbo_factor = 1.5;
 unsigned AppConfig::power_truce_time = 10000;
+// Cadência: 10 s com a recarga pela metade e um tiro a mais na tela (somado ao das estrelas)
+unsigned AppConfig::power_rapid_time = 10000;
+double AppConfig::power_rapid_factor = 0.5;
+unsigned AppConfig::power_rapid_bullets = 1;
+int AppConfig::power_mine_max_per_player = 5;
 bool AppConfig::survival_store_powers = true;
 // Loja da sobrevivência: uma só, da equipe, ao lado da base, aberta no intervalo entre as
 // ondas. Os poderes novos são comprados com moedas (cada 100 pontos valem uma; um inimigo
@@ -200,13 +205,14 @@ bool AppConfig::survival_store_powers = true;
 // custa mais. A torreta, que fica até ser destruída e não tem munição contada, é a mais cara
 // dos poderes; a estrela e o espaço sobem de preço a cada compra (passos abaixo). Na loja,
 // do mais barato ao mais caro (pelo preço da lista)
-// A trégua ("truce", 20) existe no código, mas está fora da loja e do sorteio da sobrevivência
-// por enquanto; a pá ("shovel") saiu do sorteio e é vendida, armada para a próxima onda
+// A trégua ("truce", 20) e a pá ("shovel", 12; armada para a próxima onda) existem no código,
+// mas estão fora da loja e do sorteio da sobrevivência por enquanto. A cadência ("rapid") dura
+// como o turbo e fica guardada até o botão
 bool AppConfig::survival_shop = true;
 vector<pair<string, int>> AppConfig::survival_shop_items =
 {
     {"barricade", 6}, {"turbo", 6}, {"mine", 8}, {"recall", 8}, {"repair", 10},
-    {"star", 12}, {"shovel", 12}, {"slot", 15}, {"revive", 15}, {"teamshield", 20},
+    {"star", 12}, {"rapid", 12}, {"slot", 15}, {"revive", 15}, {"teamshield", 20},
     {"turret", 30}, {"reinforce", 35},
 };
 int AppConfig::survival_points_per_coin = 100;
@@ -238,8 +244,18 @@ int AppConfig::survival_max_on_map = 10;
 unsigned AppConfig::survival_first_spawn_delay = 1500;
 unsigned AppConfig::survival_min_spawn_delay = 500;
 unsigned AppConfig::survival_wave_intro_time = 3000;
-// A cada 4 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
-int AppConfig::survival_life_every_waves = 4;
+// A cada 5 ondas vencidas, todos ganham uma vida (quem caiu volta a cada onda, com uma)
+int AppConfig::survival_life_every_waves = 5;
+// Reforço lento da dificuldade: a escala da campanha chega ao topo na onda 17 e, sem isto, o
+// jogo parava de ficar difícil (num mapa fácil de defender, para sempre). A cada 10 ondas
+// (11, 21, 31...), os inimigos ficam 5% mais rápidos e 10% deles ganham uma blindagem a mais;
+// até 5 degraus (onda 51: +25% e metade com blindagem extra)
+int AppConfig::survival_ramp_every_waves = 10;
+double AppConfig::survival_ramp_speed = 0.05;
+double AppConfig::survival_ramp_armor = 0.10;
+int AppConfig::survival_ramp_max_steps = 5;
+// O reforço busca o bônus que estiver a até 12 tiles (x + y); mais longe, segue caçando
+int AppConfig::survival_ally_bonus_range = 12;
 
 // Demonstração no fundo do menu: troca de modo a cada 40 s; escurecida a 2/3
 unsigned AppConfig::menu_demo_time = 40000;

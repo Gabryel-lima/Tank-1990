@@ -43,6 +43,7 @@ enum SpriteType
     ST_BONUS_REPAIR,       // Reparo: refaz a muralha da própria base
     ST_BONUS_TRUCE,        // Trégua: os inimigos param de surgir por um tempo (sobrevivência)
     ST_BONUS_TEAM_SHIELD,  // Escudo de equipe: capacete para todos da equipe
+    ST_BONUS_RAPID,        // Cadência: atira mais rápido (mais um tiro na tela) por um tempo
 
     ST_TURRET,         // Torreta no mapa (4 direções)
     ST_MINE,           // Mina no mapa (2 quadros, a luz pisca)

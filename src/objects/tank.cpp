@@ -191,7 +191,7 @@ unsigned Tank::bulletsInUse() const
 Bullet* Tank::fire()
 {
     if(!testFlag(TSF_LIFE)) return nullptr;
-    if(bulletsInUse() < m_bullet_max_size)
+    if(bulletsInUse() < m_bullet_max_size + extraBullets())
     {
 
         // sound

@@ -309,7 +309,13 @@ protected:
      * @param player
      * @param bonus
      */
-    virtual void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+    void checkCollisionPlayerWithBonus(Player* player, Bonus* bonus);
+
+    /**
+     * O jogador pegou o bônus (encostou nele, ou um aliado dele o pegou na sobrevivência):
+     * o efeito, os pontos e o bônus sai do mapa. Padrão: o da campanha.
+     */
+    virtual void collectBonus(Player* player, Bonus* bonus);
 
     // ======================== Poderes dos modos extras ========================
     // Comuns ao duelo e à sobrevivência (a campanha nunca cria minas nem torretas)
@@ -385,7 +391,7 @@ protected:
      * e atira parado; senão, anda atrás do inimigo mais perto, como os inimigos da campanha
      * atrás do alvo, trocando de direção de tempos em tempos e quando bate em algo.
      */
-    void hunt(Tank* tank, TankCommand& command, Uint32 dt);
+    void hunt(Tank* tank, TankCommand& command, Uint32 dt, const SDL_Rect* goal = nullptr);
 
     /** Destrói o inimigo de vez (mina, granada), dando o bônus que ele carregava e os pontos. */
     void killEnemy(Enemy* enemy, Player* by);
