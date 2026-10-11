@@ -656,6 +656,10 @@ bool Duel::usePower(Player* player)
         player->boost(AppConfig::power_turbo_time);
         SoundManager::getInstance().playSound("bonus");
         return true;
+    case ST_BONUS_RAPID:
+        player->rapidFire(AppConfig::power_rapid_time);
+        SoundManager::getInstance().playSound("bonus");
+        return true;
     case ST_BONUS_RECALL:
     {
         // O próprio ponto de nascimento, ao lado da base; ocupado, outro da equipe

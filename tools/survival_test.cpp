@@ -192,18 +192,17 @@ struct SurvivalTest
         for(const Powers::Weight& w : Powers::survivalTable()) if(w.type == ST_BONUS_TRUCE) truce_drawn = true;
         expect(!truce_drawn, "trégua fora do sorteio");
 
-        // Escudo e pá: no intervalo correriam sem inimigos; ficam armados para a onda
+        // Escudo: no intervalo correria sem inimigos; fica armado para a onda
         expect(s.buy(p, item(ST_BONUS_TEAM_SHIELD)) && s.m_shield_armed && p->storedPowers() == 0, "escudo de equipe no intervalo: armado");
-        expect(s.buy(p, item(ST_BONUS_SHOVEL)) && s.m_shovel_armed && !s.m_protect_eagle, "pá na loja: armada, sem valer no intervalo");
-        expect(s.cannotBuy(item(ST_BONUS_SHOVEL), p) == "READY", "pá já armada: não compra outra");
         s.startWave(s.m_wave + 1);
         run(s, static_cast<int>(AppConfig::survival_wave_intro_time / 16) + 2);
-        expect(s.m_phase == Survival::PHASE_PLAY && p->testFlag(TSF_SHIELD) && s.m_protect_eagle, "escudo e pá começam com a onda");
-        SDL_Point wall = s.baseWallTiles().front();
-        expect(s.m_level.at(wall.y).at(wall.x) != nullptr && s.m_level.at(wall.y).at(wall.x)->type == ST_STONE_WALL, "a pá põe pedra na muralha");
+        expect(s.m_phase == Survival::PHASE_PLAY && p->testFlag(TSF_SHIELD), "o escudo começa com a onda");
+        // A pá saiu da sobrevivência: nem na loja nem no sorteio
+        expect(item(ST_BONUS_SHOVEL).price < 0, "pá fora da loja");
         int shovels = 0;
         for(int k = 0; k < 2000; k++) if(s.randomBonusType() == ST_BONUS_SHOVEL) shovels++;
-        expect(shovels == 0, "a pá não cai mais no mapa (só na loja)");
+        expect(shovels == 0, "a pá não cai no mapa");
+        expect(Survival::shopName(ST_BONUS_RAPID) == "RAPID FIRE" && item(ST_BONUS_RAPID).price > 0, "cadência na loja, com nome");
         // Colocáveis e os que dependem de onde e quando: guardados
         for(SpriteType type : {ST_BONUS_MINE, ST_BONUS_BARRICADE, ST_BONUS_TURRET, ST_BONUS_RECALL, ST_BONUS_TURBO})
             expect(Survival::storesPower(type), Survival::shopName(type) + ": fica guardado");
@@ -396,6 +395,107 @@ struct SurvivalTest
         delete bonus;
     }
 
+    // ===== Cadência: soma com a estrela e com o turbo, sem anular =====
+    static void rapidFire()
+    {
+        std::srand(29);
+        Survival s(1, 0);
+        s.m_phase = Survival::PHASE_PLAY;
+        Player* p = readyPlayer(s);
+        if(p == nullptr) { expect(false, "um jogador entra no mapa"); return; }
+        p->changeStarCountBy(2); // 2 tiros na tela
+        p->held_power = ST_BONUS_RAPID;
+        expect(s.usePower(p) && p->rapid() && p->extraBullets() == AppConfig::power_rapid_bullets, "cadência: um tiro a mais na tela");
+        p->changeStarCountBy(1); // a estrela recalcula o limite: a cadência continua por cima
+        expect(p->rapid() && p->extraBullets() == AppConfig::power_rapid_bullets, "pegar estrela não anula a cadência");
+        p->held_power = ST_BONUS_TURBO;
+        expect(s.usePower(p) && p->boosted() && p->rapid(), "turbo e cadência valem juntos");
+        p->held_power = ST_BONUS_RAPID;
+        s.usePower(p);
+        for(Uint32 t = 0; t < AppConfig::power_rapid_time + 100; t += 16) p->update(16);
+        expect(p->rapid(), "usar outra cadência com ela valendo soma o tempo (não recomeça)");
+        for(Uint32 t = 0; t < AppConfig::power_rapid_time; t += 16) p->update(16);
+        expect(!p->rapid() && p->extraBullets() == 0, "a cadência acaba");
+    }
+
+    // ===== Minas: até 5 por jogador =====
+    static void mineLimit()
+    {
+        std::srand(31);
+        Survival s(1, 0);
+        s.m_phase = Survival::PHASE_PLAY;
+        Player* p = readyPlayer(s);
+        if(p == nullptr) { expect(false, "um jogador entra no mapa"); return; }
+        for(int k = 0; k < 7; k++) { p->held_power = ST_BONUS_MINE; s.usePower(p); }
+        int alive = 0;
+        for(Mine* m : s.m_mines) if(!m->to_erase) alive++;
+        expect(alive == AppConfig::power_mine_max_per_player, "até " + std::to_string(AppConfig::power_mine_max_per_player) + " minas por jogador (" + std::to_string(alive) + ")");
+    }
+
+    // ===== Dificuldade lenta a cada 10 ondas; vida a cada 5 =====
+    static void ramp()
+    {
+        std::srand(37);
+        Survival s(1, 0);
+        int steps[] = {1, 10, 11, 20, 21, 51, 200};
+        int expected[] = {0, 0, 1, 1, 2, 5, 5};
+        bool ok = true;
+        for(int i = 0; i < 7; i++) { s.m_wave = steps[i]; if(s.rampStep() != expected[i]) ok = false; }
+        expect(ok, "degrau da dificuldade: 0 até a onda 10, +1 a cada 10, até 5");
+        // Inimigos da onda 21 (degrau 2): 10% mais rápidos que os da campanha
+        s.m_wave = 21;
+        s.m_phase = Survival::PHASE_PLAY;
+        for(Enemy* e : s.m_enemies) delete e;
+        s.m_enemies.clear();
+        s.generateEnemy();
+        bool faster = !s.m_enemies.empty();
+        for(Enemy* e : s.m_enemies)
+        {
+            double base = (e->type == ST_TANK_B ? 1.3 : 1.0) * AppConfig::tank_default_speed;
+            if(e->default_speed < base * 1.09) faster = false;
+        }
+        expect(faster, "onda 21: inimigos 10% mais rápidos");
+        expect(AppConfig::survival_life_every_waves == 5, "vida a cada 5 ondas");
+    }
+
+    // ===== Reforço pega bônus para o dono =====
+    static void allyBonus()
+    {
+        std::srand(41);
+        Survival s(1, 0);
+        s.m_phase = Survival::PHASE_PLAY;
+        Player* p = readyPlayer(s);
+        if(p == nullptr) { expect(false, "um jogador entra no mapa"); return; }
+        run(s, 5);
+        expect(s.callReinforcement(p), "chama um reforço");
+        Bot* ally = s.m_allies.back();
+        for(int i = 0; i < 100 && !ally->testFlag(TSF_LIFE); i++) run(s, 1);
+        run(s, 2); // o retângulo de colisão sai no update
+        Bonus* bonus = new Bonus(ally->pos_x, ally->pos_y, ST_BONUS_STAR);
+        bonus->collision_rect = ally->collision_rect;
+        s.m_bonuses.push_back(bonus);
+        int stars = p->stars();
+        s.alliesCollectBonuses();
+        expect(bonus->to_erase && p->stars() == stars + 1, "o reforço pega a estrela e ela vai para o dono");
+        // Perto: vai buscar
+        bonus->to_erase = false;
+        bonus->pos_x = ally->pos_x + 5 * AppConfig::tile_rect.w;
+        bonus->dest_rect.x = static_cast<int>(bonus->pos_x);
+        bonus->dest_rect.y = ally->dest_rect.y;
+        bonus->collision_rect.x = bonus->dest_rect.x;
+        for(Enemy* e : s.m_enemies) delete e;
+        s.m_enemies.clear();
+        // A direção muda de tempos em tempos (às vezes ao acaso, como os inimigos): na maior
+        // parte do tempo, para o lado do bônus
+        int right = 0, total = 2000;
+        for(int i = 0; i < total; i++)
+        {
+            s.steerAllies(16);
+            if(ally->command.move && ally->command.direction == D_RIGHT) right++;
+        }
+        expect(right > total / 2, "bônus perto: o reforço vai até ele (" + std::to_string(100 * right / total) + "% para o lado dele)");
+    }
+
     // ===== Torreta e mina permanentes, nos dois modos =====
     template<class Mode>
     static Player* readyPlayer(Mode& mode)
@@ -493,6 +593,10 @@ int main(int, char*[])
     SurvivalTest::playersPassThrough();
     SurvivalTest::friendlyFire();
     SurvivalTest::tankBonus();
+    SurvivalTest::rapidFire();
+    SurvivalTest::mineLimit();
+    SurvivalTest::ramp();
+    SurvivalTest::allyBonus();
     SurvivalTest::permanentPowers();
 
     std::printf("\n%s: %d falha(s)\n", g_failures == 0 ? "PASSOU" : "FALHOU", g_failures);

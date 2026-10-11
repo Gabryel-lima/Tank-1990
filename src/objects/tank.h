@@ -82,6 +82,9 @@ public:
      */
     virtual unsigned bulletsInUse() const;
 
+    /** Tiros a mais que o limite (m_bullet_max_size) permite agora (a cadência do jogador). */
+    virtual unsigned extraBullets() const { return 0; }
+
     /**
      * Retorna o retângulo de colisão previsto para o próximo frame,
      * considerando a velocidade e direção atuais.

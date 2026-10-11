@@ -14,6 +14,7 @@ bool storable(SpriteType type)
     case ST_BONUS_TURRET:
     case ST_BONUS_RECALL:
     case ST_BONUS_TURBO:
+    case ST_BONUS_RAPID:
         return true;
     default:
         return false;
@@ -22,7 +23,7 @@ bool storable(SpriteType type)
 
 bool isExtra(SpriteType type)
 {
-    return type >= ST_BONUS_MINE && type <= ST_BONUS_TEAM_SHIELD;
+    return type >= ST_BONUS_MINE && type <= ST_BONUS_RAPID;
 }
 
 const char* name(SpriteType type)
@@ -46,6 +47,7 @@ const char* name(SpriteType type)
     case ST_BONUS_REPAIR: return "repair";
     case ST_BONUS_TRUCE: return "truce";
     case ST_BONUS_TEAM_SHIELD: return "teamshield";
+    case ST_BONUS_RAPID: return "rapid";
     default: return "?";
     }
 }
@@ -58,6 +60,7 @@ const std::vector<Weight>& duelTable()
         {ST_BONUS_TANK, 10}, {ST_BONUS_BOAT, 8}, {ST_BONUS_GRENADE, 6}, {ST_BONUS_GUN, 6},
         {ST_BONUS_MINE, 10}, {ST_BONUS_BARRICADE, 10}, {ST_BONUS_TURBO, 10}, {ST_BONUS_RECALL, 8},
         {ST_BONUS_REPAIR, 8}, {ST_BONUS_TURRET, 6}, {ST_BONUS_REVIVE, 6}, {ST_BONUS_TEAM_SHIELD, 5},
+        {ST_BONUS_RAPID, 8},
     };
     return table;
 }
@@ -71,7 +74,7 @@ const std::vector<Weight>& survivalTable()
         {ST_BONUS_TANK, 10}, {ST_BONUS_STAR, 10}, {ST_BONUS_GUN, 10}, {ST_BONUS_BOAT, 10},
         {ST_BONUS_MINE, 8}, {ST_BONUS_BARRICADE, 8}, {ST_BONUS_TURRET, 7}, {ST_BONUS_RECALL, 6},
         {ST_BONUS_TURBO, 7}, {ST_BONUS_REVIVE, 7}, {ST_BONUS_REPAIR, 8},
-        {ST_BONUS_TEAM_SHIELD, 6},
+        {ST_BONUS_TEAM_SHIELD, 6}, {ST_BONUS_RAPID, 7},
     };
     return table;
 }

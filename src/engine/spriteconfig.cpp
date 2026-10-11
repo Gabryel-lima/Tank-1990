@@ -45,6 +45,7 @@ SpriteConfig::SpriteConfig()
     insert(ST_BONUS_REPAIR, 192, 352, 32, 32, 1, 200, false);     // Reparo
     insert(ST_BONUS_TRUCE, 224, 352, 32, 32, 1, 200, false);      // Trégua
     insert(ST_BONUS_TEAM_SHIELD, 256, 352, 32, 32, 1, 200, false); // Escudo de equipe
+    insert(ST_BONUS_RAPID, 288, 352, 32, 32, 1, 200, false);      // Cadência de tiro
     insert(ST_TURRET, 0, 384, 32, 32, 1, 200, false);             // Torreta no mapa (direções em x)
     insert(ST_MINE, 128, 384, 16, 16, 2, 400, true);              // Mina no mapa (luz piscando)
 

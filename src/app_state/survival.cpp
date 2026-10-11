@@ -86,6 +86,12 @@ int Survival::waveEnemies(int wave)
     return std::min(count, AppConfig::survival_max_wave_enemies);
 }
 
+int Survival::rampStep() const
+{
+    int every = std::max(1, AppConfig::survival_ramp_every_waves);
+    return std::min((m_wave - 1) / every, AppConfig::survival_ramp_max_steps);
+}
+
 int Survival::difficulty() const
 {
     // Escala das fases da campanha: onda 1 ~ fase 3, onda 17 em diante ~ fase 35
@@ -214,7 +220,14 @@ void Survival::generateEnemy()
             if(!tank->to_erase && (intersects(tank->collision_rect, area) || intersects(tank->dest_rect, area))) occupied = true;
         if(occupied) continue;
 
-        m_enemies.push_back(createEnemy(point, difficulty()));
+        Enemy* enemy = createEnemy(point, difficulty());
+        // Reforço da dificuldade a cada N ondas (survival_ramp_*), depois que a escala da
+        // campanha já chegou ao topo: um pouco mais rápido e, às vezes, uma blindagem a mais
+        int step = rampStep();
+        enemy->default_speed *= 1.0 + AppConfig::survival_ramp_speed * step;
+        if(enemy->lives_count < 4 && rand() % 1000 < static_cast<int>(1000 * AppConfig::survival_ramp_armor * step))
+            enemy->lives_count++;
+        m_enemies.push_back(enemy);
         return;
     }
 }
@@ -317,7 +330,7 @@ std::vector<Survival::ShopItem> Survival::shopItems()
         else if(entry.first == "reinforce") items.push_back({ST_BONUS_TANK, entry.second});
         else if(entry.first == "shovel") items.push_back({ST_BONUS_SHOVEL, entry.second});
         else
-            for(int t = ST_BONUS_MINE; t <= ST_BONUS_TEAM_SHIELD; t++)
+            for(int t = ST_BONUS_MINE; t <= ST_BONUS_RAPID; t++)
                 if(entry.first == Powers::name(static_cast<SpriteType>(t)))
                     items.push_back({static_cast<SpriteType>(t), entry.second});
     }
@@ -540,11 +553,9 @@ bool Survival::reservedTile(int row, int column)
     return false;
 }
 
-void Survival::checkCollisionPlayerWithBonus(Player* player, Bonus* bonus)
+void Survival::collectBonus(Player* player, Bonus* bonus)
 {
     if(player->to_erase || bonus->to_erase) return;
-    SDL_Rect hit = intersectRect(&player->collision_rect, &bonus->collision_rect);
-    if(hit.w <= 0 || hit.h <= 0) return;
 
     // Com os espaços de poder cheios, só pega outro bônus depois de usar o que tem
     if(player->held_power != ST_NONE && player->storedPowers() >= player->power_slots) return;
@@ -562,7 +573,7 @@ void Survival::checkCollisionPlayerWithBonus(Player* player, Bonus* bonus)
     }
     if(!Powers::isExtra(type))
     {
-        Game::checkCollisionPlayerWithBonus(player, bonus); // os 8 originais, como na campanha
+        Game::collectBonus(player, bonus); // os originais, como na campanha
         return;
     }
     // O que vale na hora e não faria nada agora (reparo com a muralha inteira) fica no mapa
@@ -571,6 +582,28 @@ void Survival::checkCollisionPlayerWithBonus(Player* player, Bonus* bonus)
     player->score += 300;
     bonus->to_erase = true;
     givePower(player, type);
+}
+
+Player* Survival::allyOwner(const Bot* ally) const
+{
+    for(Player* p : m_players) if(p->playerIndex() == ally->owner && !p->to_erase) return p;
+    for(Player* p : m_players) if(!p->to_erase) return p;
+    return nullptr;
+}
+
+void Survival::alliesCollectBonuses()
+{
+    for(Bot* ally : m_allies)
+    {
+        if(ally->to_erase || !ally->testFlag(TSF_LIFE)) continue;
+        Player* owner = allyOwner(ally);
+        if(owner == nullptr) return;
+        for(Bonus* bonus : m_bonuses)
+        {
+            SDL_Rect hit = intersectRect(&ally->collision_rect, &bonus->collision_rect);
+            if(!bonus->to_erase && hit.w > 0 && hit.h > 0) collectBonus(owner, bonus);
+        }
+    }
 }
 
 bool Survival::storesPower(SpriteType type)
@@ -699,6 +732,10 @@ bool Survival::usePower(Player* player)
         player->boost(AppConfig::power_turbo_time);
         SoundManager::getInstance().playSound("bonus");
         return true;
+    case ST_BONUS_RAPID:
+        player->rapidFire(AppConfig::power_rapid_time);
+        SoundManager::getInstance().playSound("bonus");
+        return true;
     case ST_BONUS_RECALL:
     {
         // O próprio ponto de nascimento, ao lado da águia; ocupado, o de outro jogador
@@ -782,8 +819,26 @@ bool Survival::callReinforcement(Player* player)
 
 void Survival::steerAllies(Uint32 dt)
 {
+    // Um bônus perto (AppConfig::survival_ally_bonus_range tiles): o aliado vai buscá-lo, a
+    // não ser que tenha um inimigo na mira (hunt atira primeiro); longe, caça os inimigos
+    const int range = AppConfig::survival_ally_bonus_range * AppConfig::tile_rect.w;
     for(Bot* ally : m_allies)
-        if(!ally->to_erase && ally->testFlag(TSF_LIFE)) hunt(ally, ally->command, dt);
+    {
+        if(ally->to_erase || !ally->testFlag(TSF_LIFE)) continue;
+        // Com os espaços do dono cheios, o bônus não seria pego: nem vai até ele
+        const Player* owner = allyOwner(ally);
+        bool can_take = owner != nullptr && !(owner->held_power != ST_NONE && owner->storedPowers() >= owner->power_slots);
+        const SDL_Rect* goal = nullptr;
+        int best = range + 1;
+        for(const Bonus* bonus : m_bonuses)
+        {
+            if(!can_take) break;
+            if(bonus->to_erase) continue;
+            int distance = std::abs(bonus->dest_rect.x - ally->dest_rect.x) + std::abs(bonus->dest_rect.y - ally->dest_rect.y);
+            if(distance < best) { best = distance; goal = &bonus->dest_rect; }
+        }
+        hunt(ally, ally->command, dt, goal);
+    }
 }
 
 // ======================== Rompimento da pedra ========================
@@ -920,6 +975,7 @@ void Survival::update(Uint32 dt)
 
     // Loja e botão de poder (fora da loja, usa o poder guardado; sem espaço, continua guardado)
     updateShop();
+    alliesCollectBonuses();
 
     if(m_phase == PHASE_WAVE_INTRO && m_phase_time >= AppConfig::survival_wave_intro_time)
     {
@@ -1197,6 +1253,8 @@ std::string Survival::shopName(SpriteType type)
     case ST_BONUS_REPAIR: return "REPAIR";
     case ST_BONUS_TRUCE: return "TRUCE";
     case ST_BONUS_TEAM_SHIELD: return "TEAM SHIELD";
+    case ST_BONUS_RAPID: return "RAPID FIRE";
+    case ST_BONUS_SHOVEL: return "SHOVEL";
     case ST_BONUS_STAR: return "STAR";
     case ST_BONUS_TANK: return "REINFORCE";
     case ST_NONE: return "+1 SLOT";

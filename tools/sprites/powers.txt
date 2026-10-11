@@ -152,6 +152,20 @@ sprite TURRET_MAP 0 384 16 16 rot
 ..KKKKKKKKKKKK..
 ................
 
+# Cadência de tiro: três balas saindo juntas
+icon RAPID 288 352
+NNNNNNNNNNNN
+N..NN..NN..N
+.WG..WG..WG.
+.WG..WG..WG.
+.WG..WG..WG.
+.WG..WG..WG.
+............
+.RY..RY..RY.
+N..NN..NN..N
+NNNNNNNNNNNN
+NNNNNNNNNNNN
+
 # Mina no mapa (16x16): dois quadros, a luz pisca
 sprite MINE_MAP 128 384 8 8
 ...WG...

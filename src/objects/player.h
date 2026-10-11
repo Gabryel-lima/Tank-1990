@@ -246,6 +246,21 @@ public:
     /** Turbo: velocidade multiplicada por AppConfig::power_turbo_factor por @a ms. */
     void boost(Uint32 ms);
 
+    /**
+     * Cadência: por @a ms, recarga multiplicada por AppConfig::power_rapid_factor e
+     * AppConfig::power_rapid_bullets tiros a mais na tela, por cima das estrelas (uma não
+     * anula a outra). Usada com ela já valendo, soma o tempo, como o turbo.
+     */
+    void rapidFire(Uint32 ms);
+
+    /** Cadência ativa. */
+    bool rapid() const { return m_rapid_time > 0; }
+
+    /** Como turboEnding, para a cadência. */
+    double rapidEnding() const;
+
+    unsigned extraBullets() const override;
+
     /** Turbo ativo. */
     bool boosted() const { return m_turbo_time > 0; }
 
@@ -282,6 +297,7 @@ private:
     bool m_slot_right_down = false; ///< R2 apertado no quadro anterior
     int m_slot_step = 0;            ///< passos de espaço ainda não consumidos por takeSlotStep
     Uint32 m_turbo_time = 0;       ///< tempo restante de turbo (ms)
+    Uint32 m_rapid_time = 0;       ///< tempo restante de cadência (ms)
     bool m_demolisher = false;     ///< tiro demolidor (ver demolisher())
 
     /**
