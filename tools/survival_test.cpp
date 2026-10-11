@@ -25,6 +25,7 @@
 #include "../src/app_state/survival.h"
 #include "../src/app_state/duel.h"
 #include "../src/app_state/survival_layout.h"
+#include "../src/app_state/powers.h"
 #include "../src/app_state/duel_layout.h"
 #include "../src/appconfig.h"
 #include "../src/engine/engine.h"
@@ -180,19 +181,29 @@ struct SurvivalTest
 
         // Reparo: no intervalo a muralha já foi refeita; furada, a compra a refaz na hora
         expect(s.cannotBuy(item(ST_BONUS_REPAIR), p) == "WALL OK", "reparo com a muralha inteira: não vende (WALL OK)");
-        SDL_Point wall = s.baseWallTiles().front();
-        delete s.m_level.at(wall.y).at(wall.x);
-        s.m_level.at(wall.y).at(wall.x) = nullptr;
+        SDL_Point hole = s.baseWallTiles().front();
+        delete s.m_level.at(hole.y).at(hole.x);
+        s.m_level.at(hole.y).at(hole.x) = nullptr;
         expect(s.buy(p, item(ST_BONUS_REPAIR)) && s.baseWallIntact() && p->storedPowers() == 0, "reparo com a muralha furada: refaz na compra");
 
-        // Trégua e escudo: no intervalo correriam sem inimigos; ficam armados para a onda
-        expect(s.buy(p, item(ST_BONUS_TRUCE)) && s.m_truce_time == 0 && s.m_truce_armed, "trégua no intervalo: armada para a próxima onda");
-        expect(s.cannotBuy(item(ST_BONUS_TRUCE), p) == "READY", "trégua já armada: não compra outra");
+        // Trégua: fora da loja e do sorteio por enquanto (o código continua)
+        expect(item(ST_BONUS_TRUCE).price < 0, "trégua fora da loja");
+        bool truce_drawn = false;
+        for(const Powers::Weight& w : Powers::survivalTable()) if(w.type == ST_BONUS_TRUCE) truce_drawn = true;
+        expect(!truce_drawn, "trégua fora do sorteio");
+
+        // Escudo e pá: no intervalo correriam sem inimigos; ficam armados para a onda
         expect(s.buy(p, item(ST_BONUS_TEAM_SHIELD)) && s.m_shield_armed && p->storedPowers() == 0, "escudo de equipe no intervalo: armado");
+        expect(s.buy(p, item(ST_BONUS_SHOVEL)) && s.m_shovel_armed && !s.m_protect_eagle, "pá na loja: armada, sem valer no intervalo");
+        expect(s.cannotBuy(item(ST_BONUS_SHOVEL), p) == "READY", "pá já armada: não compra outra");
         s.startWave(s.m_wave + 1);
         run(s, static_cast<int>(AppConfig::survival_wave_intro_time / 16) + 2);
-        expect(s.m_phase == Survival::PHASE_PLAY && s.m_truce_time > 0 && p->testFlag(TSF_SHIELD), "trégua e escudo começam com a onda");
-
+        expect(s.m_phase == Survival::PHASE_PLAY && p->testFlag(TSF_SHIELD) && s.m_protect_eagle, "escudo e pá começam com a onda");
+        SDL_Point wall = s.baseWallTiles().front();
+        expect(s.m_level.at(wall.y).at(wall.x) != nullptr && s.m_level.at(wall.y).at(wall.x)->type == ST_STONE_WALL, "a pá põe pedra na muralha");
+        int shovels = 0;
+        for(int k = 0; k < 2000; k++) if(s.randomBonusType() == ST_BONUS_SHOVEL) shovels++;
+        expect(shovels == 0, "a pá não cai mais no mapa (só na loja)");
         // Colocáveis e os que dependem de onde e quando: guardados
         for(SpriteType type : {ST_BONUS_MINE, ST_BONUS_BARRICADE, ST_BONUS_TURRET, ST_BONUS_RECALL, ST_BONUS_TURBO})
             expect(Survival::storesPower(type), Survival::shopName(type) + ": fica guardado");
@@ -345,6 +356,44 @@ struct SurvivalTest
         size_t mines = s.m_mines.size();
         s.updateFriendlyPowers(16); // a mina detonada sairia daqui
         expect(b != nullptr && s.m_mines.size() == mines, "o tiro do jogador passa pela mina sem detonar");
+
+        // Nem o tiro inimigo a detona; o inimigo que passa por cima, sim, e o ponto é do dono
+        run(s, 200);
+        if(s.m_enemies.empty()) { expect(false, "um inimigo surge"); return; }
+        Enemy* e = s.m_enemies.front();
+        e->setFlag(TSF_LIFE);
+        // Um tiro do inimigo em cima da mina (sem esperar a recarga dele)
+        Bullet* eb = new Bullet(mine->collision_rect.x, mine->collision_rect.y);
+        eb->collision_rect = mine->collision_rect;
+        e->bullets.push_back(eb);
+        mines = s.m_mines.size();
+        s.updateFriendlyPowers(16);
+        expect(eb != nullptr && s.m_mines.size() == mines, "o tiro inimigo passa pela mina sem detonar");
+        unsigned before = p->score;
+        e->collision_rect = mine->collision_rect;
+        s.updateFriendlyPowers(16);
+        expect(s.m_mines.size() == mines - 1 && p->score > before, "inimigo em cima: a mina explode e o ponto é do dono");
+
+        // Torreta e reforço pontuam para o dono
+        if(turret != nullptr) expect(s.scorer(turret) == p, "a torreta pontua para o dono");
+        expect(s.scorer(s.m_allies.back()) == p, "o reforço pontua para quem chamou");
+        expect(s.scorer(e) == nullptr, "inimigo não pontua");
+    }
+
+    // ===== Bônus de tanque: chama um reforço de quem pegou =====
+    static void tankBonus()
+    {
+        std::srand(23);
+        Survival s(1, 0);
+        s.m_phase = Survival::PHASE_PLAY;
+        Player* p = readyPlayer(s);
+        if(p == nullptr) { expect(false, "um jogador entra no mapa"); return; }
+        run(s, 5); // o retângulo de colisão sai no update
+        Bonus* bonus = new Bonus(p->pos_x, p->pos_y, ST_BONUS_TANK);
+        bonus->collision_rect = p->collision_rect;
+        s.checkCollisionPlayerWithBonus(p, bonus);
+        expect(bonus->to_erase && s.m_allies.size() == 1 && s.m_allies.back()->owner == p->playerIndex(), "tanque cinza: reforço na cor de quem pegou");
+        delete bonus;
     }
 
     // ===== Torreta e mina permanentes, nos dois modos =====
@@ -443,6 +492,7 @@ int main(int, char*[])
     SurvivalTest::ownShops();
     SurvivalTest::playersPassThrough();
     SurvivalTest::friendlyFire();
+    SurvivalTest::tankBonus();
     SurvivalTest::permanentPowers();
 
     std::printf("\n%s: %d falha(s)\n", g_failures == 0 ? "PASSOU" : "FALHOU", g_failures);

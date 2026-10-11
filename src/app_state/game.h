@@ -390,6 +390,15 @@ protected:
     /** Destrói o inimigo de vez (mina, granada), dando o bônus que ele carregava e os pontos. */
     void killEnemy(Enemy* enemy, Player* by);
 
+    /** A pá: a muralha da águia vira pedra por um tempo (Game::update devolve os tijolos). */
+    void protectEagle();
+
+    /**
+     * Quem leva os pontos do tiro de @a shooter num inimigo. Padrão (campanha): o jogador
+     * que atirou, e ninguém pelos outros. A sobrevivência dá ao dono da torreta e do reforço.
+     */
+    virtual Player* scorer(Tank* shooter);
+
     /**
      * Minas, torretas e aliados (m_allies) do lado dos jogadores contra os inimigos da
      * campanha (m_enemies): usado pela sobrevivência dentro de Game::update. O duelo trata

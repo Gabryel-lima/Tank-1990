@@ -70,7 +70,7 @@ const std::vector<Weight>& survivalTable()
         {ST_BONUS_GRENADE, 10}, {ST_BONUS_HELMET, 10}, {ST_BONUS_CLOCK, 10}, {ST_BONUS_SHOVEL, 10},
         {ST_BONUS_TANK, 10}, {ST_BONUS_STAR, 10}, {ST_BONUS_GUN, 10}, {ST_BONUS_BOAT, 10},
         {ST_BONUS_MINE, 8}, {ST_BONUS_BARRICADE, 8}, {ST_BONUS_TURRET, 7}, {ST_BONUS_RECALL, 6},
-        {ST_BONUS_TURBO, 7}, {ST_BONUS_REVIVE, 7}, {ST_BONUS_REPAIR, 8}, {ST_BONUS_TRUCE, 6},
+        {ST_BONUS_TURBO, 7}, {ST_BONUS_REVIVE, 7}, {ST_BONUS_REPAIR, 8},
         {ST_BONUS_TEAM_SHIELD, 6},
     };
     return table;
