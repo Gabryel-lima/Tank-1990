@@ -225,10 +225,11 @@ SpriteType Survival::randomBonusType()
 {
     if(!AppConfig::survival_shop || shopItems().empty()) return Powers::draw(Powers::survivalTable());
     // Com a loja, os poderes novos só são comprados: caem os 8 originais, como na campanha
+    // (menos a pá, que é vendida)
     static std::vector<Powers::Weight> classic;
     if(classic.empty())
         for(const Powers::Weight& w : Powers::survivalTable())
-            if(!Powers::isExtra(w.type)) classic.push_back(w);
+            if(!Powers::isExtra(w.type) && w.type != ST_BONUS_SHOVEL) classic.push_back(w);
     return Powers::draw(classic);
 }
 
@@ -314,6 +315,7 @@ std::vector<Survival::ShopItem> Survival::shopItems()
         if(entry.first == "star") items.push_back({ST_BONUS_STAR, entry.second});
         else if(entry.first == "slot") items.push_back({ST_NONE, entry.second});
         else if(entry.first == "reinforce") items.push_back({ST_BONUS_TANK, entry.second});
+        else if(entry.first == "shovel") items.push_back({ST_BONUS_SHOVEL, entry.second});
         else
             for(int t = ST_BONUS_MINE; t <= ST_BONUS_TEAM_SHIELD; t++)
                 if(entry.first == Powers::name(static_cast<SpriteType>(t)))
@@ -342,7 +344,7 @@ std::string Survival::cannotBuy(const ShopItem& item, const Player* player) cons
         if(allySpawn().x < 0) return "NO ROOM";
     }
     if(storesPower(item.type) && player->storedPowers() >= player->power_slots) return "SLOTS FULL";
-    if(Powers::isExtra(item.type) && !storesPower(item.type))
+    if((Powers::isExtra(item.type) && !storesPower(item.type)) || item.type == ST_BONUS_SHOVEL)
     {
         std::string why = noEffect(item.type);
         if(!why.empty()) return why;
@@ -521,6 +523,7 @@ bool Survival::buy(Player* player, const ShopItem& item)
     // Sem pontos: comprar não pode render moedas
     if(item.type == ST_BONUS_STAR) player->changeStarCountBy(1);
     else if(item.type == ST_NONE) player->power_slots++;
+    else if(item.type == ST_BONUS_SHOVEL) m_shovel_armed = true; // comprada no intervalo: vale com a onda
     return true;
 }
 
@@ -547,6 +550,16 @@ void Survival::checkCollisionPlayerWithBonus(Player* player, Bonus* bonus)
     if(player->held_power != ST_NONE && player->storedPowers() >= player->power_slots) return;
 
     SpriteType type = bonus->type;
+    // Tanque: chama um reforço na cor de quem pegou (sem lugar ou no limite, uma vida, como
+    // na campanha)
+    if(type == ST_BONUS_TANK)
+    {
+        SoundManager::getInstance().playSound("bonus");
+        player->score += 300;
+        bonus->to_erase = true;
+        if(!callReinforcement(player)) player->addLife();
+        return;
+    }
     if(!Powers::isExtra(type))
     {
         Game::checkCollisionPlayerWithBonus(player, bonus); // os 8 originais, como na campanha
@@ -592,6 +605,9 @@ std::string Survival::noEffect(SpriteType type) const
         return "";
     case ST_BONUS_TEAM_SHIELD:
         if(m_phase != PHASE_PLAY && m_shield_armed) return "READY";
+        return "";
+    case ST_BONUS_SHOVEL:
+        if(m_shovel_armed) return "READY";
         return "";
     default:
         return "";
@@ -698,6 +714,18 @@ bool Survival::usePower(Player* player)
     }
 }
 
+Player* Survival::scorer(Tank* shooter)
+{
+    // Torreta e reforço pontuam para quem os pôs (também caído: os pontos contam nas moedas)
+    int owner = -1;
+    if(const Turret* turret = dynamic_cast<const Turret*>(shooter)) owner = turret->owner;
+    else if(const Bot* ally = dynamic_cast<const Bot*>(shooter)) owner = ally->owner;
+    else return Game::scorer(shooter);
+    for(Player* p : m_players) if(p->playerIndex() == owner) return p;
+    for(Player* p : m_killed_players) if(p->playerIndex() == owner) return p;
+    return nullptr;
+}
+
 void Survival::onBaseHit(Eagle* base, Bullet* bullet)
 {
     // O tiro que passou do alvo e seguiu até a águia: só os inimigos e os jogadores a ferem
@@ -738,7 +766,9 @@ bool Survival::callReinforcement(Player* player)
     SDL_Point spawn = allySpawn();
     if(spawn.x < 0) return false;
     // O tanque A dos inimigos (o mais simples), na cor de quem chamou (C1)
-    m_allies.push_back(new Bot(spawn, ST_TANK_A, -1, AppConfig::survival_reinforce_lives, player->color, Bot::ROLE_ATTACK));
+    Bot* ally = new Bot(spawn, ST_TANK_A, -1, AppConfig::survival_reinforce_lives, player->color, Bot::ROLE_ATTACK);
+    ally->owner = player->playerIndex();
+    m_allies.push_back(ally);
     return true;
 }
 
@@ -890,7 +920,8 @@ void Survival::update(Uint32 dt)
         // Trégua e escudo comprados no intervalo começam agora, com a onda
         if(m_truce_armed) m_truce_time = AppConfig::power_truce_time;
         if(m_shield_armed) shieldTeam();
-        m_truce_armed = m_shield_armed = false;
+        if(m_shovel_armed) protectEagle();
+        m_truce_armed = m_shield_armed = m_shovel_armed = false;
         // A contagem chegou a 0: o primeiro inimigo surge já no próximo quadro (o relógio de
         // surgimento corre durante o aviso; isto garante o mesmo com um aviso mais curto)
         m_enemy_redy_time = std::max(m_enemy_redy_time, enemySpawnDelay());

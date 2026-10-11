@@ -34,6 +34,9 @@ public:
      */
     Bot(SDL_Point spawn, SpriteType type, int team, int lives, SDL_Color team_color, Role role);
 
+    /** Jogador que chamou o reforço (sobrevivência: leva os pontos dele), ou -1. */
+    int owner = -1;
+
     /**
      * Move o tanque e aplica @a command: vira, anda ou para, e atira respeitando a recarga.
      */

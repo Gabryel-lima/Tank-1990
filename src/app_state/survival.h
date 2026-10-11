@@ -78,6 +78,8 @@ protected:
     void drawPause() override { drawPauseBox(); }
     /** Tiro de torreta ou de aliado na águia (passou do alvo): some, sem ferir (G1). */
     void onBaseHit(Eagle* base, Bullet* bullet) override;
+    /** Torreta e reforço: os pontos vão para o jogador dono. */
+    Player* scorer(Tank* shooter) override;
 
 private:
     enum Phase
@@ -141,6 +143,7 @@ private:
     bool m_shared_coins = true;      ///< moedas da equipe (true) ou de cada jogador
     bool m_truce_armed = false;      ///< trégua comprada no intervalo: começa com a próxima onda
     bool m_shield_armed = false;     ///< escudo de equipe comprado no intervalo: liga com a próxima onda
+    bool m_shovel_armed = false;     ///< pá comprada no intervalo: a muralha vira pedra com a próxima onda
     int m_coins_spent[4] = {0, 0, 0, 0}; ///< moedas gastas por cada jogador (índice)
 
     /**

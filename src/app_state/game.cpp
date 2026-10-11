@@ -1105,7 +1105,7 @@ void Game::checkCollisionBulletWithBush(Bullet *bullet)
 void Game::checkCollisionPlayerBulletsWithEnemy(Tank *shooter, Enemy *enemy)
 {
     if(shooter->to_erase || enemy->to_erase) return;
-    Player* player = dynamic_cast<Player*>(shooter); // os pontos vão para o jogador (torreta não pontua)
+    Player* player = scorer(shooter); // quem leva os pontos (padrão: só o jogador)
     if(enemy->testFlag(TSF_DESTROYED)) return;
     SDL_Rect intersect_rect;
 
@@ -1208,25 +1208,7 @@ void Game::checkCollisionPlayerWithBonus(Player *player, Bonus *bonus)
         }
         else if(bonus->type == ST_BONUS_SHOVEL)
         {
-            // Protege a águia com paredes de pedra
-            m_protect_eagle = true;
-            m_protect_eagle_time = 0;
-            for(int i = 0; i < 3; i++)
-            {
-                if(m_level.at(m_level_rows_count - i - 1).at(11) != nullptr)
-                    delete m_level.at(m_level_rows_count - i - 1).at(11);
-                m_level.at(m_level_rows_count - i - 1).at(11) = new Object(11 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h, ST_STONE_WALL);
-
-                if(m_level.at(m_level_rows_count - i - 1).at(14) != nullptr)
-                    delete m_level.at(m_level_rows_count - i - 1).at(14);
-                m_level.at(m_level_rows_count - i - 1).at(14) = new Object(14 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1)  * AppConfig::tile_rect.h, ST_STONE_WALL);
-            }
-            for(int i = 12; i < 14; i++)
-            {
-                if(m_level.at(m_level_rows_count - 3).at(i) != nullptr)
-                    delete m_level.at(m_level_rows_count - 3).at(i);
-                m_level.at(m_level_rows_count - 3).at(i) = new Object(i * AppConfig::tile_rect.w, (m_level_rows_count - 3) * AppConfig::tile_rect.h, ST_STONE_WALL);
-            }
+            protectEagle();
         }
         else if(bonus->type == ST_BONUS_TANK)
         {
@@ -1578,6 +1560,34 @@ bool Game::recall(Player* player, const std::vector<SDL_Point>& points)
     return false;
 }
 
+Player* Game::scorer(Tank* shooter)
+{
+    return dynamic_cast<Player*>(shooter);
+}
+
+void Game::protectEagle()
+{
+    // Protege a águia com paredes de pedra
+    m_protect_eagle = true;
+    m_protect_eagle_time = 0;
+    for(int i = 0; i < 3; i++)
+    {
+        if(m_level.at(m_level_rows_count - i - 1).at(11) != nullptr)
+            delete m_level.at(m_level_rows_count - i - 1).at(11);
+        m_level.at(m_level_rows_count - i - 1).at(11) = new Object(11 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1) * AppConfig::tile_rect.h, ST_STONE_WALL);
+
+        if(m_level.at(m_level_rows_count - i - 1).at(14) != nullptr)
+            delete m_level.at(m_level_rows_count - i - 1).at(14);
+        m_level.at(m_level_rows_count - i - 1).at(14) = new Object(14 * AppConfig::tile_rect.w, (m_level_rows_count - i - 1)  * AppConfig::tile_rect.h, ST_STONE_WALL);
+    }
+    for(int i = 12; i < 14; i++)
+    {
+        if(m_level.at(m_level_rows_count - 3).at(i) != nullptr)
+            delete m_level.at(m_level_rows_count - 3).at(i);
+        m_level.at(m_level_rows_count - 3).at(i) = new Object(i * AppConfig::tile_rect.w, (m_level_rows_count - 3) * AppConfig::tile_rect.h, ST_STONE_WALL);
+    }
+}
+
 void Game::killEnemy(Enemy* enemy, Player* by)
 {
     if(enemy->to_erase || !enemy->testFlag(TSF_LIFE)) return;
@@ -1695,6 +1705,7 @@ void Game::updateFriendlyPowers(Uint32 dt)
     };
     auto playerByIndex = [&](int index) -> Player* {
         for(auto p : m_players) if(p->playerIndex() == index) return p;
+        for(auto p : m_killed_players) if(p->playerIndex() == index) return p; // caído: pontua igual
         return nullptr;
     };
 
@@ -1768,8 +1779,8 @@ void Game::updateFriendlyPowers(Uint32 dt)
         checkCollisionTankWithLevel(ally, dt);
     }
 
-    // Minas: explodem o inimigo que passar por cima (de vez, como a granada) e somem com o
-    // tiro dos inimigos; o tiro aliado (jogadores, torretas, reforço) passa por cima
+    // Minas: explodem o inimigo que passar por cima (de vez, como a granada; o ponto vai para
+    // o dono). Nenhum tiro as detona: o aliado e o inimigo passam por cima
     for(auto mine : m_mines)
     {
         if(mine->to_erase) continue;
@@ -1780,14 +1791,6 @@ void Game::updateFriendlyPowers(Uint32 dt)
                 mine->detonate();
                 break;
             }
-        if(mine->to_erase) continue;
-        for(Tank* shooter : m_enemies)
-            for(auto bullet : shooter->bullets)
-                if(!mine->to_erase && !bullet->to_erase && !bullet->collide && overlap(bullet->collision_rect, mine->collision_rect, 1))
-                {
-                    bullet->destroy();
-                    mine->detonate();
-                }
     }
 
     for(auto mine : m_mines) mine->update(dt);

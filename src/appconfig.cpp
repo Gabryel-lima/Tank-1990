@@ -200,11 +200,13 @@ bool AppConfig::survival_store_powers = true;
 // custa mais. A torreta, que fica até ser destruída e não tem munição contada, é a mais cara
 // dos poderes; a estrela e o espaço sobem de preço a cada compra (passos abaixo). Na loja,
 // do mais barato ao mais caro (pelo preço da lista)
+// A trégua ("truce", 20) existe no código, mas está fora da loja e do sorteio da sobrevivência
+// por enquanto; a pá ("shovel") saiu do sorteio e é vendida, armada para a próxima onda
 bool AppConfig::survival_shop = true;
 vector<pair<string, int>> AppConfig::survival_shop_items =
 {
     {"barricade", 6}, {"turbo", 6}, {"mine", 8}, {"recall", 8}, {"repair", 10},
-    {"star", 12}, {"slot", 15}, {"revive", 15}, {"truce", 20}, {"teamshield", 20},
+    {"star", 12}, {"shovel", 12}, {"slot", 15}, {"revive", 15}, {"teamshield", 20},
     {"turret", 30}, {"reinforce", 35},
 };
 int AppConfig::survival_points_per_coin = 100;
