@@ -246,76 +246,24 @@ SpriteType Survival::randomBonusType()
     return Powers::draw(classic);
 }
 
-std::vector<SDL_Point> Survival::bonusSpots() const
+std::vector<SDL_Point> Survival::bonusSpots()
 {
-    // Células = posições de tanque alinhadas à grade (canto 2x2). Livre: os 4 tiles sem bloco
-    // que pare um tanque (gelo e arbusto não param; tijolo, pedra e água param)
-    const int t = AppConfig::tile_rect.w;
-    const int rows = m_level_rows_count - 1, columns = m_level_columns_count - 1;
-    if(rows <= 0 || columns <= 0) return {};
-    std::vector<SDL_Rect> busy;
-    if(m_eagle != nullptr) busy.push_back(m_eagle->collision_rect);
-    for(const Turret* turret : m_turrets) if(!turret->to_erase) busy.push_back(turret->dest_rect);
-    auto open = [&](int r, int c) {
-        for(int i = r; i < r + 2; i++)
-            for(int j = c; j < c + 2; j++)
-            {
-                const Object* o = m_level.at(i).at(j);
-                if(o != nullptr && o->type != ST_ICE) return false;
-            }
-        SDL_Rect area = {c * t, r * t, 2 * t, 2 * t};
-        for(const SDL_Rect& b : busy)
-            if(SDL_HasIntersection(&b, &area)) return false;
-        return true;
-    };
-
-    // Aonde se chega andando: a partir dos nascimentos dos jogadores, um tile por passo
-    std::vector<char> seen(rows * columns, 0);
-    std::vector<SDL_Point> queue;
-    for(SDL_Point p : AppConfig::player_starting_point)
-    {
-        int r = p.y / t, c = p.x / t;
-        if(r >= 0 && c >= 0 && r < rows && c < columns && open(r, c) && !seen[r * columns + c])
-        {
-            seen[r * columns + c] = 1;
-            queue.push_back({c, r});
-        }
-    }
-    for(size_t k = 0; k < queue.size(); k++)
-    {
-        const int dr[4] = {-1, 1, 0, 0}, dc[4] = {0, 0, -1, 1};
-        for(int d = 0; d < 4; d++)
-        {
-            int r = queue[k].y + dr[d], c = queue[k].x + dc[d];
-            if(r < 0 || c < 0 || r >= rows || c >= columns || seen[r * columns + c] || !open(r, c)) continue;
-            seen[r * columns + c] = 1;
-            queue.push_back({c, r});
-        }
-    }
-
+    // Só onde os tanques andam (walkableSpots), menos o lugar das lojas: o bônus não cai em
+    // cima de uma loja
     std::vector<SDL_Point> spots;
-    for(SDL_Point cell : queue)
+    const int t = AppConfig::tile_rect.w;
+    for(SDL_Point cell : walkableSpots())
     {
-        SDL_Rect area = {cell.x * t, cell.y * t, 2 * t, 2 * t};
+        SDL_Rect area = {cell.x, cell.y, 2 * t, 2 * t};
         bool on_shop = false;
         for(SDL_Point pad : m_shop_pads)
         {
             SDL_Rect shop = {pad.x, pad.y, 2 * t, 2 * t};
             if(pad.x >= 0 && SDL_HasIntersection(&shop, &area)) on_shop = true;
         }
-        if(!on_shop) spots.push_back({cell.x * t, cell.y * t});
+        if(!on_shop) spots.push_back(cell);
     }
     return spots;
-}
-
-bool Survival::bonusSpot(SDL_Point* spot)
-{
-    // Só onde os tanques andam: nada de bônus dentro de tijolo, pedra ou água (o sorteio da
-    // campanha usa qualquer pixel do mapa). Sem lugar nenhum (improvável), o da campanha
-    std::vector<SDL_Point> spots = bonusSpots();
-    if(spots.empty()) return false;
-    *spot = spots.at(rand() % spots.size());
-    return true;
 }
 
 // ======================== Loja ========================

@@ -517,26 +517,16 @@ void Duel::spawnBonus()
     m_bonuses.push_back(new Bonus(p.x, p.y, type));
 }
 
-std::vector<SDL_Point> Duel::openSpots(const std::vector<SDL_Point>& spots) const
+std::vector<SDL_Point> Duel::openSpots(const std::vector<SDL_Point>& spots)
 {
-    // O mapa pode cobrir um ponto de bônus (o validador só avisa): o bônus não surge dentro
-    // de um bloco; se o bloco cair, o ponto volta a valer
-    std::vector<SDL_Point> open;
-    int t = AppConfig::tile_rect.w;
+    // Só o que um tanque alcança andando (walkableSpots): nada atrás de bloco, nem dentro de
+    // um bloco; se o bloco cair, o ponto volta a valer
+    std::vector<SDL_Point> reach = walkableSpots(), open;
     for(SDL_Point p : spots)
-    {
-        bool free = true;
-        for(int r = p.y / t; r < p.y / t + 2; r++)
-            for(int c = p.x / t; c < p.x / t + 2; c++)
-            {
-                Object* o = (r >= 0 && c >= 0 && r < m_level_rows_count && c < m_level_columns_count) ? m_level.at(r).at(c) : nullptr;
-                if(o != nullptr && o->type != ST_ICE) free = false;
-            }
-        if(free) open.push_back(p);
-    }
+        if(std::find_if(reach.begin(), reach.end(), [p](SDL_Point q) { return q.x == p.x && q.y == p.y; }) != reach.end())
+            open.push_back(p);
     return open;
 }
-
 void Duel::applyBonus(Player* player, Bonus* bonus)
 {
     SoundManager::getInstance().playSound("bonus");

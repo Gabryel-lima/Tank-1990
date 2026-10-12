@@ -894,12 +894,16 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
 
             if(intersect_rect.w > 0 && intersect_rect.h > 0)
             {
+                // Som do material em todo acerto, também no que não dá dano (bloco protegido) e
+                // no que o tiro reforçado quebra; o tijolo toca o próprio som (Brick::bulletHit)
                 if(!bulletCanDamage(bullet, i, j))
                 {
                     // bloco protegido: o projétil some sem causar dano
+                    SoundManager::getInstance().playSound(o->type == ST_STONE_WALL ? "steelhit" : "brick_hit");
                 }
                 else if(breaksBlock(bullet, i, j))
                 {
+                    SoundManager::getInstance().playSound(o->type == ST_STONE_WALL ? "steelhit" : "brick_hit");
                     delete o;
                     m_level.at(i).at(j) = nullptr;
                 }
@@ -912,6 +916,11 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
                         delete brick;
                         m_level.at(i).at(j) = nullptr;
                     }
+                }
+                else if(o->type == ST_STONE_WALL)
+                {
+                    // Pedra (ferro) que o tiro normal não quebra: o tiro some, com o som do ferro
+                    SoundManager::getInstance().playSound("steelhit");
                 }
                 bullet->destroy();
             }
@@ -1095,6 +1104,7 @@ void Game::checkCollisionBulletWithBush(Bullet *bullet)
 
         if(intersect_rect.w > 0 && intersect_rect.h > 0)
         {
+            SoundManager::getInstance().playSound("brick_hit");
             bullet->destroy();
             bush->to_erase = true;
         }
@@ -1320,39 +1330,84 @@ Enemy* Game::createEnemy(SDL_Point point, int level)
     return e;
 }
 
-// Gera um bônus aleatório no mapa, evitando sobreposição com a águia
+// Gera um bônus no mapa, só onde um tanque anda e chega (bonusSpot). Só um bônus fica no
+// mapa: se já tem um, o tanque vermelho que acaba de ser acertado não solta nada, e o que está
+// no mapa fica até ser pego ou sumir
 void Game::generateBonus()
 {
-    // Como no original, só um bônus fica no mapa: o novo substitui o anterior
-    for(auto bonus : m_bonuses) delete bonus;
-    m_bonuses.clear();
+    if(!m_bonuses.empty()) return;
 
-    Bonus* b = new Bonus(0, 0, randomBonusType());
     SDL_Point spot;
-    if(bonusSpot(&spot))
-    {
-        b->pos_x = spot.x;
-        b->pos_y = spot.y;
-        b->update(0);
-        m_bonuses.push_back(b);
-        return;
-    }
-    SDL_Rect intersect_rect;
-    do
-    {
-        b->pos_x = rand() % (AppConfig::map_rect.x + AppConfig::map_rect.w - 1 *  AppConfig::tile_rect.w);
-        b->pos_y = rand() % (AppConfig::map_rect.y + AppConfig::map_rect.h - 1 * AppConfig::tile_rect.h);
-        b->update(0);
-        intersect_rect = intersectRect(&b->collision_rect, &m_eagle->collision_rect);
-    }while(intersect_rect.w > 0 && intersect_rect.h > 0);
-
+    if(!bonusSpot(&spot)) return;
+    Bonus* b = new Bonus(spot.x, spot.y, randomBonusType());
+    b->update(0);
     m_bonuses.push_back(b);
 }
 
-// Campanha: como no original, o bônus cai em qualquer lugar fora da águia (até sobre paredes)
-bool Game::bonusSpot(SDL_Point*)
+// Só onde um tanque anda e chega (bonusSpots); sem lugar nenhum, não surge bônus
+bool Game::bonusSpot(SDL_Point* spot)
 {
-    return false;
+    std::vector<SDL_Point> spots = bonusSpots();
+    if(spots.empty()) return false;
+    *spot = spots.at(rand() % spots.size());
+    return true;
+}
+
+std::vector<SDL_Point> Game::bonusSpots()
+{
+    return walkableSpots();
+}
+
+std::vector<SDL_Point> Game::walkableSpots()
+{
+    // Células = posições de tanque alinhadas à grade (canto 2x2). Livre: os 4 tiles sem bloco
+    // que pare um tanque (gelo e arbusto não param; tijolo, pedra e água param)
+    const int t = AppConfig::tile_rect.w;
+    const int rows = m_level_rows_count - 1, columns = m_level_columns_count - 1;
+    if(rows <= 0 || columns <= 0) return {};
+    std::vector<SDL_Rect> busy;
+    for(const Eagle* base : bases()) busy.push_back(base->collision_rect);
+    for(const Turret* turret : m_turrets) if(!turret->to_erase) busy.push_back(turret->dest_rect);
+    auto open = [&](int r, int c) {
+        for(int i = r; i < r + 2; i++)
+            for(int j = c; j < c + 2; j++)
+            {
+                const Object* o = m_level.at(i).at(j);
+                if(o != nullptr && o->type != ST_ICE) return false;
+            }
+        SDL_Rect area = {c * t, r * t, 2 * t, 2 * t};
+        for(const SDL_Rect& b : busy)
+            if(SDL_HasIntersection(&b, &area)) return false;
+        return true;
+    };
+
+    // Aonde se chega andando: a partir dos nascimentos dos jogadores, um tile por passo
+    std::vector<char> seen(rows * columns, 0);
+    std::vector<SDL_Point> queue;
+    for(SDL_Point p : AppConfig::player_starting_point)
+    {
+        int r = p.y / t, c = p.x / t;
+        if(r >= 0 && c >= 0 && r < rows && c < columns && open(r, c) && !seen[r * columns + c])
+        {
+            seen[r * columns + c] = 1;
+            queue.push_back({c, r});
+        }
+    }
+    for(size_t k = 0; k < queue.size(); k++)
+    {
+        const int dr[4] = {-1, 1, 0, 0}, dc[4] = {0, 0, -1, 1};
+        for(int d = 0; d < 4; d++)
+        {
+            int r = queue[k].y + dr[d], c = queue[k].x + dc[d];
+            if(r < 0 || c < 0 || r >= rows || c >= columns || seen[r * columns + c] || !open(r, c)) continue;
+            seen[r * columns + c] = 1;
+            queue.push_back({c, r});
+        }
+    }
+
+    std::vector<SDL_Point> spots;
+    for(SDL_Point cell : queue) spots.push_back({cell.x * t, cell.y * t});
+    return spots;
 }
 
 // Campanha: um dos 8 bônus originais, com a mesma chance

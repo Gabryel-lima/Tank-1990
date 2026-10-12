@@ -329,7 +329,7 @@ private:
     int stoneOwner(int row, int column) const;
 
     /** Os pontos de bônus de @a spots que nenhum bloco do mapa cobre agora. */
-    std::vector<SDL_Point> openSpots(const std::vector<SDL_Point>& spots) const;
+    std::vector<SDL_Point> openSpots(const std::vector<SDL_Point>& spots);
 
     /** Calcula o dono da pedra do mapa (início da rodada, com o mapa montado). */
     void computeStoneOwners();

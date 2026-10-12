@@ -58,7 +58,6 @@ public:
 protected:
     void generateEnemy() override;
     SpriteType randomBonusType() override;
-    bool bonusSpot(SDL_Point* spot) override;
 
 public:
     /**
@@ -66,7 +65,7 @@ public:
      * gelo ou arbusto), fora da águia, das torretas e da loja, e aonde os tanques chegam
      * andando a partir do nascimento dos jogadores. Pública para o teste (tools/survival_test).
      */
-    std::vector<SDL_Point> bonusSpots() const;
+    std::vector<SDL_Point> bonusSpots() override;
 
 protected:
     void collectBonus(Player* player, Bonus* bonus) override;
