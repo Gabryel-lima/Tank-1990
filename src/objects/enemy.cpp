@@ -86,17 +86,38 @@ void Enemy::draw()
     Tank::draw(); // Chama o desenho padrão do tanque
 }
 
+// Tanque vermelho: inteiro no começo, depois pisca com menos vermelho a cada pisca, até a cor
+// do tipo predominar (fora do pisca, a cor do tipo)
+bool Enemy::carrierRed() const
+{
+    if(m_carrier_time < AppConfig::carrier_red_time) return true;
+    Uint32 blink = m_carrier_time - AppConfig::carrier_red_time;
+    if(blink >= AppConfig::carrier_blink_time) return false;
+    // Parte vermelha do pisca = o tempo que sobra do pisca (1 no começo, 0 no fim); vermelho
+    // quando a posição no pisca cai dentro dela
+    Uint32 remaining = AppConfig::carrier_blink_time - blink, period = AppConfig::carrier_blink_period;
+    return (blink % period) * AppConfig::carrier_blink_time < period * remaining;
+}
+
 // Atualiza o estado do inimigo, incluindo movimentação, direção, disparo e animação.
 void Enemy::update(Uint32 dt)
 {
     if(to_erase) return; // Não atualiza se marcado para remoção
     Tank::update(dt); // Atualiza lógica base do tanque
 
+    // Tanque vermelho: depois do vermelho e do pisca, volta à cor do tipo e deixa o bônus
+    // (quem o acertar depois disso não solta nada)
+    if(testFlag(TSF_BONUS))
+    {
+        m_carrier_time += dt;
+        if(m_carrier_time >= AppConfig::carrier_red_time + AppConfig::carrier_blink_time) clearFlag(TSF_BONUS);
+    }
+
     // Atualiza o sprite de acordo com flags e vidas
     if(testFlag(TSF_LIFE))
     {
-        if(testFlag(TSF_BONUS))
-            // Se está em bônus, usa linha de sprites especial
+        if(testFlag(TSF_BONUS) && carrierRed())
+            // Vermelho do bônus: linha de sprites especial
             src_rect = moveRect(m_sprite->rect, (testFlag(TSF_ON_ICE) ? new_direction : direction) - 4, m_current_frame);
         else
             // Linha de sprites depende da quantidade de vidas

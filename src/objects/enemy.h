@@ -55,6 +55,17 @@ public:
 
 private:
     /**
+     * Vermelho do tanque que carrega bônus agora? Inteiro no começo, depois pisca até sumir
+     * (AppConfig::carrier_red_time, carrier_blink_time, carrier_blink_period).
+     */
+    bool carrierRed() const;
+
+    /**
+     * Tempo desde que o tanque apareceu, enquanto carrega bônus (em ms).
+     */
+    Uint32 m_carrier_time = 0;
+
+    /**
      * Tempo desde a última mudança de direção (em ms).
      */
     Uint32 m_direction_time;

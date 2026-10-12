@@ -151,6 +151,23 @@ public:
     static unsigned bonus_blink_time;
 
     /**
+     * Tanque vermelho (carrega bônus): tempo (em ms) inteiro na cor vermelha, desde que aparece.
+     */
+    static unsigned carrier_red_time;
+
+    /**
+     * Tanque vermelho: tempo (em ms) piscando depois do vermelho inteiro. A parte vermelha de
+     * cada pisca diminui até sumir; depois disso o tanque é da cor do tipo e não carrega mais
+     * o bônus. Só o que o acerta antes disso solta o bônus.
+     */
+    static unsigned carrier_blink_time;
+
+    /**
+     * Tanque vermelho: duração (em ms) de um pisca (vermelho + cor do tipo) na fase de piscar.
+     */
+    static unsigned carrier_blink_period;
+
+    /**
      * Tempo mínimo (em milissegundos) entre disparos do jogador.
      * Controla a cadência de tiro.
      */

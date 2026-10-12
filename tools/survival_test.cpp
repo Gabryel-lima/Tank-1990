@@ -90,6 +90,9 @@ struct SurvivalTest
             int inside_block = 0, on_eagle = 0, unreachable = 0;
             for(int k = 0; k < 300; k++)
             {
+                // Um bônus por vez no mapa: o sorteio começa sem nenhum
+                for(Bonus* old_bonus : s.m_bonuses) delete old_bonus;
+                s.m_bonuses.clear();
                 s.generateBonus();
                 const Bonus* b = s.m_bonuses.back();
                 SDL_Rect r = b->collision_rect;
@@ -112,6 +115,56 @@ struct SurvivalTest
             expect(on_eagle == 0, name + ": nenhum bônus na águia");
             expect(unreachable == 0, name + ": todo bônus num lugar aonde os tanques chegam");
         }
+    }
+
+    // ===== Um bônus por vez; tanque vermelho só solta o bônus enquanto pisca =====
+    static void bonusRules()
+    {
+        std::srand(77);
+        Survival s(2, 0);
+        run(s, 5);
+        for(Bonus* old_bonus : s.m_bonuses) delete old_bonus;
+        s.m_bonuses.clear();
+        s.generateBonus();
+        expect(s.m_bonuses.size() == 1, "um bônus no mapa depois do sorteio");
+        SDL_Point first = {static_cast<int>(s.m_bonuses.front()->pos_x), static_cast<int>(s.m_bonuses.front()->pos_y)};
+        SpriteType first_type = s.m_bonuses.front()->type;
+        // Outro tanque vermelho acertado com um bônus já no mapa: não troca o que está lá
+        s.generateBonus();
+        expect(s.m_bonuses.size() == 1 && static_cast<int>(s.m_bonuses.front()->pos_x) == first.x && static_cast<int>(s.m_bonuses.front()->pos_y) == first.y
+               && s.m_bonuses.front()->type == first_type, "tanque vermelho com bônus no mapa não troca o bônus (nem a posição)");
+        for(Bonus* old_bonus : s.m_bonuses) delete old_bonus;
+        s.m_bonuses.clear();
+
+        // Vermelho inteiro, depois pisca com cada vez menos vermelho, depois a cor do tipo: o
+        // bônus sai só enquanto ele é vermelho (flag até o fim do pisca)
+        Enemy* e = new Enemy(0, 0, ST_TANK_A);
+        e->setFlag(TSF_LIFE);
+        e->setFlag(TSF_FROZEN);   // parado, para a cor ser só do tempo
+        e->setFlag(TSF_BONUS);
+        const Uint32 red = AppConfig::carrier_red_time, blink = AppConfig::carrier_blink_time;
+        const Uint32 step = 10;
+        std::vector<bool> is_red;   // por passo: vermelho na tela?
+        bool still_carrier_before_end = true, carrier_after_end = false;
+        for(Uint32 t = 0; t < red + blink + 200; t += step)
+        {
+            if(t >= red + blink - step && e->testFlag(TSF_BONUS) == false) carrier_after_end = true;
+            if(t < red + blink - step && !e->testFlag(TSF_BONUS)) still_carrier_before_end = false;
+            e->update(step);
+            is_red.push_back(e->testFlag(TSF_BONUS));
+        }
+        expect(still_carrier_before_end, "tanque vermelho carrega o bônus até o fim do pisca");
+        expect(carrier_after_end, "depois do pisca o tanque deixa de carregar o bônus");
+        // Cor: vermelho inteiro no começo; no pisca, o vermelho aparece menos no fim do que no começo
+        int first_quarter = 0, last_quarter = 0;
+        for(size_t k = 0; k < is_red.size(); k++)
+        {
+            Uint32 t = static_cast<Uint32>(k) * step;
+            if(t >= red && t < red + blink / 4 && is_red[k]) first_quarter++;
+            if(t >= red + blink * 3 / 4 && t < red + blink && is_red[k]) last_quarter++;
+        }
+        expect(first_quarter > 0 && first_quarter > last_quarter, "o pisca do tanque vermelho perde vermelho até sumir");
+        delete e;
     }
 
     // ===== Contagem até a próxima onda =====
@@ -264,6 +317,45 @@ struct SurvivalTest
         expect(box.x == 16 * t + 3, "loja à direita do meio: caixa à direita dela");
     }
 
+    // ===== Caixas das lojas: nenhuma cobre outra caixa, outra loja nem a águia =====
+    static void shopBoxesApart()
+    {
+        const int t = AppConfig::tile_rect.w;
+        // Caixas grandes (texto longo, como TEAM SHIELD com o preço): o pior caso dos 4 jogadores
+        const int width = 150, height = 50;
+        for(int map = 0; map < static_cast<int>(AppConfig::survival_maps.size()); map++)
+            for(bool shared : {true, false})
+            {
+                std::srand(300 + map);
+                Survival s(4, map, shared);
+                run(s, 80);
+                clearWave(s);
+                std::string name = AppConfig::survival_maps[map].first + (shared ? " (equipe)" : " (cada um)");
+                std::vector<SDL_Rect> taken;
+                if(s.m_eagle != nullptr) taken.push_back(s.m_eagle->collision_rect);
+                for(int i = 0; i < 4; i++)
+                    if(s.hasShop(i)) taken.push_back({s.m_shop_pads[i].x, s.m_shop_pads[i].y, 2 * t, 2 * t});
+                int apart = 0, boxes = 0;
+                for(int i = 0; i < 4; i++)
+                {
+                    if(!s.hasShop(i)) continue;
+                    SDL_Rect box = s.shopBoxFree(s.m_shop_pads[i], width, height, taken);
+                    SDL_Rect frame = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
+                    boxes++;
+                    bool clear = true;
+                    for(const SDL_Rect& other : taken) if(SDL_HasIntersection(&frame, &other)) clear = false;
+                    if(!clear) apart++;
+                    taken.push_back(frame);
+                }
+                expect(apart == 0, name + ": as " + std::to_string(boxes) + " caixas não se cobrem (" + std::to_string(apart) + " sobrepostas)");
+            }
+        // Sem lugar livre em volta: fica a de menos sobreposição, sem sair do mapa
+        Survival s(1, 0);
+        SDL_Rect box = s.shopBoxFree({10 * t, 20 * t}, 80, 40, {{0, 0, AppConfig::map_rect.w, AppConfig::map_rect.h}});
+        expect(box.x >= 1 && box.y >= 1 && box.x + box.w < AppConfig::map_rect.w && box.y + box.h < AppConfig::map_rect.h,
+               "sem lugar livre, a caixa continua dentro do mapa");
+    }
+
     // ===== Uma loja por jogador =====
     static void ownShops()
     {
@@ -276,20 +368,25 @@ struct SurvivalTest
                 run(s, 80);
                 clearWave(s);
                 std::string name = AppConfig::survival_maps[map].first + (shared ? " (equipe)" : " (cada um)");
-                int placed = 0, overlapping = 0, wrong_side = 0;
+                int placed = 0, overlapping = 0, too_close = 0, wrong_side = 0;
                 for(int i = 0; i < 4; i++)
                 {
                     if(!s.hasShop(i)) continue;
                     placed++;
                     SDL_Rect a = {s.m_shop_pads[i].x, s.m_shop_pads[i].y, 2 * t, 2 * t};
+                    // Um bloco livre entre duas lojas: a área com um bloco a mais em volta não toca a outra
+                    SDL_Rect near = {a.x - t, a.y - t, a.w + 2 * t, a.h + 2 * t};
                     if((a.x + t < 11 * t) != (i % 2 == 0)) wrong_side++;
                     for(int j = 0; j < i; j++)
                     {
                         SDL_Rect b = {s.m_shop_pads[j].x, s.m_shop_pads[j].y, 2 * t, 2 * t};
-                        if(s.hasShop(j) && SDL_HasIntersection(&a, &b)) overlapping++;
+                        if(!s.hasShop(j)) continue;
+                        if(SDL_HasIntersection(&a, &b)) overlapping++;
+                        if(SDL_HasIntersection(&near, &b)) too_close++;
                     }
                 }
                 expect(placed == 4 && overlapping == 0, name + ": 4 lojas, uma por jogador, sem uma cobrir a outra");
+                expect(too_close == 0, name + ": um bloco livre entre as lojas (" + std::to_string(too_close) + " sem)");
                 if(wrong_side > 0) std::printf("        %s: %d loja(s) do outro lado (sem lugar no dela)\n", name.c_str(), wrong_side);
                 if(map > 0) continue;
 
@@ -589,6 +686,8 @@ int main(int, char*[])
     SurvivalTest::purchases();
     SurvivalTest::slots();
     SurvivalTest::shopBox();
+    SurvivalTest::shopBoxesApart();
+    SurvivalTest::bonusRules();
     SurvivalTest::ownShops();
     SurvivalTest::playersPassThrough();
     SurvivalTest::friendlyFire();

@@ -127,6 +127,11 @@ unsigned AppConfig::level_end_time = 5000;
 unsigned AppConfig::protect_eagle_time = 15000;
 // Intervalo de piscar do bônus (ms)
 unsigned AppConfig::bonus_blink_time = 350;
+// Tanque vermelho que carrega bônus: vermelho inteiro (ms), depois piscando até a cor do tipo (ms)
+unsigned AppConfig::carrier_red_time = 1000;
+unsigned AppConfig::carrier_blink_time = 2000;
+// Duração de um pisca do tanque vermelho (ms)
+unsigned AppConfig::carrier_blink_period = 200;
 // Tempo de recarga do disparo do jogador (ms)
 unsigned AppConfig::player_reload_time = 120;
 // Quantidade máxima de inimigos simultâneos no mapa

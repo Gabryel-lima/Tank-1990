@@ -212,6 +212,19 @@ protected:
     virtual bool bonusSpot(SDL_Point* spot);
 
     /**
+     * Onde o bônus pode surgir: as células 2x2 que um tanque alcança andando a partir dos
+     * nascimentos (walkableSpots). O modo pode tirar mais (lojas, pontos reservados).
+     */
+    virtual std::vector<SDL_Point> bonusSpots();
+
+    /**
+     * Células 2x2 (em pixels, alinhadas à grade) que um tanque ocupa e alcança andando a partir
+     * dos nascimentos dos jogadores: sem bloco que pare tanque (gelo e arbusto não param, tijolo,
+     * pedra e água param), fora das bases e das torretas.
+     */
+    std::vector<SDL_Point> walkableSpots();
+
+    /**
      * Verifica se o tanque pode se mover livremente para frente; caso contrário, o tanque é parado. Não permite sair do tabuleiro.
      * Se o tanque entrar no gelo, escorrega. Se possuir o bônus "Barco", pode atravessar água. Tanques não podem passar pela águia.
      * @param tank - tanque a ser verificado
