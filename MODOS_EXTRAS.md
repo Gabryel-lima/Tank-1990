@@ -79,7 +79,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | V3 | Mensagens no meio do mapa vão numa **caixa** (`drawMessageBox`), nunca em texto solto: texto direto sobre gelo ou pedra fica ilegível. Texto que precisa ficar sobre o mapa leva contorno. | `message_box.h`, `Renderer::drawTextOutlined` |
 | V4 | Início da partida (ou da onda): caixa com o nome do modo ou da rodada, o **nome do mapa** e o objetivo. Fim: caixa com o resultado e os pontos de cada jogador na cor dele. | `drawOverlay()` do modo |
 | V5 | Painel lateral: texto preto sobre bloco colorido (o texto colorido direto sobre o cinza do painel some). | `drawStatus()` do modo |
-| V6 | **Som do material no acerto de tiro:** todo bloco que o tiro atinge toca o som dele, mesmo quando o tiro não quebra (pedra e ferro: `steelhit`; tijolo: `brickhit`) e quando o tiro reforçado quebra. Arbusto quebrado pelo tiro reforçado toca o som do tijolo. Gelo e água, que o tiro atravessa, não têm som (a decidir com o designer: o tiro passa por eles, então um som ali seria de passagem, não de colisão). | `Game::checkCollisionBulletWithLevel`, `Game::checkCollisionBulletWithBush`, `Brick::bulletHit` |
+| V6 | **Som do material só no que importa:** o tiro do **jogador** toca o som do bloco que atinge (pedra e ferro: `steelhit`; tijolo: `brickhit`), mesmo que não quebre; o tiro de **inimigo** só toca quando **destrói** o bloco (projéteis de inimigo batendo sem quebrar não tocam, para não virar barulho contínuo). Arbusto quebrado pelo tiro reforçado toca o som do tijolo. Gelo e água, que o tiro atravessa, não têm som. | `Game::checkCollisionBulletWithLevel`, `Game::checkCollisionBulletWithBush` |
 
 ## 7. Regras de jogo
 

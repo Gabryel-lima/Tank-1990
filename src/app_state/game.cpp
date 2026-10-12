@@ -894,12 +894,14 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
 
             if(intersect_rect.w > 0 && intersect_rect.h > 0)
             {
-                // Som do material em todo acerto, também no que não dá dano (bloco protegido) e
-                // no que o tiro reforçado quebra; o tijolo toca o próprio som (Brick::bulletHit)
+                // Som do material só para o que importa: o tiro do jogador (sempre), e o tiro de
+                // qualquer um que destrói o bloco. Tiro de inimigo que só arranha não toca, para
+                // não virar barulho contínuo
+                bool player_shot = bullet->from_player;
                 if(!bulletCanDamage(bullet, i, j))
                 {
                     // bloco protegido: o projétil some sem causar dano
-                    SoundManager::getInstance().playSound(o->type == ST_STONE_WALL ? "steelhit" : "brick_hit");
+                    if(player_shot) SoundManager::getInstance().playSound(o->type == ST_STONE_WALL ? "steelhit" : "brick_hit");
                 }
                 else if(breaksBlock(bullet, i, j))
                 {
@@ -913,13 +915,15 @@ void Game::checkCollisionBulletWithLevel(Bullet* bullet)
                     brick->bulletHit(bullet->direction);
                     if(brick->to_erase)
                     {
+                        SoundManager::getInstance().playSound("brick_hit");
                         delete brick;
                         m_level.at(i).at(j) = nullptr;
                     }
+                    else if(player_shot) SoundManager::getInstance().playSound("brick_hit");
                 }
-                else if(o->type == ST_STONE_WALL)
+                else if(o->type == ST_STONE_WALL && player_shot)
                 {
-                    // Pedra (ferro) que o tiro normal não quebra: o tiro some, com o som do ferro
+                    // Pedra (ferro) que o tiro do jogador não quebra: o tiro some, com o som do ferro
                     SoundManager::getInstance().playSound("steelhit");
                 }
                 bullet->destroy();

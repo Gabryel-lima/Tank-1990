@@ -26,11 +26,8 @@ void Brick::update(Uint32 dt)
 // Função chamada quando o tijolo é atingido por um tiro
 void Brick::bulletHit(Direction bullet_direction)
 {
-    // sound
-    SoundManager::getInstance().playSound("brick_hit");
-    if (type == ST_STONE_WALL) {
-        SoundManager::getInstance().playSound("steelhit");
-    }
+    // O som do acerto fica com o jogo (Game::checkCollisionBulletWithLevel): só o tiro do
+    // jogador ou o que destrói o bloco toca
 
     int bd = bullet_direction;
     m_collision_count++; // incrementa o número de colisões
