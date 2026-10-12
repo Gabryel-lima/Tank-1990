@@ -450,12 +450,15 @@ void Survival::placeShop()
                     for(int c = spot.column; c < spot.column + 2; c++)
                         if(m_level.at(r).at(c) != nullptr && m_level.at(r).at(c)->type != ST_ICE) free = false;
                 SDL_Rect area = {spot.column * t, spot.row * t, 2 * t, 2 * t};
+                // Entre duas lojas, um bloco de chão livre: a área da loja com um bloco a mais
+                // em volta não pode tocar a outra
+                SDL_Rect near = {area.x - t, area.y - t, area.w + 2 * t, area.h + 2 * t};
                 for(Turret* turret : m_turrets) if(!turret->to_erase && intersects(turret->collision_rect, area)) free = false;
                 for(Mine* mine : m_mines) if(!mine->to_erase && intersects(mine->collision_rect, area)) free = false;
                 for(int other = 0; other < index; other++)
                 {
                     SDL_Rect shop = {m_shop_pads[other].x, m_shop_pads[other].y, 2 * t, 2 * t};
-                    if(hasShop(other) && intersects(shop, area)) free = false;
+                    if(hasShop(other) && intersects(shop, near)) free = false;
                 }
                 if(!free) continue;
                 m_shop_pads[index] = {spot.column * t, spot.row * t};
@@ -1152,91 +1155,193 @@ SDL_Rect Survival::shopBoxRect(SDL_Point pad, int width, int height) const
     return box;
 }
 
-void Survival::drawShop(int index)
+bool Survival::shopCaption(int index, ShopCaption& caption) const
 {
     // Caixa pequena ao lado da loja, do lado de fora (loja à esquerda da base: caixa à
     // esquerda), para não tapar a águia, e só com o dono em cima: o ícone e o nome do item e,
     // embaixo, o preço (dourado se dá para comprar) ou, em vermelho, por que não dá. Sem o
     // dono em cima, nada: o chão na cor dele já diz de quem é. Pouca coisa para não virar
     // bagunça com 4 lojas abertas; as moedas ficam no painel
-    if(!shopOpen() || !hasShop(index)) return;
+    if(!shopOpen() || !hasShop(index)) return false;
     Renderer* renderer = Engine::getEngine().getRenderer();
     std::vector<ShopItem> items = shopItems();
     const Player* user = nullptr;
     for(const Player* p : m_players) if(p->playerIndex() == index && !p->to_erase && p->shop_mode) user = p;
-    if(user == nullptr) return;
-    SDL_Color color = user->color;
+    if(user == nullptr) return false;
 
-    struct Line { std::string text; SDL_Color color; };
-    std::vector<Line> lines;
-    const bool has_icon = true;
-    ShopItem item = items.at(m_shop_item[index] % items.size());
-    lines.push_back({shopName(item.type), WHITE});
-    std::string why = cannotBuy(item, user);
-    int cost = price(item, user);
-    if(why.empty()) lines.push_back({"$" + Engine::intToString(cost), GOLD});
-    else if(why.compare(0, 4, "NEED") == 0) lines.push_back({"$" + Engine::intToString(cost), RED});
-    else lines.push_back({why, RED});
+    caption.index = index;
+    caption.pad = m_shop_pads[index];
+    caption.color = user->color;
+    caption.item = items.at(m_shop_item[index] % items.size());
+    caption.lines.clear();
+    caption.lines.push_back({shopName(caption.item.type), WHITE});
+    std::string why = cannotBuy(caption.item, user);
+    int cost = price(caption.item, user);
+    if(why.empty()) caption.lines.push_back({"$" + Engine::intToString(cost), GOLD});
+    else if(why.compare(0, 4, "NEED") == 0) caption.lines.push_back({"$" + Engine::intToString(cost), RED});
+    else caption.lines.push_back({why, RED});
 
     // Primeira linha com o item: "◀ ícone ▶  NOME"
     const int pad_x = 5, pad_y = 5, gap = 4, icon_size = 16, arrow = 5;
-    const int icon_w = has_icon ? arrow + 3 + icon_size + 3 + arrow + 6 : 0;
+    const int icon_w = arrow + 3 + icon_size + 3 + arrow + 6;
     int width = 0, height = pad_y;
-    for(size_t i = 0; i < lines.size(); i++)
+    for(size_t i = 0; i < caption.lines.size(); i++)
     {
-        SDL_Point size = renderer->textSize(lines[i].text, 3);
+        SDL_Point size = renderer->textSize(caption.lines[i].first, 3);
         int line_w = size.x + (i == 0 ? icon_w : 0);
         width = std::max(width, line_w);
-        height += std::max(size.y, i == 0 && has_icon ? icon_size : 0) + gap;
+        height += std::max(size.y, i == 0 ? icon_size : 0) + gap;
     }
-    width += 2 * pad_x;
-    height += pad_y - gap;
+    caption.width = width + 2 * pad_x;
+    caption.height = height + pad_y - gap;
+    return true;
+}
 
-    SDL_Rect box = shopBoxRect(m_shop_pads[index], width, height);
-    SDL_Rect border = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
-    renderer->drawRect(&border, color, true);
-    renderer->drawRect(&box, BLACK, true);
-
-    int y = box.y + pad_y;
-    for(size_t i = 0; i < lines.size(); i++)
-    {
-        SDL_Point size = renderer->textSize(lines[i].text, 3);
-        int x = box.x + pad_x, line_h = size.y;
-        if(i == 0 && has_icon)
+SDL_Rect Survival::shopBoxFree(SDL_Point pad, int width, int height, const std::vector<SDL_Rect>& taken) const
+{
+    const int tank = 2 * AppConfig::tile_rect.w, t = AppConfig::tile_rect.w, gap = 3, edge = 1;
+    const int map_w = AppConfig::map_rect.w, map_h = AppConfig::map_rect.h;
+    auto place = [&](int x, int y) {
+        SDL_Rect box = {x, y, width, height};
+        box.x = std::max(edge, std::min(box.x, map_w - box.w - edge));
+        box.y = std::max(edge, std::min(box.y, map_h - box.h - edge));
+        return box;
+    };
+    // Quantas sobreposições a caixa teria com o que já está no mapa (a borda de 1 px conta)
+    auto overlap = [&](const SDL_Rect& candidate) {
+        SDL_Rect frame = {candidate.x - 1, candidate.y - 1, candidate.w + 2, candidate.h + 2};
+        int total = 0;
+        for(SDL_Rect other : taken)
         {
-            line_h = icon_size;
-            // Setas de LB (esquerda) e RB (direita) em volta do ícone: a ponta é a coluna de
-            // 1 px (k = 0), do lado de fora
-            for(int k = 0; k < arrow; k++)
-            {
-                SDL_Rect l = {x + k, y + icon_size / 2 - k, 1, 2 * k + 1};
-                renderer->drawRect(&l, LIGHT_GRAY, true);
-            }
-            SDL_Rect dst = {x + arrow + 3, y, icon_size, icon_size};
-            if(item.type == ST_NONE)
-            {
-                // Espaço de poder: a moldura vazia do painel, com um "+"
-                renderer->drawRect(&dst, LIGHT_GRAY, false);
-                SDL_Rect h = {dst.x + 4, dst.y + 7, 8, 2}, v = {dst.x + 7, dst.y + 4, 2, 8};
-                renderer->drawRect(&h, GOLD, true);
-                renderer->drawRect(&v, GOLD, true);
-            }
-            else
-            {
-                SDL_Rect src = Engine::getEngine().getSpriteConfig()->getSpriteData(item.type)->rect;
-                renderer->drawObject(&src, &dst);
-            }
-            int rx = dst.x + icon_size + 3;
-            for(int k = 0; k < arrow; k++)
-            {
-                SDL_Rect r = {rx + arrow - 1 - k, y + icon_size / 2 - k, 1, 2 * k + 1};
-                renderer->drawRect(&r, LIGHT_GRAY, true);
-            }
-            x = rx + arrow + 6;
+            SDL_Rect common = intersectRect(&frame, &other);
+            if(common.w > 0 && common.h > 0) total += common.w * common.h;
         }
-        SDL_Point p = {x, y + (line_h - size.y) / 2};
-        renderer->drawText(&p, lines[i].text, lines[i].color, 3);
-        y += line_h + gap;
+        return total;
+    };
+
+    // O lado de sempre, depois o oposto, em cima e embaixo (centradas na loja)
+    bool left = pad.x + tank / 2 < map_w / 2;
+    int bottom = pad.y + tank - height, center = pad.x + (tank - width) / 2;
+    std::vector<SDL_Rect> near = {
+        shopBoxRect(pad, width, height),
+        place(left ? pad.x + tank + gap : pad.x - gap - width, bottom),
+        place(center, pad.y - gap - height),
+        place(center, pad.y + tank + gap)
+    };
+    SDL_Rect best = near.front();
+    int best_overlap = -1;
+    for(const SDL_Rect& candidate : near)
+    {
+        int total = overlap(candidate);
+        if(total == 0) return candidate;
+        if(best_overlap < 0 || total < best_overlap)
+        {
+            best = candidate;
+            best_overlap = total;
+        }
+    }
+
+    // Nenhum dos quatro cabe: o lugar livre mais perto da loja, em passos de um bloco por todo
+    // o mapa (a caixa pode ficar longe, mas nunca por cima de outra)
+    std::vector<int> xs, ys;
+    for(int x = edge; x + width + edge <= map_w; x += t) xs.push_back(x);
+    for(int y = edge; y + height + edge <= map_h; y += t) ys.push_back(y);
+    if(map_w - width - edge >= edge) xs.push_back(map_w - width - edge);
+    if(map_h - height - edge >= edge) ys.push_back(map_h - height - edge);
+    std::vector<SDL_Rect> grid;
+    for(int x : xs) for(int y : ys) grid.push_back({x, y, width, height});
+    auto distance = [&](const SDL_Rect& box) {
+        int dx = box.x + box.w / 2 - (pad.x + tank / 2), dy = box.y + box.h / 2 - (pad.y + tank / 2);
+        return dx * dx + dy * dy;
+    };
+    std::stable_sort(grid.begin(), grid.end(), [&](const SDL_Rect& a, const SDL_Rect& b) { return distance(a) < distance(b); });
+    for(const SDL_Rect& candidate : grid)
+    {
+        int total = overlap(candidate);
+        if(total == 0) return candidate;
+        if(total < best_overlap)
+        {
+            best = candidate;
+            best_overlap = total;
+        }
+    }
+    return best;
+}
+
+void Survival::drawShops()
+{
+    // Uma caixa por loja com o dono em cima. Cada uma fica ao lado da sua loja, mas, se
+    // cobriria outra caixa, outra loja ou a águia, troca de lado (shopBoxFree): as caixas
+    // nunca se sobrepõem
+    std::vector<ShopCaption> captions;
+    for(int index = 0; index < m_player_count; index++)
+    {
+        ShopCaption caption;
+        if(shopCaption(index, caption)) captions.push_back(caption);
+    }
+    if(captions.empty()) return;
+
+    const int size = 2 * AppConfig::tile_rect.w;
+    std::vector<SDL_Rect> taken;
+    if(m_eagle != nullptr) taken.push_back(m_eagle->collision_rect);
+    for(int index = 0; index < m_player_count; index++)
+        if(hasShop(index)) taken.push_back({m_shop_pads[index].x, m_shop_pads[index].y, size, size});
+    for(ShopCaption& caption : captions)
+    {
+        caption.box = shopBoxFree(caption.pad, caption.width, caption.height, taken);
+        taken.push_back({caption.box.x - 1, caption.box.y - 1, caption.box.w + 2, caption.box.h + 2});
+    }
+
+    Renderer* renderer = Engine::getEngine().getRenderer();
+    const int pad_x = 5, pad_y = 5, gap = 4, icon_size = 16, arrow = 5;
+    for(const ShopCaption& caption : captions)
+    {
+        SDL_Rect border = {caption.box.x - 1, caption.box.y - 1, caption.box.w + 2, caption.box.h + 2};
+        renderer->drawRect(&border, caption.color, true);
+        SDL_Rect box = caption.box;
+        renderer->drawRect(&box, BLACK, true);
+
+        int y = caption.box.y + pad_y;
+        for(size_t i = 0; i < caption.lines.size(); i++)
+        {
+            SDL_Point size_text = renderer->textSize(caption.lines[i].first, 3);
+            int x = caption.box.x + pad_x, line_h = size_text.y;
+            if(i == 0)
+            {
+                line_h = icon_size;
+                // Setas de LB (esquerda) e RB (direita) em volta do ícone: a ponta é a coluna de
+                // 1 px (k = 0), do lado de fora
+                for(int k = 0; k < arrow; k++)
+                {
+                    SDL_Rect l = {x + k, y + icon_size / 2 - k, 1, 2 * k + 1};
+                    renderer->drawRect(&l, LIGHT_GRAY, true);
+                }
+                SDL_Rect dst = {x + arrow + 3, y, icon_size, icon_size};
+                if(caption.item.type == ST_NONE)
+                {
+                    // Espaço de poder: a moldura vazia do painel, com um "+"
+                    renderer->drawRect(&dst, LIGHT_GRAY, false);
+                    SDL_Rect h = {dst.x + 4, dst.y + 7, 8, 2}, v = {dst.x + 7, dst.y + 4, 2, 8};
+                    renderer->drawRect(&h, GOLD, true);
+                    renderer->drawRect(&v, GOLD, true);
+                }
+                else
+                {
+                    SDL_Rect src = Engine::getEngine().getSpriteConfig()->getSpriteData(caption.item.type)->rect;
+                    renderer->drawObject(&src, &dst);
+                }
+                int rx = dst.x + icon_size + 3;
+                for(int k = 0; k < arrow; k++)
+                {
+                    SDL_Rect r = {rx + arrow - 1 - k, y + icon_size / 2 - k, 1, 2 * k + 1};
+                    renderer->drawRect(&r, LIGHT_GRAY, true);
+                }
+                x = rx + arrow + 6;
+            }
+            SDL_Point p = {x, y + (line_h - size_text.y) / 2};
+            renderer->drawText(&p, caption.lines[i].first, caption.lines[i].second, 3);
+            y += line_h + gap;
+        }
     }
 }
 
@@ -1269,11 +1374,8 @@ void Survival::drawOverlay()
     // Pedra rompida: a explosão do tiro em cada bloco que caiu
     for(const auto& effect : m_breach_effects) effect.first->draw();
 
-    // As caixas de quem está comprando por cima das outras
-    if(!m_pause)
-        for(int pass = 0; pass < 2; pass++)
-            for(const Player* p : m_players)
-                if(p->shop_mode == (pass == 1)) drawShop(p->playerIndex());
+    // As caixas de quem está comprando, sem uma cobrir a outra
+    if(!m_pause) drawShops();
 
     // Intervalo: onda vencida, recompensas e contagem até a próxima, no alto do mapa (a loja
     // e a base ficam embaixo)

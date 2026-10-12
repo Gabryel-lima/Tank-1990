@@ -264,13 +264,32 @@ private:
     void breach(Enemy* enemy);
 
     void drawFloor() override;
-    /** Caixa de texto da loja do jogador @a index (o item escolhido, se ele está em cima). */
-    void drawShop(int index);
+    /** Uma caixa de texto de loja: o texto (lines), o tamanho e onde ela fica (box). */
+    struct ShopCaption
+    {
+        int index = 0;
+        SDL_Point pad = {0, 0};
+        SDL_Color color = {0, 0, 0, 255};
+        ShopItem item = {ST_NONE, 0};
+        std::vector<std::pair<std::string, SDL_Color>> lines;
+        int width = 0, height = 0;
+        SDL_Rect box = {0, 0, 0, 0};
+    };
+
+    /** Caixas das lojas com o dono em cima (uma por jogador), desenhadas juntas (drawShops). */
+    void drawShops();
+    /** Monta a caixa da loja do jogador @a index (o item escolhido, se ele está em cima). */
+    bool shopCaption(int index, ShopCaption& caption) const;
     /**
      * Caixa de texto da loja em @a pad (sem a borda de 1 px), de @a width x @a height: ao lado
      * da loja, do lado de fora, e com a borda inteira dentro do mapa.
      */
     SDL_Rect shopBoxRect(SDL_Point pad, int width, int height) const;
+    /**
+     * Como shopBoxRect, mas sem cobrir nada de @a taken (outras caixas, lojas, a águia): tenta
+     * o lado de sempre, o oposto, em cima e embaixo; sem lugar livre, a de menos sobreposição.
+     */
+    SDL_Rect shopBoxFree(SDL_Point pad, int width, int height, const std::vector<SDL_Rect>& taken) const;
     static std::string shopName(SpriteType type);
 
     /** Tiles da muralha da águia ({coluna, linha}): laterais e frente. */

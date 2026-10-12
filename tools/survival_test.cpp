@@ -264,6 +264,45 @@ struct SurvivalTest
         expect(box.x == 16 * t + 3, "loja à direita do meio: caixa à direita dela");
     }
 
+    // ===== Caixas das lojas: nenhuma cobre outra caixa, outra loja nem a águia =====
+    static void shopBoxesApart()
+    {
+        const int t = AppConfig::tile_rect.w;
+        // Caixas grandes (texto longo, como TEAM SHIELD com o preço): o pior caso dos 4 jogadores
+        const int width = 150, height = 50;
+        for(int map = 0; map < static_cast<int>(AppConfig::survival_maps.size()); map++)
+            for(bool shared : {true, false})
+            {
+                std::srand(300 + map);
+                Survival s(4, map, shared);
+                run(s, 80);
+                clearWave(s);
+                std::string name = AppConfig::survival_maps[map].first + (shared ? " (equipe)" : " (cada um)");
+                std::vector<SDL_Rect> taken;
+                if(s.m_eagle != nullptr) taken.push_back(s.m_eagle->collision_rect);
+                for(int i = 0; i < 4; i++)
+                    if(s.hasShop(i)) taken.push_back({s.m_shop_pads[i].x, s.m_shop_pads[i].y, 2 * t, 2 * t});
+                int apart = 0, boxes = 0;
+                for(int i = 0; i < 4; i++)
+                {
+                    if(!s.hasShop(i)) continue;
+                    SDL_Rect box = s.shopBoxFree(s.m_shop_pads[i], width, height, taken);
+                    SDL_Rect frame = {box.x - 1, box.y - 1, box.w + 2, box.h + 2};
+                    boxes++;
+                    bool clear = true;
+                    for(const SDL_Rect& other : taken) if(SDL_HasIntersection(&frame, &other)) clear = false;
+                    if(!clear) apart++;
+                    taken.push_back(frame);
+                }
+                expect(apart == 0, name + ": as " + std::to_string(boxes) + " caixas não se cobrem (" + std::to_string(apart) + " sobrepostas)");
+            }
+        // Sem lugar livre em volta: fica a de menos sobreposição, sem sair do mapa
+        Survival s(1, 0);
+        SDL_Rect box = s.shopBoxFree({10 * t, 20 * t}, 80, 40, {{0, 0, AppConfig::map_rect.w, AppConfig::map_rect.h}});
+        expect(box.x >= 1 && box.y >= 1 && box.x + box.w < AppConfig::map_rect.w && box.y + box.h < AppConfig::map_rect.h,
+               "sem lugar livre, a caixa continua dentro do mapa");
+    }
+
     // ===== Uma loja por jogador =====
     static void ownShops()
     {
@@ -276,20 +315,25 @@ struct SurvivalTest
                 run(s, 80);
                 clearWave(s);
                 std::string name = AppConfig::survival_maps[map].first + (shared ? " (equipe)" : " (cada um)");
-                int placed = 0, overlapping = 0, wrong_side = 0;
+                int placed = 0, overlapping = 0, too_close = 0, wrong_side = 0;
                 for(int i = 0; i < 4; i++)
                 {
                     if(!s.hasShop(i)) continue;
                     placed++;
                     SDL_Rect a = {s.m_shop_pads[i].x, s.m_shop_pads[i].y, 2 * t, 2 * t};
+                    // Um bloco livre entre duas lojas: a área com um bloco a mais em volta não toca a outra
+                    SDL_Rect near = {a.x - t, a.y - t, a.w + 2 * t, a.h + 2 * t};
                     if((a.x + t < 11 * t) != (i % 2 == 0)) wrong_side++;
                     for(int j = 0; j < i; j++)
                     {
                         SDL_Rect b = {s.m_shop_pads[j].x, s.m_shop_pads[j].y, 2 * t, 2 * t};
-                        if(s.hasShop(j) && SDL_HasIntersection(&a, &b)) overlapping++;
+                        if(!s.hasShop(j)) continue;
+                        if(SDL_HasIntersection(&a, &b)) overlapping++;
+                        if(SDL_HasIntersection(&near, &b)) too_close++;
                     }
                 }
                 expect(placed == 4 && overlapping == 0, name + ": 4 lojas, uma por jogador, sem uma cobrir a outra");
+                expect(too_close == 0, name + ": um bloco livre entre as lojas (" + std::to_string(too_close) + " sem)");
                 if(wrong_side > 0) std::printf("        %s: %d loja(s) do outro lado (sem lugar no dela)\n", name.c_str(), wrong_side);
                 if(map > 0) continue;
 
@@ -589,6 +633,7 @@ int main(int, char*[])
     SurvivalTest::purchases();
     SurvivalTest::slots();
     SurvivalTest::shopBox();
+    SurvivalTest::shopBoxesApart();
     SurvivalTest::ownShops();
     SurvivalTest::playersPassThrough();
     SurvivalTest::friendlyFire();
