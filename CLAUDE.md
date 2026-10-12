@@ -15,8 +15,11 @@ em mais de um modo, ele vira regra lá e sobe para um ponto comum no código.
 
 - Comentários e mensagens de commit em português; textos na tela do jogo em inglês.
 - Números ajustáveis no `AppConfig` (`duel_*`, `survival_*`, `power_*`), comentados.
-- A campanha não muda: os modos extras usam ganchos virtuais do `Game` cujo padrão é o
-  comportamento da campanha.
+- A campanha segue o original, com as mudanças de design decididas pelo dono do jogo e
+  listadas no `MODOS_EXTRAS.md` (W10 a W12 e V6: bônus só onde o tanque chega, um bônus por
+  vez, tanque vermelho com pisca, som de cada material). Os modos extras usam ganchos virtuais
+  do `Game` cujo padrão é o comportamento da campanha. Mudança de campanha nova entra na
+  lista do `MODOS_EXTRAS.md` antes de ir para o código.
 - README em português (`README.md`) e em inglês (`README.en.md`), sempre os dois.
 - Fins de linha no `.gitattributes`: LF nos `.sh` e no `Makefile`, CRLF nos `.cmd`. Script
   que o Windows manda rodar no WSL roda numa cópia sem `\r` (como o `install.cmd`), para
@@ -71,4 +74,5 @@ pixels (muda ao redimensionar) e não serve para posicionar nem para medir o que
 Confira uma tela nova também com a janela redimensionada (larga, alta, maximizada).
 
 Mudança no `Game`, no `Player`, no `Tank`, no `Object` ou no `Renderer`: confirme que as
-telas da campanha continuam idênticas pixel a pixel.
+telas da campanha continuam idênticas pixel a pixel, salvo as mudanças de design listadas no
+`MODOS_EXTRAS.md` (essas mudam o que a campanha mostra de propósito).
