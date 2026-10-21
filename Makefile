@@ -196,7 +196,8 @@ vpath %.cpp $(SRC_DIRS)
 all: build
 
 # Compila o projeto completo
-build: print check-sdl $(BUILD_DIRS) copy_resources $(RESOURCES) compile
+##@ Compilar e jogar
+build: print check-sdl $(BUILD_DIRS) copy_resources $(RESOURCES) compile ## Compila o projeto completo em build/bin (ARCH, WIN_CONSOLE)
 	@echo ""
 	@echo "✅ Compilação concluída com sucesso!"
 	@echo "📁 Executável criado em: $(EXE)"
@@ -208,7 +209,7 @@ build: print check-sdl $(BUILD_DIRS) copy_resources $(RESOURCES) compile
 	@echo ""
 
 # Executa o jogo (compila se necessário)
-run: build
+run: build ## Compila (se necessário) e executa o jogo
 	@echo "🎮 Iniciando Tank-1990..."
 	@cd $(BIN) && ./$(PROJECT_NAME)$(EXE_EXT)
 
@@ -229,7 +230,7 @@ else
 endif
 
 # Mostra informações do sistema e configuração
-info:
+info: ## Mostra as configurações de compilação do sistema
 	@echo ""
 	@echo "📋 INFORMAÇÕES DO SISTEMA:"
 	@echo "=========================="
@@ -250,7 +251,7 @@ endif
 	@echo ""
 
 # Instala dependências
-install-deps:
+install-deps: ## Instala as dependências (SDL2 e afins)
 ifeq ($(OS),Windows_NT)
 	@echo "📦 Instalando dependências SDL2 no Windows..."
 	@if command -v pacman >/dev/null 2>&1; then \
@@ -311,7 +312,8 @@ $(BUILD)/%.o: src/%.cpp Makefile
 -include $(DEPS)
 
 # As partidas de demonstração do menu numa janela, sem o menu e com som (ver tools/attract.cpp)
-attract: $(BUILD_DIRS) copy_resources $(RESOURCES) $(ATTRACT_EXE)
+##@ Demonstração
+attract: $(BUILD_DIRS) copy_resources $(RESOURCES) $(ATTRACT_EXE) ## Partidas de demonstração sem o menu, com som (para o vídeo do EmuELEC)
 
 $(ATTRACT_EXE): $(ATTRACT_OBJS)
 	$(CC) $(ATTRACT_OBJS) $(INCLUDEPATH) $(LIBSPATH) $(LIBS) $(LFLAGS) -o $@
@@ -323,7 +325,8 @@ $(BUILD)/tools/attract.o: tools/attract.cpp Makefile
 -include $(BUILD)/tools/attract.d
 
 # Simulação do modo duelo, sem janela: todos os jogadores pela IA (ver tools/duel_sim.cpp)
-duel-sim: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SIM_EXE)
+##@ Testes e verificação (sem janela)
+duel-sim: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SIM_EXE) ## Simulação do duelo sem janela (IA contra IA): equilíbrio e partidas travadas
 	@echo ""
 	@echo "✅ Simulação compilada: $(SIM_EXE)"
 	@echo "   cd $(BIN) && ./duel_sim --matches 100 --teams ABAB"
@@ -338,11 +341,11 @@ $(BUILD)/tools/duel_sim.o: tools/duel_sim.cpp Makefile
 -include $(BUILD)/tools/duel_sim.d
 
 # Testes da sobrevivência sem janela: bônus fora das paredes, contagem até a onda, compras
-survival-test: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SURVIVAL_TEST_EXE)
+survival-test: $(BUILD_DIRS) copy_resources $(RESOURCES) $(SURVIVAL_TEST_EXE) ## Testes da sobrevivência sem janela (bônus, contagem, compras)
 	cd $(BIN) && ./survival_test$(EXE_EXT)
 
 # O jogo acha os arquivos dele pela TANK_DATA_DIR com o executável em outro lugar (como no EmuELEC)
-datadir-test: build
+datadir-test: build ## Confere que o jogo acha os arquivos pela TANK_DATA_DIR, com o executável em outro lugar
 	sh tools/datadir_test.sh $(BIN)
 
 $(SURVIVAL_TEST_EXE): $(SURVIVAL_TEST_OBJS)
@@ -355,7 +358,7 @@ $(BUILD)/tools/survival_test.o: tools/survival_test.cpp Makefile
 -include $(BUILD)/tools/survival_test.d
 
 # Verifica os mapas do duelo e da sobrevivência listados em resources/duel_levels/maps.txt e resources/survival_levels/maps.txt
-check-maps: $(BUILD_DIRS) copy_resources $(RESOURCES) $(CHECK_MAPS_EXE)
+check-maps: $(BUILD_DIRS) copy_resources $(RESOURCES) $(CHECK_MAPS_EXE) ## Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)
 	cd $(BIN) && ./check_duel_maps$(EXE_EXT)
 
 $(CHECK_MAPS_EXE): $(CHECK_MAPS_OBJS)
@@ -374,7 +377,8 @@ PAD_OBJS      = $(BUILD)/input/pad_info.o $(BUILD)/input/pad_socket.o
 PADPROBE_EXE  = $(BIN)/padprobe$(EXE_EXT)
 PADBRIDGE_EXE = $(BIN)/padbridge$(EXE_EXT)
 
-pad-tools: $(BUILD_DIRS) $(PADPROBE_EXE) $(PADBRIDGE_EXE)
+##@ Controles
+pad-tools: $(BUILD_DIRS) $(PADPROBE_EXE) $(PADBRIDGE_EXE) ## Compila o padprobe (diagnóstico de controles) e o padbridge (ponte de controles)
 	@echo ""
 	@echo "✅ Ferramentas de controle: $(PADPROBE_EXE) e $(PADBRIDGE_EXE)"
 	@echo "   $(PADPROBE_EXE)                 lista os controles e mostra os eventos"
@@ -384,7 +388,7 @@ padprobe: $(BUILD_DIRS) $(PADPROBE_EXE)
 padbridge: $(BUILD_DIRS) $(PADBRIDGE_EXE)
 
 # Teste de ponta a ponta da ponte, sem controle de verdade (tools/pad-selftest.sh)
-pad-selftest: pad-tools
+pad-selftest: pad-tools ## Testa a ponte de ponta a ponta com um controle de mentira
 	sh tools/pad-selftest.sh $(BIN)
 
 $(PADPROBE_EXE): $(BUILD)/tools/padprobe.o $(PAD_OBJS) $(BUILD)/input/netpad.o
@@ -404,7 +408,7 @@ $(BUILD)/tools/%.o: tools/%.cpp Makefile
 #   make padbridge-win SDL2_MINGW=/caminho/SDL2-2.x/x86_64-w64-mingw32
 MINGW_CXX ?= x86_64-w64-mingw32-g++
 PADBRIDGE_WIN_SRCS = tools/padbridge.cpp src/input/pad_info.cpp src/input/pad_socket.cpp
-padbridge-win:
+padbridge-win: ## padbridge.exe para Windows, a partir do Linux/WSL com MinGW (SDL2_MINGW)
 	@if [ -z "$(SDL2_MINGW)" ] || [ ! -d "$(SDL2_MINGW)/include/SDL2" ]; then \
 		echo "❌ Informe o SDL2 para MinGW: make padbridge-win SDL2_MINGW=<SDL2-2.x>/x86_64-w64-mingw32"; \
 		exit 1; \
@@ -419,7 +423,8 @@ padbridge-win:
 # Desenha a pixel art dos poderes dos modos extras (tools/sprites/powers.txt) em
 # resources/png/texture.png. Só é preciso rodar ao mudar a arte; a textura vai no git
 SPRITES_EXE = $(BIN)/paint_sprites$(EXE_EXT)
-sprites: $(BUILD_DIRS) $(SPRITES_EXE)
+##@ Arte
+sprites: $(BUILD_DIRS) $(SPRITES_EXE) ## Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura
 	$(SPRITES_EXE) tools/sprites/powers.txt $(RESOURCES_DIR)/png/texture.png
 
 $(SPRITES_EXE): tools/paint_sprites.cpp
@@ -454,54 +459,46 @@ endif
 
 # Pacote para o EmuELEC (GameStick / Powkiddy Y6, Amlogic aarch64): binário compilado num
 # container com o toolchain aarch64, mais os recursos. Ver EMUELEC.md
-emuelec:
+##@ Console de TV (EmuELEC)
+emuelec: ## Pacote para o console de TV com EmuELEC (GameStick Y6); precisa de Docker
 	sh tools/emuelec/build.sh
 
 # Instala o pacote no cartão do stick, no leitor do PC (Linux, sudo): make emuelec-card [CARD=/media/<você>] [ZIP=...]
-emuelec-card:
+emuelec-card: ## Instala o pacote no cartão do stick, no leitor do PC (Linux)
 	sh tools/emuelec/card-install.sh "$(ZIP)" "$(CARD)"
 
 # Instala o pacote no stick pela rede (SSH): make emuelec-install HOST=<IP do stick> [ZIP=...]
-emuelec-install:
+emuelec-install: ## Instala o pacote no stick pela rede, por SSH (HOST)
 	sh tools/emuelec/install.sh "$(HOST)" $(ZIP)
 
 # A entrada do jogo entra no gamelist.xml dos Ports sem apagar a dos outros ports (sem Docker)
-gamelist-test:
+gamelist-test: ## Testa a fusão da entrada do jogo no gamelist.xml do EmuELEC
 	sh tools/emuelec/gamelist-test.sh
 
 # ============================================================================
 # AJUDA
 # ============================================================================
 
-# Mostra ajuda com todos os comandos disponíveis
-help:
-	@echo ""
-	@echo "🎮 Tank-1990 - Sistema de Build"
-	@echo "==============================="
-	@echo ""
-	@echo "COMANDOS PRINCIPAIS:"
-	@echo "  make build       - Compila o projeto completo"
-	@echo "  make run         - Compila e executa o jogo"
-	@echo "  make clean       - Remove arquivos de build"
-	@echo ""
-	@echo "COMANDOS AUXILIARES:"
-	@echo "  make info        - Mostra informações do sistema"
-	@echo "  make doc         - Gera documentação (Doxygen)"
-	@echo "  make duel-sim    - Compila a simulação do duelo (IA contra IA, sem janela)"
-	@echo "  make check-maps  - Verifica os mapas do duelo e da sobrevivência (mesmas regras do jogo)"
-	@echo "  make survival-test - Testes da sobrevivência sem janela (bônus, contagem, compras)"
-	@echo "  make datadir-test  - O jogo acha os arquivos pela TANK_DATA_DIR, com o executável em outro lugar"
-	@echo "  make sprites     - Desenha a pixel art dos poderes (tools/sprites/powers.txt) na textura"
-	@echo "  make pad-tools   - Compila o padprobe (diagnóstico de controles) e o padbridge (ponte de controles)"
-	@echo "  make pad-selftest - Testa a ponte de ponta a ponta com um controle de mentira"
-	@echo "  make padbridge-win SDL2_MINGW=<dir> - padbridge.exe para Windows, a partir do Linux/WSL (MinGW)"
-	@echo "  make emuelec     - Pacote para o console de TV com EmuELEC (GameStick Y6), precisa de Docker"
-	@echo "  make emuelec-card - Instala o pacote no cartão do stick, no leitor do PC (Linux)"
-	@echo "  make emuelec-install HOST=<IP> - Instala o pacote no stick pela rede (SSH)"
-	@echo "  make gamelist-test - Testa a fusão da entrada do jogo no gamelist.xml do EmuELEC"
-	@echo "  make attract     - Partidas de demonstração sem o menu, com som (para o vídeo do EmuELEC)"
-	@echo "  make install-deps - Instala dependências"
-	@echo "  make help        - Mostra esta ajuda"
+# O help lê "##@ Seção" e "alvo: ## descrição (VARIÁVEIS)", na ordem do arquivo. Sem cor
+# quando a saída não é um terminal ou NO_COLOR existe.
+##@ Ajuda
+help: ## Lista os alvos por seção, com as variáveis de cada um
+	@color=0; if [ -t 1 ] && [ -z "$${NO_COLOR:-}" ]; then color=1; fi; \
+	awk -v color=$$color '\
+	function paint(c, t) { return color ? "\033[" c "m" t "\033[0m" : t } \
+	BEGIN { \
+	    print paint("1", "Tank-1990") " - atalhos do make"; \
+	    print "  uso: make " paint("36", "<alvo>") " [" paint("32", "VARIAVEL") "=valor ...]"; \
+	    print "  legenda: " paint("1;33", "SEÇÃO") "  " paint("36", "alvo") "  " paint("32", "(variáveis que o alvo lê)"); \
+	} \
+	/^##@ / { print ""; print paint("1;33", substr($$0, 5)); next } \
+	/^[a-zA-Z0-9_-]+:.*## / { \
+	    name = $$0; sub(/:.*/, "", name); \
+	    desc = $$0; sub(/^[^#]*## /, "", desc); \
+	    if (match(desc, /\([A-Z][A-Z0-9_, ]*\)/)) \
+	        desc = substr(desc, 1, RSTART - 1) paint("32", substr(desc, RSTART, RLENGTH)) substr(desc, RSTART + RLENGTH); \
+	    printf "  %s %s\n", paint("36", sprintf("%-16s", name)), desc; \
+	}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "INÍCIO RÁPIDO:"
 	@echo "  1. make install-deps  # (primeira vez)"
@@ -530,13 +527,14 @@ help:
 # ============================================================================
 
 # Remove arquivos de build
-clean:
+##@ Limpeza e documentação
+clean: ## Remove o diretório build/
 	@echo "🧹 Limpando arquivos de build..."
 	rm -rf $(BUILD) doc
 	@echo "✅ Limpeza concluída!"
 
 # Gera documentação com Doxygen
-doc:
+doc: ## Gera a documentação com o Doxygen
 	@echo "📚 Gerando documentação..."
 	doxygen Doxyfile
 	@echo "✅ Documentação gerada em doc/"
