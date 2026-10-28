@@ -24,7 +24,7 @@ namespace
             : Game(players, rand() % CAMPAIGN_STAGES) { cpuPlayers(m_players); m_demo = true; }
     };
 
-    /** Duelo: 1 contra 1 ou 2 contra 2, num mapa sorteado; a IA do duelo joga pelos dois lados. */
+    /** Duelo: 1 contra 1, 2 contra 2 ou cada um por si, num mapa sorteado; a IA do duelo joga por todos. */
     class DuelDemo : public Duel
     {
     public:
@@ -59,10 +59,12 @@ const std::vector<Mode>& modes()
     static const std::vector<Mode> list = {
         {"campaign", [] { return static_cast<AppState*>(new CampaignDemo(newPlayers(1 + rand() % 2))); }},
         {"duel", [] {
+            // Duas equipes (1 contra 1 ou 2 contra 2) ou, uma vez em três, cada um por si
             DuelConfig config;
-            config.humans = (rand() % 2 == 0) ? 2 : 4;
+            config.ffa = (rand() % 3 == 0);
+            config.humans = config.ffa ? 3 + rand() % 2 : (rand() % 2 == 0) ? 2 : 4;
             config.map = -1;
-            for(int i = 0; i < 4; i++) { config.human_team[i] = i % 2; config.cpu[i] = true; }
+            for(int i = 0; i < 4; i++) { config.human_team[i] = config.ffa ? i : i % 2; config.cpu[i] = true; }
             return static_cast<AppState*>(new DuelDemo(config));
         }},
         {"survival", [] { return static_cast<AppState*>(new SurvivalDemo()); }},

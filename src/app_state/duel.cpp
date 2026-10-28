@@ -9,6 +9,7 @@
 #include "../controllers.h"
 
 #include <algorithm>
+#include <map>
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -26,8 +27,6 @@ namespace
     const SDL_Color WHITE = {255, 255, 255, 255};
     const SDL_Color LIGHT_GRAY = {200, 200, 200, 255};
     const SDL_Color GRAY = {150, 150, 150, 255};
-
-    const char* TEAM_NAME[2] = {"TEAM A", "TEAM B"};
 
     // Tempos das telas entre rodadas (ms)
     const Uint32 INTRO_TIME = 1500;
@@ -52,17 +51,33 @@ Duel::Duel(const DuelConfig& config)
 {
     // Garante uma configuração válida: 2 a 4 jogadores, ninguém sozinho no mapa
     m_config.humans = std::max(2, std::min(4, m_config.humans));
-    for(int i = 0; i < m_config.humans; i++)
-        m_config.human_team[i] = (m_config.human_team[i] == 1 ? 1 : 0);
-    if(m_config.humansInTeam(0) == 0 || m_config.humansInTeam(1) == 0)
-        for(int i = 0; i < m_config.humans; i++) m_config.human_team[i] = i % 2;
+    // Cada um por si precisa de 3 ou 4 jogadores (com 2, é um duelo de duas equipes); cada
+    // jogador é a sua equipe
+    if(m_config.humans < 3) m_config.ffa = false;
+    if(m_config.ffa)
+        for(int i = 0; i < m_config.humans; i++) m_config.human_team[i] = i;
+    else
+    {
+        for(int i = 0; i < m_config.humans; i++)
+            m_config.human_team[i] = (m_config.human_team[i] == 1 ? 1 : 0);
+        if(m_config.humansInTeam(0) == 0 || m_config.humansInTeam(1) == 0)
+            for(int i = 0; i < m_config.humans; i++) m_config.human_team[i] = i % 2;
+    }
+    m_teams = m_config.ffa ? m_config.humans : 2;
     // Só há humanos nas equipes: o tamanho de cada uma é a quantidade de jogadores nela
-    for(int t = 0; t < 2; t++)
+    for(int t = 0; t < 4; t++)
         m_config.team_size[t] = m_config.humansInTeam(t);
 
-    m_base_b = nullptr;
+    for(int t = 0; t < 4; t++)
+    {
+        m_base_extra[t] = nullptr;
+        m_out[t] = false;
+        m_wins[t] = 0;
+        m_fortified[t] = false;
+        m_fortify_time[t] = 0;
+        m_base_wall[t] = ST_BRICK_WALL;
+    }
     m_round = 1;
-    m_wins[0] = m_wins[1] = 0;
     m_round_winner = -1;
     for(int i = 0; i < 4; i++) m_kills[i] = 0;
 
@@ -71,15 +86,26 @@ Duel::Duel(const DuelConfig& config)
 
 Duel::~Duel()
 {
-    delete m_base_b;
-    m_base_b = nullptr;
+    for(Eagle*& base : m_base_extra)
+    {
+        delete base;
+        base = nullptr;
+    }
 }
 
 void Duel::clearRound()
 {
     clearLevel();
-    delete m_base_b;
-    m_base_b = nullptr;
+    for(Eagle*& base : m_base_extra)
+    {
+        delete base;
+        base = nullptr;
+    }
+}
+
+const std::vector<std::pair<std::string, std::string>>& Duel::duelMaps() const
+{
+    return m_config.ffa ? AppConfig::duel_ffa_maps : AppConfig::duel_maps;
 }
 
 void Duel::startRound()
@@ -91,21 +117,22 @@ void Duel::startRound()
     m_pause = false;
     m_bonus_time = 0;
     m_ai.clear();
-    for(int t = 0; t < 2; t++)
+    for(int t = 0; t < 4; t++)
     {
+        m_out[t] = false;
         m_fortified[t] = false;
         m_fortify_time[t] = 0;
         m_base_wall[t] = defaultWall(t);
     }
 
     // Mapa escolhido, ou um sorteado a cada rodada ("Random")
-    int map_count = static_cast<int>(AppConfig::duel_maps.size());
+    int map_count = static_cast<int>(duelMaps().size());
     m_map = (m_config.map >= 0 && m_config.map < map_count) ? m_config.map : rand() % map_count;
 
     // Mapa fora da geometria do duelo (arquivo ausente, tamanho errado...): volta ao menu
     // em vez de rodar uma partida quebrada. Normalmente já foi recusado em DuelLayout::loadMapList
-    std::string path = AppConfig::duel_levels_path + AppConfig::duel_maps.at(m_map).first;
-    std::vector<std::string> problems = DuelLayout::validate(DuelLayout::readMap(path));
+    std::string path = (m_config.ffa ? AppConfig::duel_ffa_levels_path : AppConfig::duel_levels_path) + duelMaps().at(m_map).first;
+    std::vector<std::string> problems = DuelLayout::validate(DuelLayout::readMap(path), m_config.ffa ? DuelLayout::FFA_TEAMS : 2);
     if(!problems.empty())
     {
         std::cerr << "Mapa de duelo " << path << " inválido: " << problems.front() << "\n";
@@ -116,21 +143,25 @@ void Duel::startRound()
     // A águia da equipe A (embaixo) é criada pelo loadLevel, como na campanha
     loadLevel(path);
 
-    // Base da equipe B, espelhada no topo do mapa
+    // As bases das outras equipes: B no topo do mapa, e C à esquerda e D à direita cada um por si
     int t = AppConfig::tile_rect.w;
-    m_base_b = new Eagle(DuelLayout::BASE_COLUMN * t, DuelLayout::baseRow(1) * t);
-    for(int row = DuelLayout::baseRow(1); row < DuelLayout::baseRow(1) + 2; row++)
-        for(int column = DuelLayout::BASE_COLUMN; column < DuelLayout::BASE_COLUMN + 2; column++)
-        {
-            delete m_level.at(row).at(column);
-            m_level.at(row).at(column) = nullptr;
-        }
-    // O jogo monta a muralha das duas bases (tijolo, ou pedra para a equipe menor):
+    for(int team = 1; team < m_teams; team++)
+    {
+        DuelLayout::Tile origin = DuelLayout::baseOrigin(team);
+        m_base_extra[team] = new Eagle(origin.column * t, origin.row * t);
+        for(int row = origin.row; row < origin.row + 2; row++)
+            for(int column = origin.column; column < origin.column + 2; column++)
+            {
+                delete m_level.at(row).at(column);
+                m_level.at(row).at(column) = nullptr;
+            }
+    }
+    // O jogo monta a muralha de cada base (tijolo, ou pedra para a equipe menor):
     // o arquivo do mapa não precisa trazê-la
-    for(int team = 0; team < 2; team++) setBaseWalls(team, defaultWall(team));
+    for(int team = 0; team < m_teams; team++) setBaseWalls(team, defaultWall(team));
     computeStoneOwners();
 
-    // Jogadores humanos: sprite amarelo na equipe A, verde na B (como P1 e P2 no original)
+    // Jogadores humanos: a cor é da equipe (amarelo na A, verde na B, azul na C, vermelho na D)
     Controllers::setPlayerCount(m_config.humans);
     m_spawns = assignSpawns();
     for(int i = 0; i < m_config.humans; i++)
@@ -187,27 +218,96 @@ std::vector<Eagle*> Duel::bases()
 {
     std::vector<Eagle*> v;
     if(m_eagle != nullptr) v.push_back(m_eagle);
-    if(m_base_b != nullptr) v.push_back(m_base_b);
+    for(Eagle* base : m_base_extra)
+        if(base != nullptr) v.push_back(base);
     return v;
 }
 
 Eagle* Duel::baseOf(int team)
 {
-    return team == 0 ? m_eagle : m_base_b;
+    if(team == 0) return m_eagle;
+    return team > 0 && team < 4 ? m_base_extra[team] : nullptr;
+}
+
+int Duel::teamOfBase(Eagle* base)
+{
+    for(int team = 0; team < m_teams; team++)
+        if(baseOf(team) == base) return team;
+    return -1;
 }
 
 void Duel::onBaseHit(Eagle* base, Bullet* bullet)
 {
-    int owner = (base == m_eagle ? 0 : 1);
+    int owner = teamOfBase(base);
     bullet->destroy();
-    if(m_phase != PHASE_PLAY) return;
+    if(m_phase != PHASE_PLAY || owner < 0) return;
     // Fogo amigo: o tiro de um jogador destrói a própria base (como no original), e a
-    // rodada vai para o adversário. O do bot de reforço não (ele não erra de propósito)
+    // equipe sai da rodada (com duas, a rodada vai para o adversário). O do bot de reforço
+    // não (ele não erra de propósito)
     if(bullet->team == owner && !bullet->from_player) return;
 
     base->destroy();
     SoundManager::getInstance().playSound("fexplosion");
-    endRound(1 - owner);
+    eliminateTeam(owner);
+    checkRoundEnd();
+}
+
+void Duel::eliminateTeam(int team)
+{
+    m_out[team] = true;
+    // Com duas equipes a rodada acaba na hora e os tanques ficam parados onde estão, como
+    // sempre; só cada um por si a rodada segue sem a equipe
+    if(m_teams == 2) return;
+    // Sem base, a equipe não joga mais: os jogadores explodem (sem renascer) e os reforços,
+    // as torretas e os bônus dela somem
+    for(auto player : m_players)
+    {
+        if(player->team != team) continue;
+        player->lives_count = 0;
+        if(player->testFlag(TSF_LIFE))
+        {
+            player->clearFlag(TSF_SHIELD);
+            player->clearFlag(TSF_BOAT);
+            player->destroy();
+        }
+        else
+            player->to_erase = true;
+    }
+    for(auto enemy : m_enemies)
+        if(enemy->team == team) enemy->to_erase = true;
+    for(auto turret : m_turrets)
+        if(turret->team == team) turret->to_erase = true;
+}
+
+void Duel::checkRoundEnd()
+{
+    if(m_phase != PHASE_PLAY) return;
+    int alive = 0, last = -1;
+    for(int team = 0; team < m_teams; team++)
+        if(teamAlive(team)) { alive++; last = team; }
+    if(alive <= 1) endRound(alive == 1 ? last : -1);
+}
+
+std::string Duel::teamName(int team) const
+{
+    if(m_config.ffa) return "P" + Engine::intToString(team + 1);
+    return team == 0 ? "TEAM A" : "TEAM B";
+}
+
+std::string Duel::teamTag(int team) const
+{
+    if(m_config.ffa) return "P" + Engine::intToString(team + 1);
+    return std::string(1, static_cast<char>('A' + team));
+}
+
+int Duel::rivalTeam(int team)
+{
+    // Com duas equipes, a outra; cada um por si, uma das que ainda estão na rodada
+    if(m_teams == 2) return 1 - team;
+    std::vector<int> rivals;
+    for(int t = 0; t < m_teams; t++)
+        if(t != team && teamAlive(t)) rivals.push_back(t);
+    return rivals.empty() ? team : rivals.at(rand() % rivals.size());
 }
 
 bool Duel::isBaseWall(int team, int row, int column) const
@@ -219,7 +319,7 @@ bool Duel::isInBaseZone(int row, int column) const
 {
     // Retângulo em volta de cada águia (DuelLayout): cobre a muralha e as defesas do mapa
     // logo à frente dela, como a pedra do Fortress e do River
-    return DuelLayout::inBaseZone(row, column);
+    return DuelLayout::inBaseZone(row, column, m_teams);
 }
 
 void Duel::computeStoneOwners()
@@ -231,12 +331,12 @@ void Duel::computeStoneOwners()
             Object* o = m_level.at(r).at(c);
             if(o != nullptr && o->type == ST_STONE_WALL) grid[r][c] = '@';
         }
-    m_stone_owner = DuelLayout::stoneOwners(grid);
+    m_stone_owner = DuelLayout::stoneOwners(grid, m_teams);
 }
 
 int Duel::stoneOwner(int row, int column) const
 {
-    for(int team = 0; team < 2; team++)
+    for(int team = 0; team < m_teams; team++)
         if(DuelLayout::isBaseWall(team, row, column)) return team;
     if(row < 0 || row >= static_cast<int>(m_stone_owner.size()) || column < 0 ||
        column >= static_cast<int>(m_stone_owner[row].size())) return -1;
@@ -259,8 +359,8 @@ bool Duel::powerAppliesAt(Bullet* bullet, int row, int column)
     // Tiro demolidor: derruba a pedra da base INIMIGA, mas só disparado de dentro da zona
     // dela. Abre um terceiro ângulo (a frente) para quem chega perto, sem tiro de longe,
     // de uma base para a outra
-    int zone = stone ? stoneOwner(row, column) : DuelLayout::zoneTeam(row, column);
-    int from = DuelLayout::zoneTeam(bullet->origin.y / AppConfig::tile_rect.h, bullet->origin.x / AppConfig::tile_rect.w);
+    int zone = stone ? stoneOwner(row, column) : DuelLayout::zoneTeam(row, column, m_teams);
+    int from = DuelLayout::zoneTeam(bullet->origin.y / AppConfig::tile_rect.h, bullet->origin.x / AppConfig::tile_rect.w, m_teams);
     return bullet->demolisher && zone != bullet->team && from == zone;
 }
 
@@ -286,8 +386,9 @@ int Duel::livesPerTank(int team) const
     // Junto com a muralha de pedra (defaultWall), foi o ajuste que mais aproximou as
     // vitórias em simulações só com bots; igualar o total de vidas com a muralha de pedra
     // deixava a equipe menor quase invencível.
-    int largest = std::max(m_config.team_size[0], m_config.team_size[1]);
-    int size = m_config.team_size[team];
+    int largest = 1;
+    for(int t = 0; t < m_teams; t++) largest = std::max(largest, m_config.team_size[t]);
+    int size = std::max(1, m_config.team_size[team]);
     return (AppConfig::duel_tank_lives * (size + largest) + 2 * size - 1) / (2 * size);
 }
 
@@ -296,7 +397,11 @@ SpriteType Duel::defaultWall(int team) const
     // Se a outra equipe tem AppConfig::duel_stone_wall_ratio vezes mais tanques, a menor
     // defende a base com pedra: vidas a mais não seguram vários atacantes na base, só a
     // muralha segura. Com diferença menor, a pedra desequilibra para o outro lado.
-    return AppConfig::duel_stone_wall_ratio * m_config.team_size[team] <= m_config.team_size[1 - team] ? ST_STONE_WALL : ST_BRICK_WALL;
+    // (com mais de duas equipes, vale a maior das outras)
+    int largest_other = 0;
+    for(int t = 0; t < m_teams; t++)
+        if(t != team) largest_other = std::max(largest_other, m_config.team_size[t]);
+    return AppConfig::duel_stone_wall_ratio * m_config.team_size[team] <= largest_other ? ST_STONE_WALL : ST_BRICK_WALL;
 }
 
 std::vector<Tank*> Duel::allTanks()
@@ -319,6 +424,7 @@ int Duel::teamLives(int team)
 
 bool Duel::teamAlive(int team)
 {
+    if(m_out[team]) return false;
     for(auto player : m_players)
         if(player->team == team && !player->to_erase) return true;
     return false;
@@ -329,26 +435,35 @@ std::vector<SDL_Point> Duel::spawnOrder(int team) const
     return DuelLayout::spawnOrder(team);
 }
 
+int Duel::laneKey(int team, SDL_Point spawn)
+{
+    // As equipes de cima e de baixo (A e B) se olham ao longo da coluna; as dos lados (C e D),
+    // ao longo da linha
+    return DuelLayout::quarterTurns(team) % 2 == 0 ? spawn.x : 1000 + spawn.y;
+}
+
 std::vector<SDL_Point> Duel::assignSpawns()
 {
     // As equipes escolhem intercaladas (1º de A, 1º de B, 2º de A...), cada uma na sua
     // ordem de preferência, pulando colunas já tomadas. Com até 4 jogadores e 4 colunas,
     // ninguém divide coluna (nem com o adversário do outro lado, nem com o companheiro):
-    // como o tiro só anda em linha reta, ninguém nasce na mira de ninguém.
+    // como o tiro só anda em linha reta, ninguém nasce na mira de ninguém. Cada um por si,
+    // o mesmo vale para as linhas de C e D, que se olham ao longo delas
     std::vector<SDL_Point> result(m_config.humans, SDL_Point{0, 0});
-    std::vector<int> members[2];
+    std::vector<int> members[4];
     for(int i = 0; i < m_config.humans; i++) members[m_config.human_team[i]].push_back(i);
 
     m_player_columns.clear();
     for(size_t k = 0; k < 4; k++)
-        for(int team = 0; team < 2; team++)
+        for(int team = 0; team < m_teams; team++)
         {
             if(k >= members[team].size()) continue;
             for(SDL_Point spawn : spawnOrder(team))
             {
-                if(std::find(m_player_columns.begin(), m_player_columns.end(), spawn.x) != m_player_columns.end()) continue;
+                int lane = laneKey(team, spawn);
+                if(std::find(m_player_columns.begin(), m_player_columns.end(), lane) != m_player_columns.end()) continue;
                 result[members[team][k]] = spawn;
-                m_player_columns.push_back(spawn.x);
+                m_player_columns.push_back(lane);
                 break;
             }
         }
@@ -377,7 +492,7 @@ bool Duel::spawnAlly(Player* player)
     for(int pass = 0; pass < 2; pass++)
         for(SDL_Point spawn : spawnOrder(team))
         {
-            bool column_used = std::find(m_player_columns.begin(), m_player_columns.end(), spawn.x) != m_player_columns.end();
+            bool column_used = std::find(m_player_columns.begin(), m_player_columns.end(), laneKey(team, spawn)) != m_player_columns.end();
             if(column_used == (pass == 1)) order.push_back(spawn);
         }
     for(SDL_Point spawn : order)
@@ -443,20 +558,30 @@ SDL_Color Duel::teamColor(int team)
 
 double Duel::teamLead(int team)
 {
-    // Vidas restantes de cada equipe, proporcionais ao total com que ela começou
-    double ratio[2];
-    for(int t = 0; t < 2; t++)
-        ratio[t] = static_cast<double>(teamLives(t)) / (m_config.team_size[t] * livesPerTank(t));
-    return ratio[team] - ratio[1 - team];
+    // Vidas restantes de cada equipe, proporcionais ao total com que ela começou; a vantagem
+    // é a diferença para as outras (a média delas, cada um por si, sem as que já saíram)
+    auto ratio = [&](int t) {
+        return static_cast<double>(teamLives(t)) / (std::max(1, m_config.team_size[t]) * livesPerTank(t));
+    };
+    double others = 0;
+    int count = 0;
+    for(int t = 0; t < m_teams; t++)
+        if(t != team && (m_teams == 2 || teamAlive(t))) { others += ratio(t); count++; }
+    return count == 0 ? 0.0 : ratio(team) - others / count;
 }
 
 int Duel::trailingTeam()
 {
-    // Equipe bem atrás em vidas (proporcionalmente ao total dela), ou -1
-    double lead = teamLead(0);
-    if(lead <= -0.25) return 0;
-    if(lead >= 0.25) return 1;
-    return -1;
+    // Equipe bem atrás em vidas (proporcionalmente ao total dela), ou -1: a de menor vantagem
+    int worst = -1;
+    double worst_lead = 0;
+    for(int t = 0; t < m_teams; t++)
+    {
+        if(!teamAlive(t)) continue;
+        double lead = teamLead(t);
+        if(worst < 0 || lead < worst_lead) { worst = t; worst_lead = lead; }
+    }
+    return worst >= 0 && worst_lead <= -0.25 ? worst : -1;
 }
 
 std::vector<SDL_Point> Duel::halfSpots(int team) const
@@ -466,12 +591,12 @@ std::vector<SDL_Point> Duel::halfSpots(int team) const
 
 int Duel::chooseBonusTeam()
 {
-    // Sorteia a equipe (50/50, ou a que está atrás em vidas), não o jogador:
+    // Sorteia a equipe (por igual, ou a que está atrás em vidas), não o jogador:
     // a equipe menor de um 3 contra 1 recebe tantos bônus coloridos quanto a maior
     int trailing = trailingTeam();
-    int first = trailing >= 0 ? trailing : rand() % 2;
-    for(int team : {first, 1 - first})
-        if(teamAlive(team)) return team;
+    int first = trailing >= 0 ? trailing : rand() % m_teams;
+    for(int k = 0; k < m_teams; k++)
+        if(teamAlive((first + k) % m_teams)) return (first + k) % m_teams;
     return -1;
 }
 
@@ -487,7 +612,7 @@ void Duel::spawnBonus()
     if(owner_team >= 0)
     {
         double side_roll = static_cast<double>(rand()) / RAND_MAX;
-        int side = (side_roll < AppConfig::duel_team_bonus_enemy_side_chance) ? 1 - owner_team : owner_team;
+        int side = (side_roll < AppConfig::duel_team_bonus_enemy_side_chance) ? rivalTeam(owner_team) : owner_team;
         std::vector<SDL_Point> spots = openSpots(halfSpots(side));
         if(spots.empty()) return; // todos cobertos: tenta de novo no próximo intervalo
         SDL_Point p = spots.at(rand() % spots.size());
@@ -509,7 +634,7 @@ void Duel::spawnBonus()
         spots.pop_back(); // só os pontos das laterais
     }
     else
-        spots = DuelLayout::midBonusSpots();
+        spots = DuelLayout::midBonusSpots(m_teams);
     spots = openSpots(spots);
     if(spots.empty()) return;
 
@@ -531,10 +656,19 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
 {
     SoundManager::getInstance().playSound("bonus");
     int team = player->team;
-    int enemy_team = 1 - team;
-    int middle = AppConfig::map_rect.h / 2, center_y = bonus->dest_rect.y + bonus->dest_rect.h / 2;
-    int half = center_y == middle ? -1 : (center_y > middle ? 0 : 1); // A embaixo, B em cima
-    int side = half < 0 ? -1 : (half == team ? 0 : 1);
+
+    // Onde o bônus estava (para a simulação): no meio, na metade de quem pegou ou na de outra
+    // equipe. O ponto de surgimento mais perto diz de que lista ele saiu
+    int side = -1, best_distance = -1;
+    auto consider = [&](SDL_Point spot, int owner_half) {
+        int distance = std::abs(spot.x - bonus->dest_rect.x) + std::abs(spot.y - bonus->dest_rect.y);
+        if(best_distance >= 0 && distance >= best_distance) return;
+        best_distance = distance;
+        side = owner_half < 0 ? -1 : (owner_half == team ? 0 : 1);
+    };
+    for(SDL_Point spot : DuelLayout::midBonusSpots(m_teams)) consider(spot, -1);
+    for(int half = 0; half < m_teams; half++)
+        for(SDL_Point spot : DuelLayout::halfBonusSpots(half)) consider(spot, half);
     m_stats.pickups.push_back({m_round, team, bonus->type, bonus->owner_team < 0, side, teamLead(team)});
     bonus->to_erase = true;
 
@@ -552,7 +686,7 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
         // 5 s depois de renascer) e barco não seguram a explosão: antes seguravam, e a
         // granada pega logo depois de uma morte quase nunca matava ninguém
         for(Tank* t : allTanks())
-            if(t->team == enemy_team && !t->to_erase && t->testFlag(TSF_LIFE))
+            if(t->team != team && !t->to_erase && t->testFlag(TSF_LIFE))
             {
                 t->clearFlag(TSF_SHIELD);
                 t->clearFlag(TSF_BOAT);
@@ -563,9 +697,9 @@ void Duel::applyBonus(Player* player, Bonus* bonus)
         player->shield(AppConfig::duel_helmet_time);
         break;
     case ST_BONUS_CLOCK:
-        // Imobiliza a equipe inimiga por pouco tempo; humanos ainda podem girar e atirar
+        // Imobiliza as equipes inimigas por pouco tempo; humanos ainda podem girar e atirar
         for(Tank* t : allTanks())
-            if(t->team == enemy_team && !t->to_erase) t->freeze(AppConfig::duel_freeze_time);
+            if(t->team != team && !t->to_erase) t->freeze(AppConfig::duel_freeze_time);
         break;
     case ST_BONUS_SHOVEL:
         m_fortified[team] = true;
@@ -665,7 +799,7 @@ bool Duel::usePower(Player* player)
 bool Duel::reservedTile(int row, int column)
 {
     // Nada de barricada ou torreta em cima de um ponto de nascimento (prenderia quem nasce)
-    for(int team = 0; team < 2; team++)
+    for(int team = 0; team < m_teams; team++)
         for(SDL_Point s : spawnOrder(team))
         {
             int r = s.y / AppConfig::tile_rect.h, c = s.x / AppConfig::tile_rect.w;
@@ -749,7 +883,7 @@ void Duel::setBaseWalls(int team, SpriteType wall)
 
 void Duel::updateFortify(Uint32 dt)
 {
-    for(int team = 0; team < 2; team++)
+    for(int team = 0; team < m_teams; team++)
     {
         if(!m_fortified[team]) continue;
         m_fortify_time[team] += dt;
@@ -885,13 +1019,9 @@ void Duel::update(Uint32 dt)
         spawnBonus();
     }
 
-    // Equipe sem tanques perde a rodada (as duas ao mesmo tempo: empate, rodada repetida)
-    if(m_phase == PHASE_PLAY)
-    {
-        bool alive_a = teamAlive(0), alive_b = teamAlive(1);
-        if(!alive_a || !alive_b)
-            endRound(alive_a ? 0 : (alive_b ? 1 : -1));
-    }
+    // Equipe sem tanques perde a rodada (as duas ao mesmo tempo: empate, rodada repetida);
+    // cada um por si, a rodada vai para a última que sobra
+    checkRoundEnd();
 }
 
 void Duel::draw()
@@ -903,7 +1033,7 @@ void Duel::draw()
     renderer->drawRect(&AppConfig::map_rect, {0, 0, 0, 255}, true);
     // Quem tem o tiro demolidor em cada equipe: a pedra da base adversária pisca junto
     // com o brilho dele, avisando que ela não segura esse tanque
-    Player* demolisher[2] = {nullptr, nullptr};
+    Player* demolisher[4] = {nullptr, nullptr, nullptr, nullptr};
     for(auto player : m_players)
         if(!player->to_erase && player->demolisher() && demolisher[player->team] == nullptr)
             demolisher[player->team] = player;
@@ -916,7 +1046,10 @@ void Duel::draw()
             if(team < 0) { item->draw(); continue; }
             // Pedra com dono (muralha da águia e paredes inteiras na zona): na cor da equipe
             renderer->drawObjectWithColor(&item->src_rect, &item->dest_rect, stoneTint(team));
-            Player* threat = demolisher[1 - team];
+            // (cada um por si, o de qualquer adversário do dono da pedra)
+            Player* threat = nullptr;
+            for(int other = 0; other < m_teams; other++)
+                if(other != team && demolisher[other] != nullptr && threat == nullptr) threat = demolisher[other];
             if(threat != nullptr && Player::demolisherGlint(threat->effectTime()))
                 renderer->drawWhite(&item->src_rect, &item->dest_rect, Player::DEMOLISHER_GLINT_ALPHA);
         }
@@ -932,7 +1065,7 @@ void Duel::draw()
     for(auto bonus : m_bonuses)
     {
         if(bonus->owner_team < 0 || !bonus->visible() || bonus->to_erase) continue;
-        std::string letter = bonus->owner_team == 0 ? "A" : "B";
+        std::string letter = teamTag(bonus->owner_team);
         SDL_Point size = renderer->textSize(letter, 3);
         renderer->drawTextOutlined({bonus->dest_rect.x + (bonus->dest_rect.w - size.x) / 2, bonus->dest_rect.y - size.y - 1},
                          letter, bonus->color, 3);
@@ -950,30 +1083,63 @@ void Duel::draw()
         renderer->drawTextOutlined(p, label, player->color, 3);
     }
 
-    //=========== Painel lateral: equipe B em cima, rodada no meio, equipe A embaixo ===========
+    //=========== Painel lateral: equipes de cima, rodada no meio, equipes de baixo ===========
     // Cada equipe num bloco da cor dela com texto preto (contraste de ~15:1; o texto
-    // colorido direto sobre o cinza do painel ficava em ~1,2:1, quase invisível)
+    // colorido direto sobre o cinza do painel ficava em ~1,2:1, quase invisível).
+    // Duas equipes: B em cima e A embaixo. Cada um por si, B e C em cima, D e A embaixo
     SDL_Rect flag_src = engine.getSpriteConfig()->getSpriteData(ST_FLAG)->rect;
     const int block_x = AppConfig::status_rect.x + 2, block_w = AppConfig::status_rect.w - 4;
-    for(int team = 0; team < 2; team++)
+    const int MEMBER_HEIGHT = 31, BLOCK_GAP = 4;
+    std::vector<int> order;
+    for(int team : {1, 2, 3, 0})
+        if(team < m_teams) order.push_back(team);
+    auto blockHeight = [&](int team) {
+        int members = 0;
+        for(auto player : m_players)
+            if(player->team == team && !player->to_erase) members++;
+        return 4 + 16 + members * MEMBER_HEIGHT + 1;
+    };
+    // Posição de cada bloco: os de cima descem a partir do topo, os de baixo sobem a partir do fim
+    std::map<int, int> block_y;
+    int above = static_cast<int>(order.size()) / 2;
+    for(int k = 0, y = 6; k < above; k++)
+    {
+        block_y[order[k]] = y;
+        y += blockHeight(order[k]) + BLOCK_GAP;
+    }
+    for(int k = static_cast<int>(order.size()) - 1, y = AppConfig::map_rect.h - 6; k >= above; k--)
+    {
+        y -= blockHeight(order[k]);
+        block_y[order[k]] = y;
+        y -= BLOCK_GAP;
+    }
+    for(int team : order)
     {
         std::vector<Player*> members;
         for(auto player : m_players)
             if(player->team == team && !player->to_erase) members.push_back(player);
         std::sort(members.begin(), members.end(), [](Player* a, Player* b) { return a->playerIndex() < b->playerIndex(); });
         // Cada jogador: "P1  3" e, embaixo, o espaço do poder guardado (até 3 por equipe)
-        const int MEMBER_HEIGHT = 31;
-        int height = 4 + 16 + static_cast<int>(members.size()) * MEMBER_HEIGHT + 1;
-        int y = (team == 1 ? 6 : AppConfig::map_rect.h - 6 - height);
+        int height = blockHeight(team);
+        int y = block_y[team];
         SDL_Rect block = {block_x, y, block_w, height};
-        renderer->drawRect(&block, teamColor(team), true);
+        // Equipe fora da rodada (a base caiu): bloco apagado, para não parecer que ainda joga
+        SDL_Color block_color = teamColor(team);
+        if(m_out[team]) block_color = {static_cast<Uint8>(block_color.r / 3), static_cast<Uint8>(block_color.g / 3), static_cast<Uint8>(block_color.b / 3), 255};
+        renderer->drawRect(&block, block_color, true);
 
+        // A letra da equipe (cada um por si, o número do jogador já está na linha abaixo)
         SDL_Point p = {block_x + 4, y + 4};
-        renderer->drawText(&p, team == 0 ? "A" : "B", BLACK, 2);
+        int flags_x = block_x + 4;
+        if(!m_config.ffa)
+        {
+            renderer->drawText(&p, teamTag(team), BLACK, 2);
+            flags_x = block_x + 18;
+        }
         // Uma bandeira por rodada vencida
         for(int w = 0; w < m_wins[team]; w++)
         {
-            SDL_Rect dst = {block_x + 18 + w * 12, y + 4, 12, 12};
+            SDL_Rect dst = {flags_x + w * 12, y + 4, 12, 12};
             renderer->drawObject(&flag_src, &dst);
         }
         // Jogadores da equipe, as vidas de cada um ("P1  3") e o poder guardado: o ícone do
@@ -1003,13 +1169,15 @@ void Duel::draw()
     renderer->drawTextCentered(round_box.x + round_box.w / 2, round_box.y + 19, Engine::intToString(m_round), WHITE, 2);
 
     //=========== Mensagens no centro: sempre numa caixa, centralizada no mapa ===========
-    std::string score = Engine::intToString(m_wins[0]) + " - " + Engine::intToString(m_wins[1]);
+    std::string score;
+    for(int team = 0; team < m_teams; team++)
+        score += (team > 0 ? " - " : "") + Engine::intToString(m_wins[team]);
     if(m_demo) {} // demonstração no fundo do menu: sem caixas por cima das opções
     else if(m_phase == PHASE_INTRO)
     {
         drawMessageBox(renderer, {
             {"ROUND " + Engine::intToString(m_round), WHITE, 1, 8},
-            {AppConfig::duel_maps.at(m_map).second, LIGHT_GRAY, 2, 8},
+            {duelMaps().at(m_map).second, LIGHT_GRAY, 2, 8},
             {"FIRST TO " + Engine::intToString(AppConfig::duel_rounds_to_win) + " WINS", GRAY, 3, 0},
         }, GRAY);
     }
@@ -1024,7 +1192,7 @@ void Duel::draw()
             }, GRAY);
         else
             drawMessageBox(renderer, {
-                {TEAM_NAME[m_round_winner], teamColor(m_round_winner), 1, 8},
+                {teamName(m_round_winner), teamColor(m_round_winner), 1, 8},
                 {"WINS THE ROUND", WHITE, 2, 8},
                 {score, LIGHT_GRAY, 2, 0},
             }, teamColor(m_round_winner));
@@ -1032,7 +1200,7 @@ void Duel::draw()
     else if(m_phase == PHASE_MATCH_END)
     {
         std::vector<MessageLine> lines = {
-            {TEAM_NAME[m_round_winner], teamColor(m_round_winner), 1, 8},
+            {teamName(m_round_winner), teamColor(m_round_winner), 1, 8},
             {"WINS THE DUEL", WHITE, 2, 8},
             {score, LIGHT_GRAY, 2, 14},
         };
@@ -1043,7 +1211,8 @@ void Duel::draw()
             int team = m_config.human_team[i];
             std::string kills = Engine::intToString(m_kills[i]);
             if(kills.size() < 2) kills = " " + kills;
-            std::string line = "P" + Engine::intToString(i + 1) + "  " + (team == 0 ? "A" : "B") + "  " + kills +
+            // Cada um por si, o jogador já é a equipe: sem a coluna da letra
+            std::string line = "P" + Engine::intToString(i + 1) + "  " + (m_config.ffa ? "" : teamTag(team) + "  ") + kills +
                                (m_kills[i] == 1 ? " KILL " : " KILLS");
             lines.push_back({line, teamColor(team), 3, 4});
         }

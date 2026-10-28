@@ -1,0 +1,11 @@
+# Mapas do duelo cada um por si (1v1v1v1, quatro bases): um por linha, "arquivo;Nome" (o nome aparece no menu).
+# Cada mapa é igual a si mesmo girado 90 graus: as quatro equipes veem o mesmo terreno. A base de cada
+# equipe (A embaixo, B em cima, C à esquerda, D à direita) é montada pelo jogo e não precisa estar no arquivo.
+# Mapas que não respeitam a geometria são recusados ao iniciar o jogo (o motivo aparece no terminal);
+# "make check-maps" verifica todos antes disso.
+1;Crossfire
+2;Pinwheel
+3;Fortress
+4;Lakes
+5;Maze
+6;Open Field

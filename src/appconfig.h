@@ -210,6 +210,18 @@ public:
     static vector<pair<string, string>> duel_maps;
 
     /**
+     * Caminho da pasta dos mapas do formato cada um por si do duelo (quatro bases, uma de cada
+     * lado do mapa). Fica dentro de duel_levels_path.
+     */
+    static string duel_ffa_levels_path;
+
+    /**
+     * Mapas do formato cada um por si: {arquivo em duel_ffa_levels_path, nome mostrado no menu}.
+     * Girados 90 graus, são iguais a si mesmos (as quatro equipes veem o mesmo terreno).
+     */
+    static vector<pair<string, string>> duel_ffa_maps;
+
+    /**
      * Caminho da pasta dos mapas do modo sobrevivência (separados da campanha e do duelo).
      */
     static string survival_levels_path;
@@ -226,7 +238,8 @@ public:
     static vector<int> duel_spawn_columns;
 
     /**
-     * Linha (y) de nascimento de cada equipe do duelo: 0 (A) embaixo, 1 (B) em cima.
+     * Linha (y) de nascimento da equipe A do duelo (embaixo); a primeira posição é a que vale.
+     * As outras equipes são a A girada (B em cima, C à esquerda e D à direita).
      */
     static vector<int> duel_spawn_rows;
 

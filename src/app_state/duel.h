@@ -13,10 +13,10 @@
 struct DuelConfig
 {
     /**
-     * Quantidade de jogadores de cada equipe. Índice 0 = equipe A, 1 = equipe B.
-     * O Duel recalcula a partir de @a human_team.
+     * Quantidade de jogadores de cada equipe. Índice 0 = equipe A, 1 = equipe B (e, cada um por
+     * si, 2 = C e 3 = D). O Duel recalcula a partir de @a human_team.
      */
-    int team_size[2] = {1, 1};
+    int team_size[4] = {1, 1, 0, 0};
 
     /**
      * Quantidade de jogadores (2 a 4). Não há bots ocupando vagas: bots só entram
@@ -25,7 +25,16 @@ struct DuelConfig
     int humans = 2;
 
     /**
-     * Equipe de cada jogador humano (0 = A, 1 = B). Só os primeiros @a humans valem.
+     * Cada um por si (1 contra 1 contra 1 contra 1): cada jogador é a sua equipe e tem a sua
+     * base, uma de cada lado do mapa (A embaixo, B em cima, C à esquerda, D à direita), com 3 ou
+     * 4 jogadores. @a human_team vira 0, 1, 2, 3. Os mapas são os de AppConfig::duel_ffa_maps.
+     * Desligado, são duas equipes (A e B) e os mapas de AppConfig::duel_maps.
+     */
+    bool ffa = false;
+
+    /**
+     * Equipe de cada jogador humano (0 = A, 1 = B; 2 = C e 3 = D só cada um por si).
+     * Só os primeiros @a humans valem.
      */
     int human_team[4] = {0, 1, 0, 1};
 
@@ -77,12 +86,16 @@ struct DuelStats
 };
 
 /**
- * @brief Modo duelo: duas equipes, cada uma defendendo a sua base e atacando a outra.
+ * @brief Modo duelo: duas equipes (ou quatro, cada um por si), cada uma defendendo a sua base
+ * e atacando as outras.
  *
  * Reaproveita do Game o mapa, as colisões e a assistência de curva; muda as regras:
- * @li a equipe A nasce embaixo e a B em cima, cada uma com a sua águia;
- * @li só jogadores humanos (1v1, 2v2 ou divisões como 2v1 e 3v1);
- * @li vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos;
+ * @li a equipe A nasce embaixo e a B em cima, cada uma com a sua águia; cada um por si, a C
+ *     nasce à esquerda e a D à direita, e o mapa é de quatro bases;
+ * @li só jogadores humanos (1v1, 2v2, divisões como 2v1 e 3v1, ou 1v1v1v1);
+ * @li vence a rodada quem destruir a base inimiga ou eliminar todos os jogadores inimigos; com
+ *     mais de duas equipes, base destruída ou sem jogadores tira a equipe da rodada, e vence a
+ *     última que sobra;
  * @li vence a partida quem ganhar AppConfig::duel_rounds_to_win rodadas;
  * @li projéteis não ferem aliados; o tiro de um jogador destrói a própria base e os
  *     tijolos em volta dela (como no original), o do bot de reforço não;
@@ -159,6 +172,13 @@ private:
     std::vector<SDL_Point> spawnOrder(int team) const;
 
     /**
+     * Chave da linha de tiro do ponto de nascimento: a coluna (x) para as equipes de cima e de
+     * baixo, a linha (y, somada a 1000) para as dos lados. Dois nascimentos com a mesma chave
+     * se olhariam de frente.
+     */
+    static int laneKey(int team, SDL_Point spawn);
+
+    /**
      * Ponto de nascimento de cada jogador: cada um numa coluna só dele, alternando os
      * lados da base, para que ninguém nasça na linha de tiro de um adversário.
      */
@@ -191,8 +211,29 @@ private:
      */
     bool spawnAlly(Player* player);
 
-    /** Equipe ainda tem algum jogador que não foi removido. */
+    /** Equipe ainda está na rodada: base de pé e algum jogador que não foi removido. */
     bool teamAlive(int team);
+
+    /**
+     * Tira a equipe da rodada (a base caiu): remove os jogadores, reforços e torretas dela.
+     * Com duas equipes a rodada acaba na hora (checkRoundEnd).
+     */
+    void eliminateTeam(int team);
+
+    /** Acaba a rodada se sobrou uma equipe só (ela vence) ou nenhuma (empate). */
+    void checkRoundEnd();
+
+    /** Equipe da base (-1 se não é de nenhuma). */
+    int teamOfBase(Eagle* base);
+
+    /** Nome da equipe nas caixas de mensagem: "TEAM A", ou "P1" cada um por si. */
+    std::string teamName(int team) const;
+
+    /** Marca curta da equipe (letra no bônus e no painel): "A", ou "P1" cada um por si. */
+    std::string teamTag(int team) const;
+
+    /** Equipe adversária para um bônus que surge do lado do adversário (sorteada entre as de pé). */
+    int rivalTeam(int team);
 
     /** Vidas de cada tanque da equipe: equipes menores recebem mais vidas. */
     int livesPerTank(int team) const;
@@ -219,6 +260,7 @@ private:
         Uint32 aim_time = 0;        ///< há quanto tempo segura a mira num alvo (ms)
         Uint32 aim_cooldown = 0;    ///< tempo até poder virar de novo para atirar de lado (ms)
         Tank* chasing = nullptr;    ///< inimigo que o atacante está caçando (histerese da decisão)
+        int target_team = -1;       ///< base que o atacante vinha atacando (cada um por si há mais de uma)
         Uint32 align_pause = 0;     ///< alinhamento ao chegar bloqueado: espera antes de tentar de novo (ms)
         Direction move_dir = D_UP;  ///< direção em que andou por último
         Uint32 move_time = 0;       ///< há quanto tempo anda nessa direção (ms)
@@ -234,12 +276,15 @@ private:
      * Papel do tanque da IA agora: o fixo, menos quando ninguém em campo ataca; aí o jogador
      * do computador que defendia sai para atacar (evita a rodada sem fim).
      */
-    Bot::Role roleOf(Tank* tank) const;
+    Bot::Role roleOf(Tank* tank);
+
+    /** O bloco (linha, coluna) fica na zona da base de outra equipe (onde o tiro demolidor derruba a pedra dela). */
+    bool inEnemyZone(int team, int row, int column) const;
 
     /** O que o tanque consegue atravessar (barco, tiro forte). */
     NavGrid::Abilities abilitiesOf(Tank* tank) const;
 
-    /** Monta as grades de navegação das duas equipes a partir do mapa atual. */
+    /** Monta as grades de navegação das equipes a partir do mapa atual. */
     void buildNavGrids();
 
     /** Decide o comando de cada tanque da IA neste quadro. */
@@ -340,22 +385,27 @@ private:
     bool isBaseWall(int team, int row, int column) const;
 
     DuelConfig m_config;
-    Eagle* m_base_b;          ///< base da equipe B (a da equipe A é m_eagle)
+    int m_teams;              ///< equipes na partida: 2, ou 3 e 4 cada um por si
+    Eagle* m_base_extra[4];   ///< base de cada equipe fora a A (a da equipe A é m_eagle); [0] não é usado
+    bool m_out[4];            ///< equipe fora da rodada (a base caiu)
     Phase m_phase;
     Uint32 m_phase_time;
     int m_round;
-    int m_wins[2];
+    int m_wins[4];
     int m_round_winner;
     Uint32 m_bonus_time;
-    bool m_fortified[2];
-    Uint32 m_fortify_time[2];
-    SpriteType m_base_wall[2]; ///< material atual da muralha de cada base
+    bool m_fortified[4];
+    Uint32 m_fortify_time[4];
+    SpriteType m_base_wall[4]; ///< material atual da muralha de cada base
     int m_kills[4];            ///< eliminações de cada jogador humano na partida
-    int m_map;                 ///< mapa da rodada atual (índice em AppConfig::duel_maps)
-    std::vector<int> m_player_columns; ///< colunas (x) de nascimento usadas pelos jogadores
+    int m_map;                 ///< mapa da rodada atual (índice em duelMaps())
+    std::vector<int> m_player_columns; ///< linhas de tiro (laneKey) de nascimento usadas pelos jogadores
     std::vector<SDL_Point> m_spawns;   ///< ponto de nascimento de cada jogador na rodada
 
-    NavGrid m_nav[2];                  ///< grade de navegação de cada equipe (muralha própria bloqueia)
+    /** Lista de mapas do formato da partida (duas equipes ou cada um por si). */
+    const std::vector<std::pair<std::string, std::string>>& duelMaps() const;
+
+    NavGrid m_nav[4];                  ///< grade de navegação de cada equipe (muralha própria bloqueia)
     std::map<Tank*, AIState> m_ai;     ///< memória da IA de cada tanque
     DuelStats m_stats;
 };

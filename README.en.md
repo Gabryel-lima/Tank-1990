@@ -223,15 +223,15 @@ More details (in Portuguese), including how the build works: **[EMUELEC.md](EMUE
 - ✅ **Sound and visual effects**
 - ✅ **Lives and respawn**
 - ✅ **Base protection** (eagle) with stone walls
-- ✅ **Extra modes**: team duel (10 maps) and wave survival (1 to 4 players)
+- ✅ **Extra modes**: team duel (10 maps) or free-for-all (1v1v1v1, 6 four-base maps) and wave survival (1 to 4 players)
 - ✅ **Credits** in the main menu (**Credits**): who made the remake, the engine it builds on and the original game
-- ✅ **Demo behind the menu**, like the original game: a match of a random mode (the campaign on any stage, a 1 vs 1 or 2 vs 2 duel, survival), with a random map and players and every tank driven by the computer, dimmed behind the options and silent. Every 40 s, or when the match ends, another one starts (`AppConfig::menu_demo_time`; 0 brings back the black background)
+- ✅ **Demo behind the menu**, like the original game: a match of a random mode (the campaign on any stage, a 1 vs 1, 2 vs 2 or free-for-all duel, survival), with a random map and players and every tank driven by the computer, dimmed behind the options and silent. Every 40 s, or when the match ends, another one starts (`AppConfig::menu_demo_time`; 0 brings back the black background)
 
 ## ⚔️ Duel Mode (Extra Modes)
 
 From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mode, human players only: each team defends its own eagle and tries to destroy the other one. Team **A** (yellow) spawns at the bottom and team **B** (green) at the top, on dedicated maps, separate from the campaign (`resources/duel_levels/`), all symmetric (rotating the map 180° turns one side into the other) so both teams get the same terrain.
 
-**Formats:** `1 vs 1`, `2 vs 2` or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (see [Controls](#-controls)), there is no 3 vs 3 or 4 vs 4.
+**Formats:** `1 vs 1`, `2 vs 2`, `1v1v1v1` (free-for-all, everyone with their own base; see [below](#-free-for-all-1v1v1v1)) or `Custom Teams`, where you pick 2 to 4 players and each one's team (2 vs 1, 3 vs 1...). No bots take player slots; since the game supports up to 4 players (see [Controls](#-controls)), there is no 3 vs 3 or 4 vs 4.
 
 **Maps:** once the teams are set, **Next** opens the map selection, with a thumbnail of the highlighted map. If the list doesn't fit on the screen, it scrolls with the selection (arrows on the right show there are more items above or below):
 
@@ -248,6 +248,26 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 | **Frozen Lake** | An ice lake in the middle, ringed with bushes: hard to stop and aim |
 | **Gauntlet** | A central stone gate: whoever goes through meets the opponent |
 | **Random** | A random map each round |
+
+### 🌀 Free-for-all (1v1v1v1)
+
+**Extra Modes → Duel Mode → 1v1v1v1**: with **3 or 4 players** (`Players`), each player is a team with **their own base**, one on each side of the map: **A** (yellow) at the bottom, **B** (green) at the top, **C** (blue) on the left and **D** (red) on the right. Every base is the duel's base (stone front, brick sides, yard and base zone), just **rotated**: C's is A's rotated 90°, B's 180° and D's 270°. Everything the duel has (power-ups, powers, demolisher shot, friendly fire) works against **every** other player.
+
+- **Round:** a destroyed base (or every tank of the team gone) **takes the team out of the round**: its tank explodes without respawning, and its reinforcements, turrets and power-ups vanish. The **last team standing** wins the round. A match is first to two rounds, and the panel shows one flag per round won; a team that is out of the round gets a darkened block.
+- **Maps** (`resources/duel_levels/ffa/`, with their own `maps.txt`): six maps, all **equal to themselves rotated 90°** (the four teams see the same terrain):
+
+| Map | Style |
+|-----|-------|
+| **Crossfire** | Corners and diagonals with brick and bush cover, an open middle |
+| **Pinwheel** | One brick arm per side, turning like a pinwheel (rotation symmetry only) |
+| **Fortress** | Stone inside each base's zone (painted in its owner's color) and brick in front |
+| **Lakes** | Lakes on the diagonals, with the axes open for tanks |
+| **Maze** | Walls with 2-block gaps, the middle and the diagonals reachable |
+| **Open Field** | Almost empty: bushes and ice in the middle |
+| **Random** | A random map each round |
+
+- **Adding a map:** like the duel's (a **26×26** grid, a line in `resources/duel_levels/ffa/maps.txt`, `make check-maps`), but the validator requires **90°** symmetry (`grid[row][column] == grid[column][25 - row]`), free spawn points on **all four** sides (rows/columns 0-1 and 24-25) and a **2-tile-wide** path from each spawn to a flank of **each** enemy base. The middle bonus spots are the center and the four diagonals. Tip: draw only the top-left quadrant (13×13) and rotate it for the others.
+- **Simulation:** `./duel_sim --teams ABCD` (or `ABC`, with 3 players) uses the free-for-all maps.
 
 **Adding a new map** (no code changes):
 
@@ -601,7 +621,7 @@ Tank-1990/
 │   ├── sound/            # Sound effects
 │   ├── font/             # Fonts
 │   ├── levels/           # The 36 level files
-│   ├── duel_levels/      # Duel mode maps (listed in maps.txt)
+│   ├── duel_levels/      # Duel mode maps (listed in maps.txt; ffa/ holds the free-for-all ones)
 │   └── survival_levels/  # Survival mode maps (listed in maps.txt)
 ├── tools/                # WSL install/uninstall scripts and the duel simulation
 │   ├── duel_sim.cpp      # Headless duel simulation (AI vs AI)

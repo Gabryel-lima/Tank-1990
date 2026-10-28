@@ -11,7 +11,7 @@ Bot::Bot(SDL_Point spawn, SpriteType type, int team, int lives, SDL_Color team_c
     color = team_color;
     m_fire_time = 0;
     m_reload_time = 400;
-    command.direction = (team == 1 ? D_DOWN : D_UP);
+    command.direction = Tank::facingOfTeam(team);
     lives_count = lives + 1; // respawn() gasta uma vida ao colocar o tanque no mapa
     respawn();
 }
@@ -68,7 +68,7 @@ void Bot::respawn()
     dest_rect.y = pos_y;
 
     Tank::respawn();
-    direction = (team == 1 ? D_DOWN : D_UP);
+    direction = Tank::facingOfTeam(team);
     setFlag(TSF_SHIELD);
     m_shield_time = AppConfig::tank_shield_time / 2; // escudo de renascimento: metade do capacete
 }

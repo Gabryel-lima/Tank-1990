@@ -61,6 +61,8 @@ Menu::Menu(Screen screen)
     // Grades dos mapas do duelo para as miniaturas (um mapa ausente fica com a grade vazia)
     for(auto& map : AppConfig::duel_maps)
         m_map_grids.push_back(DuelLayout::readMap(AppConfig::duel_levels_path + map.first));
+    for(auto& map : AppConfig::duel_ffa_maps)
+        m_ffa_grids.push_back(DuelLayout::readMap(AppConfig::duel_ffa_levels_path + map.first));
     for(auto& map : AppConfig::survival_maps)
         m_survival_grids.push_back(DuelLayout::readMap(AppConfig::survival_levels_path + map.first));
 
@@ -115,13 +117,23 @@ void Menu::buildItems()
         break;
     case SCREEN_DUEL_FORMAT:
         // Só jogadores humanos (até 4): 3 vs 3 e 4 vs 4 não cabem
-        m_items = {ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_CUSTOM, ITEM_BACK};
+        m_items = {ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_FFA, ITEM_FORMAT_CUSTOM, ITEM_BACK};
         break;
     case SCREEN_DUEL_SETUP:
-        // Nos formatos fixos a quantidade de jogadores já está definida
-        if(s_duel_custom) m_items.push_back(ITEM_HUMANS);
-        for(int i = 0; i < s_duel_config.humans; i++)
-            m_items.push_back(static_cast<Item>(ITEM_HUMAN_1_TEAM + i));
+        // Cada um por si: 3 ou 4 jogadores, sem escolha de equipe (cada um é a sua), só o
+        // dispositivo de cada um. Nos formatos fixos a quantidade de jogadores já está definida
+        if(s_duel_config.ffa)
+        {
+            m_items.push_back(ITEM_HUMANS);
+            for(int i = 0; i < s_duel_config.humans; i++)
+                m_items.push_back(static_cast<Item>(ITEM_SURVIVAL_PLAYER_1 + i));
+        }
+        else
+        {
+            if(s_duel_custom) m_items.push_back(ITEM_HUMANS);
+            for(int i = 0; i < s_duel_config.humans; i++)
+                m_items.push_back(static_cast<Item>(ITEM_HUMAN_1_TEAM + i));
+        }
         m_items.push_back(ITEM_NEXT);
         m_items.push_back(ITEM_BACK);
         break;
@@ -236,6 +248,7 @@ std::string Menu::itemText(Item item) const
     case ITEM_SURVIVAL_COINS: return std::string("Coins     < ") + (s_survival_shared_coins ? "Team" : "Each") + " >";
     case ITEM_FORMAT_1V1: return "1 vs 1";
     case ITEM_FORMAT_2V2: return "2 vs 2";
+    case ITEM_FORMAT_FFA: return "1v1v1v1";
     case ITEM_FORMAT_CUSTOM: return "Custom Teams";
     case ITEM_HUMANS: return "Players   < " + Engine::intToString(c.humans) + " >";
     case ITEM_HUMAN_1_TEAM:
@@ -257,7 +270,7 @@ std::string Menu::itemText(Item item) const
     {
         // "P1 PAD 1": o dispositivo do jogador, como na configuração do duelo
         int i = item - ITEM_SURVIVAL_PLAYER_1;
-        return "P" + Engine::intToString(i + 1) + " " + Controllers::inputName(s_survival_players, i);
+        return "P" + Engine::intToString(i + 1) + " " + Controllers::inputName(playersOnScreen(), i);
     }
     case ITEM_NEXT: return "Next";
     case ITEM_MAP_RANDOM: return "Random";
@@ -277,17 +290,31 @@ bool Menu::isMapScreen() const
 
 const std::vector<std::pair<std::string, std::string>>& Menu::mapList() const
 {
-    return m_screen == SCREEN_SURVIVAL_MAP ? AppConfig::survival_maps : AppConfig::duel_maps;
+    if(m_screen == SCREEN_SURVIVAL_MAP) return AppConfig::survival_maps;
+    return s_duel_config.ffa ? AppConfig::duel_ffa_maps : AppConfig::duel_maps;
 }
 
 const std::vector<std::vector<std::string>>& Menu::mapGrids() const
 {
-    return m_screen == SCREEN_SURVIVAL_MAP ? m_survival_grids : m_map_grids;
+    if(m_screen == SCREEN_SURVIVAL_MAP) return m_survival_grids;
+    return s_duel_config.ffa ? m_ffa_grids : m_map_grids;
+}
+
+void Menu::setDuelFfa(bool ffa)
+{
+    DuelConfig& c = s_duel_config;
+    if(c.ffa == ffa) return;
+    c.ffa = ffa;
+    c.map = 0; // cada formato tem a sua lista de mapas
+    // Cada um por si, cada jogador é a sua equipe (0 a 3); nas equipes, voltam a alternar
+    for(int i = 0; i < 4; i++) c.human_team[i] = ffa ? i : i % 2;
+    if(ffa) c.humans = std::max(3, c.humans);
 }
 
 void Menu::applyDuelFormat(int team_size)
 {
     DuelConfig& c = s_duel_config;
+    setDuelFfa(false);
     c.humans = 2 * team_size;
     // Jogadores alternam entre as equipes: P1 em A, P2 em B, P3 em A, P4 em B
     for(int i = 0; i < 4; i++) c.human_team[i] = i % 2;
@@ -297,7 +324,7 @@ void Menu::applyDuelFormat(int team_size)
 void Menu::syncTeamSizes()
 {
     // Sem bots ocupando vagas, cada equipe tem exatamente os jogadores escolhidos para ela
-    for(int team = 0; team < 2; team++)
+    for(int team = 0; team < 4; team++)
         s_duel_config.team_size[team] = s_duel_config.humansInTeam(team);
 }
 
@@ -346,12 +373,14 @@ void Menu::changeValue(int delta)
     DuelConfig& c = s_duel_config;
     if(item == ITEM_HUMANS)
     {
-        // 2 a 4 jogadores; as equipes recomeçam alternando (P1 em A, P2 em B...)
+        // 2 a 4 jogadores (cada um por si, 3 ou 4); as equipes recomeçam alternando
+        // (P1 em A, P2 em B...), ou cada jogador na sua
+        int lowest = c.ffa ? 3 : 2;
         int humans = c.humans + delta;
-        if(humans > 4) humans = 2;
-        else if(humans < 2) humans = 4;
+        if(humans > 4) humans = lowest;
+        else if(humans < lowest) humans = 4;
         c.humans = humans;
-        for(int i = 0; i < 4; i++) c.human_team[i] = i % 2;
+        for(int i = 0; i < 4; i++) c.human_team[i] = c.ffa ? i : i % 2;
         buildItems(); // a lista de "Pn team" muda de tamanho
     }
     else
@@ -411,8 +440,17 @@ void Menu::confirm()
         applyDuelFormat(item - ITEM_FORMAT_1V1 + 1);
         openScreen(SCREEN_DUEL_SETUP);
         break;
+    case ITEM_FORMAT_FFA:
+        // Quatro jogadores (dá para tirar um em "Players"), cada um com a sua base
+        s_duel_custom = false;
+        setDuelFfa(true);
+        s_duel_config.humans = 4;
+        syncTeamSizes();
+        openScreen(SCREEN_DUEL_SETUP);
+        break;
     case ITEM_FORMAT_CUSTOM:
         s_duel_custom = true;
+        setDuelFfa(false);
         syncTeamSizes();
         openScreen(SCREEN_DUEL_SETUP);
         m_menu_index = 0; // no personalizado, começa pela quantidade de jogadores
@@ -541,7 +579,8 @@ void Menu::draw()
     {
         // Mostra a divisão atual das equipes, que muda ao trocar jogadores de lado
         const DuelConfig& c = s_duel_config;
-        title = "Duel  " + Engine::intToString(c.humansInTeam(0)) + " vs " + Engine::intToString(c.humansInTeam(1));
+        if(c.ffa) title = "Duel  1v1v1v1";
+        else title = "Duel  " + Engine::intToString(c.humansInTeam(0)) + " vs " + Engine::intToString(c.humansInTeam(1));
     }
     // Na configuração do duelo, jogadores sem controle nem teclado bloqueiam o início:
     // o título vira o aviso (atualiza sozinho ao conectar um controle)
@@ -572,7 +611,7 @@ void Menu::draw()
            Controllers::inputName(s_duel_config.humans, item - ITEM_HUMAN_1_TEAM) == "NO PAD")
             color = RED;
         if(item >= ITEM_SURVIVAL_PLAYER_1 && item <= ITEM_SURVIVAL_PLAYER_4 &&
-           Controllers::inputName(s_survival_players, item - ITEM_SURVIVAL_PLAYER_1) == "NO PAD")
+           Controllers::inputName(playersOnScreen(), item - ITEM_SURVIVAL_PLAYER_1) == "NO PAD")
             color = RED;
         text_start = {TEXT_X, itemY(i)};
         menuText(itemText(item), color);
@@ -582,7 +621,7 @@ void Menu::draw()
             int idx = item - ITEM_HUMAN_1_TEAM;
             renderer->drawText(&text_start, "P" + Engine::intToString(idx + 1), Duel::teamColor(s_duel_config.human_team[idx]), 2);
         }
-        // Na sobrevivência, "P1" na cor do jogador (cada um tem a sua)
+        // Na sobrevivência e no cada um por si, "P1" na cor do jogador (cada um tem a sua)
         if(item >= ITEM_SURVIVAL_PLAYER_1 && item <= ITEM_SURVIVAL_PLAYER_4 && color.r == WHITE.r && color.g == WHITE.g)
         {
             int idx = item - ITEM_SURVIVAL_PLAYER_1;
@@ -683,7 +722,8 @@ void Menu::drawMapPreview(int map_index)
             renderer->drawRect(&tile, color, true);
         }
 
-    // Duelo: bases nas cores das equipes (A embaixo, B em cima). Sobrevivência: a águia
+    // Duelo: bases nas cores das equipes (A embaixo, B em cima e, cada um por si, C à esquerda
+    // e D à direita). Sobrevivência: a águia
     // embaixo, em dourado, e os pontos de onde os inimigos surgem, em vermelho, no topo
     if(m_screen == SCREEN_SURVIVAL_MAP)
     {
@@ -697,9 +737,10 @@ void Menu::drawMapPreview(int map_index)
         }
         return;
     }
-    for(int team = 0; team < 2; team++)
+    for(int team = 0; team < (s_duel_config.ffa ? DuelLayout::FFA_TEAMS : 2); team++)
     {
-        SDL_Rect base = {inside.x + 12 * TILE, inside.y + (team == 0 ? 24 : 0) * TILE, 2 * TILE, 2 * TILE};
+        DuelLayout::Tile origin = DuelLayout::baseOrigin(team);
+        SDL_Rect base = {inside.x + origin.column * TILE, inside.y + origin.row * TILE, 2 * TILE, 2 * TILE};
         renderer->drawRect(&base, Duel::teamColor(team), true);
     }
 }

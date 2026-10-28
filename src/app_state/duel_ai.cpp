@@ -26,6 +26,7 @@ namespace
     const int SHOT_RANGE = 14;    ///< atira em quem estiver alinhado até esta distância
     const int TURN_RANGE = 6;     ///< para e vira para atirar em quem estiver ao lado até aqui
     const int BONUS_RANGE = 45;   ///< jogador do computador busca bônus a este custo de caminho
+    const int TARGET_STICK = 8;   ///< folga (em passos) da base que o atacante já vinha atacando
 
     const Uint32 REPLAN_TIME = 250;
     const Uint32 STUCK_TIME = 350;
@@ -76,10 +77,33 @@ Bot::Role Duel::baseRole(Tank* tank) const
     return before % 2 == 0 ? Bot::ROLE_ATTACK : Bot::ROLE_DEFEND;
 }
 
-Bot::Role Duel::roleOf(Tank* tank) const
+bool Duel::inEnemyZone(int team, int row, int column) const
+{
+    int zone = DuelLayout::zoneTeam(row, column, m_teams);
+    return zone >= 0 && zone != team;
+}
+
+Bot::Role Duel::roleOf(Tank* tank)
 {
     Bot::Role role = baseRole(tank);
-    if(role == Bot::ROLE_ATTACK || dynamic_cast<Player*>(tank) == nullptr) return role;
+    Player* cpu = dynamic_cast<Player*>(tank);
+
+    // Cada um por si há um jogador só em cada equipe, e todos atacariam deixando a própria base
+    // ao deus-dará: o jogador do computador volta para guardá-la quando um inimigo chega perto
+    // dela (o que ele faz com a histerese do defensor: planAI)
+    if(m_teams > 2 && cpu != nullptr && role == Bot::ROLE_ATTACK)
+    {
+        Eagle* own = baseOf(tank->team);
+        if(own != nullptr && own->type == ST_EAGLE)
+        {
+            SDL_Point home = centerOf(own->collision_rect);
+            for(Tank* t : allTanks())
+                if(t->team != tank->team && !t->to_erase && t->testFlag(TSF_LIFE) &&
+                   manhattan(centerOf(t->dest_rect), home) < INVADER_RANGE * tile())
+                    return Bot::ROLE_DEFEND;
+        }
+    }
+    if(role == Bot::ROLE_ATTACK || cpu == nullptr) return role;
 
     // Ninguém em campo ataca (os atacantes das duas equipes caíram): os defensores saem,
     // senão sobram dois parados no posto e a rodada não acaba. Só nesse caso: um
@@ -104,7 +128,7 @@ NavGrid::Abilities Duel::abilitiesOf(Tank* tank) const
 void Duel::buildNavGrids()
 {
     std::vector<Eagle*> all_bases = bases();
-    for(int team = 0; team < 2; team++)
+    for(int team = 0; team < m_teams; team++)
     {
         NavGrid& nav = m_nav[team];
         nav.resize(m_level_rows_count, m_level_columns_count);
@@ -125,7 +149,7 @@ void Duel::buildNavGrids()
                     t = NavGrid::TILE_BLOCKED;
                 // (o tiro demolidor derruba a da base inimiga, mas só de perto: TILE_ZONE_STONE)
                 if(t == NavGrid::TILE_STONE && stoneOwner(row, column) >= 0)
-                    t = stoneOwner(row, column) == 1 - team ? NavGrid::TILE_ZONE_STONE : NavGrid::TILE_BLOCKED;
+                    t = stoneOwner(row, column) != team ? NavGrid::TILE_ZONE_STONE : NavGrid::TILE_BLOCKED;
                 nav.setTile(row, column, t);
             }
 
@@ -192,7 +216,7 @@ std::vector<int> Duel::fireGoals(const SDL_Rect& target, int team, const NavGrid
             int r = tr + DR[d] * k, c = tc + DC[d] * k;
             if(!nav.validCell(r, c)) break;
             // O tiro sai do centro do tanque (bloco r+1, c+1): precisa estar na zona inimiga
-            if(zone_stone && DuelLayout::zoneTeam(r + 1, c + 1) != 1 - team) continue;
+            if(zone_stone && !inEnemyZone(team, r + 1, c + 1)) continue;
             if(nav.cellCost(r, c, abilities) < NavGrid::UNREACHABLE) goals.push_back(nav.cellIndex(r, c));
         }
     }
@@ -206,7 +230,7 @@ bool Duel::clearShot(Tank* shooter, Direction d, const SDL_Rect& target, int ran
     SDL_Rect me = shooter->dest_rect;
     SDL_Point c = centerOf(me);
     // Tiro demolidor de dentro da zona da base inimiga: a pedra dela cai
-    bool demolish = abilitiesOf(shooter).demolish && DuelLayout::zoneTeam(c.y / tile(), c.x / tile()) == 1 - shooter->team;
+    bool demolish = abilitiesOf(shooter).demolish && inEnemyZone(shooter->team, c.y / tile(), c.x / tile());
     SDL_Point tc = centerOf(target);
     const int half_bullet = 4; // o projétil tem 8x8 e sai do centro do tanque
 
@@ -248,10 +272,9 @@ bool Duel::clearShot(Tank* shooter, Direction d, const SDL_Rect& target, int ran
 
 bool Duel::worthFiring(Tank* shooter, Direction d, int range)
 {
-    int enemy_team = 1 - shooter->team;
     for(Tank* t : allTanks())
     {
-        if(t->team != enemy_team || t->to_erase || !t->testFlag(TSF_LIFE)) continue;
+        if(t->team == shooter->team || t->to_erase || !t->testFlag(TSF_LIFE)) continue;
         // Escudo: o tiro não faz nada (mas ainda vale anular os projéteis dele)
         if(!t->testFlag(TSF_SHIELD) && clearShot(shooter, d, t->collision_rect, range)) return true;
 
@@ -262,8 +285,14 @@ bool Duel::worthFiring(Tank* shooter, Direction d, int range)
                 return true;
     }
 
-    Eagle* base = baseOf(enemy_team);
-    return base != nullptr && base->type == ST_EAGLE && clearShot(shooter, d, base->collision_rect, BASE_FIRE_RANGE);
+    for(int team = 0; team < m_teams; team++)
+    {
+        Eagle* base = baseOf(team);
+        if(team != shooter->team && base != nullptr && base->type == ST_EAGLE &&
+           clearShot(shooter, d, base->collision_rect, BASE_FIRE_RANGE))
+            return true;
+    }
+    return false;
 }
 
 bool Duel::firesAtOwnBase(Tank* tank, Direction d) const
@@ -285,8 +314,8 @@ bool Duel::firesAtOwnBase(Tank* tank, Direction d) const
         {
             int row = vertical ? i : j, column = vertical ? j : i;
             if(row < 0 || column < 0 || row >= m_level_rows_count || column >= m_level_columns_count) continue;
-            int base_row = DuelLayout::baseRow(team);
-            if(row >= base_row && row < base_row + 2 && column >= DuelLayout::BASE_COLUMN && column < DuelLayout::BASE_COLUMN + 2)
+            DuelLayout::Tile base = DuelLayout::baseOrigin(team);
+            if(row >= base.row && row < base.row + 2 && column >= base.column && column < base.column + 2)
                 return true;
             // A muralha da própria base (tijolo ou pedra: o tiro do jogador derruba as duas)
             // não; pedra segura o tiro, menos a da zona da própria base, que o tiro do
@@ -308,7 +337,7 @@ bool Duel::breakableAhead(Tank* tank, Direction d) const
     bool heavy = abilitiesOf(tank).break_stone;
     SDL_Rect r = tank->collision_rect;
     SDL_Point center = centerOf(r);
-    bool demolish = abilitiesOf(tank).demolish && DuelLayout::zoneTeam(center.y / tile(), center.x / tile()) == 1 - tank->team;
+    bool demolish = abilitiesOf(tank).demolish && inEnemyZone(tank->team, center.y / tile(), center.x / tile());
 
     // Blocos encostados na frente do tanque
     int r0, r1, c0, c1;
@@ -333,9 +362,8 @@ bool Duel::breakableAhead(Tank* tank, Direction d) const
 
 void Duel::planAI(Tank* tank, AIState& state)
 {
-    int team = tank->team, enemy_team = 1 - team;
+    int team = tank->team;
     Eagle* own_base = baseOf(team);
-    Eagle* enemy_base = baseOf(enemy_team);
     const NavGrid& nav = m_nav[team];
     NavGrid::Abilities abilities = abilitiesOf(tank);
     Bot::Role role = roleOf(tank);
@@ -361,7 +389,7 @@ void Duel::planAI(Tank* tank, AIState& state)
         int best = INT_MAX;
         for(Tank* t : allTanks())
         {
-            if(t->team != enemy_team || t->to_erase || !t->testFlag(TSF_LIFE)) continue;
+            if(t->team == team || t->to_erase || !t->testFlag(TSF_LIFE)) continue;
             int d = manhattan(centerOf(t->dest_rect), reference);
             if(d < best) { best = d; nearest = t; }
         }
@@ -397,7 +425,7 @@ void Duel::planAI(Tank* tank, AIState& state)
         Tank* nearest = nearestEnemy(centerOf(tank->dest_rect), &distance);
         Tank* previous = nullptr;
         for(Tank* t : allTanks())
-            if(t == state.chasing && t->team == enemy_team && !t->to_erase && t->testFlag(TSF_LIFE)) previous = t;
+            if(t == state.chasing && t->team != team && !t->to_erase && t->testFlag(TSF_LIFE)) previous = t;
         state.chasing = nullptr;
         if(previous != nullptr && manhattan(centerOf(previous->dest_rect), centerOf(tank->dest_rect)) < CHASE_KEEP * tile() &&
            chase(previous))
@@ -410,10 +438,30 @@ void Duel::planAI(Tank* tank, AIState& state)
             state.chasing = nearest;
             return;
         }
-        // Base inimiga: posições alinhadas com ela (atira através da muralha de tijolos)
-        if(enemy_base != nullptr && enemy_base->type == ST_EAGLE &&
-           tryGoals(fireGoals(enemy_base->collision_rect, team, abilities, BASE_FIRE_RANGE), &enemy_base->collision_rect, NavGrid::UNREACHABLE - 1))
+        // Base inimiga: posições alinhadas com ela (atira através da muralha de tijolos). Com mais
+        // de uma, a de caminho mais curto; a que vinha sendo atacada ganha uma folga, para a IA
+        // não trocar de base a cada replanejamento quando duas estão quase à mesma distância
+        int target = -1, best_cost = INT_MAX;
+        std::vector<int> best_field;
+        for(int other = 0; other < m_teams; other++)
+        {
+            Eagle* base = baseOf(other);
+            if(other == team || base == nullptr || base->type != ST_EAGLE) continue;
+            std::vector<int> goals = fireGoals(base->collision_rect, team, abilities, BASE_FIRE_RANGE);
+            if(goals.empty()) continue;
+            std::vector<int> field = nav.distanceField(goals, abilities);
+            if(field[me] >= NavGrid::UNREACHABLE) continue;
+            int cost = field[me] - (other == state.target_team ? TARGET_STICK : 0);
+            if(cost < best_cost) { best_cost = cost; target = other; best_field.swap(field); }
+        }
+        if(target >= 0)
+        {
+            state.field.swap(best_field);
+            state.face = baseOf(target)->collision_rect;
+            state.target_team = target;
             return;
+        }
+        state.target_team = -1;
         // Base inalcançável (muralha de pedra): caça quem estiver em campo
         if(chase(nearest)) return;
     }
@@ -440,10 +488,8 @@ void Duel::planAI(Tank* tank, AIState& state)
         // perto de onde está
         if(own_base != nullptr)
         {
-            DuelLayout::Tile center = DuelLayout::yardCenter(team);
-            int outside_row = center.row + (team == 0 ? -2 : 2);
-            std::vector<DuelLayout::Tile> posts = {center, {outside_row, center.column - 2}, {outside_row, center.column + 2}};
-            DuelLayout::Tile spot = center;
+            std::vector<DuelLayout::Tile> posts = DuelLayout::guardPosts(team);
+            DuelLayout::Tile spot = posts.front();
             for(Tank* t : allTanks())
             {
                 if(t->team != team || t->to_erase || !isAI(t) || roleOf(t) != Bot::ROLE_DEFEND) continue;
@@ -464,11 +510,7 @@ void Duel::planAI(Tank* tank, AIState& state)
             // dele): ali ele trancava os aliados que nasciam logo atrás
             auto blocksSpawn = [&](int r, int c) {
                 for(SDL_Point s : DuelLayout::spawnOrder(team))
-                {
-                    int sr = s.y / tile(), sc = s.x / tile();
-                    int r0 = (team == 0) ? sr - 4 : sr, r1 = (team == 0) ? sr + 1 : sr + 5;
-                    if(r + 1 >= r0 && r <= r1 && c + 1 >= sc && c <= sc + 1) return true;
-                }
+                    if(DuelLayout::inSpawnExit(team, s, r, c)) return true;
                 return false;
             };
             for(int radius = 0; radius <= 4; radius++)
@@ -478,8 +520,8 @@ void Duel::planAI(Tank* tank, AIState& state)
                     for(int c = spot.column - radius; c <= spot.column + radius; c++)
                         if(nav.validCell(r, c) && nav.cellCost(r, c, abilities) < NavGrid::UNREACHABLE && !blocksSpawn(r, c))
                             goals.push_back(nav.cellIndex(r, c));
-                int look_row = (team == 0 ? 0 : m_level_rows_count - 2);
-                SDL_Rect look = {spot.column * tile(), look_row * tile(), 2 * tile(), 2 * tile()};
+                DuelLayout::Tile far_side = DuelLayout::lookTile(team, spot);
+                SDL_Rect look = {far_side.column * tile(), far_side.row * tile(), 2 * tile(), 2 * tile()};
                 if(tryGoals(goals, &look, NavGrid::UNREACHABLE - 1)) return;
             }
         }
