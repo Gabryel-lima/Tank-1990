@@ -9,7 +9,8 @@
 //
 // Opções:
 //   --matches N   partidas (padrão 100)
-//   --teams XYZ   equipe de cada jogador, ex.: AB (1v1), ABAB (2v2), AAB (2v1)
+//   --teams XYZ   equipe de cada jogador, ex.: AB (1v1), ABAB (2v2), AAB (2v1); ABCD ou ABC: cada
+//                 um por si (quatro bases, mapas de duel_levels/ffa)
 //   --map M       índice do mapa (padrão: todos, um de cada vez)
 //   --seed S      semente do sorteio (padrão 1)
 //   --heat        imprime o mapa de calor dos bots de reforço
@@ -24,6 +25,7 @@
 #include "../src/appconfig.h"
 #include "../src/engine/engine.h"
 
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -66,7 +68,7 @@ namespace
 
     struct MapReport
     {
-        int rounds = 0, wins[2] = {0, 0}, draws = 0, by_base = 0, stalled = 0;
+        int rounds = 0, wins[4] = {0, 0, 0, 0}, draws = 0, by_base = 0, stalled = 0;
         double time = 0;
         double alive[2] = {0, 0}, stuck[2] = {0, 0};
         int unstick[2] = {0, 0};
@@ -108,14 +110,18 @@ int main(int argc, char* argv[])
     config.humans = static_cast<int>(teams.size());
     if(config.humans < 2 || config.humans > 4)
     {
-        std::fprintf(stderr, "--teams precisa de 2 a 4 jogadores (ex.: AB, ABAB, AAB)\n");
+        std::fprintf(stderr, "--teams precisa de 2 a 4 jogadores (ex.: AB, ABAB, AAB, ABCD)\n");
         return 1;
     }
     for(int i = 0; i < config.humans; i++)
     {
-        config.human_team[i] = (teams[i] == 'B' || teams[i] == 'b') ? 1 : 0;
+        char letter = static_cast<char>(std::toupper(static_cast<unsigned char>(teams[i])));
+        config.human_team[i] = (letter >= 'A' && letter <= 'D') ? letter - 'A' : 0;
+        config.ffa = config.ffa || config.human_team[i] >= 2;
         config.cpu[i] = true;
     }
+    const std::vector<std::pair<std::string, std::string>>& map_list = config.ffa ? AppConfig::duel_ffa_maps : AppConfig::duel_maps;
+    const int team_count = config.ffa ? config.humans : 2;
 
     // Só a configuração de sprites (tamanhos e quadros): nada é desenhado
     Engine::getEngine().initModules();
@@ -124,9 +130,9 @@ int main(int argc, char* argv[])
 
     // (tipo, cinza, lado: -1 meio, 0 próprio, 1 adversário)
     std::map<std::tuple<SpriteType, bool, int>, PickupTally> tally;
-    std::vector<MapReport> maps(AppConfig::duel_maps.size());
+    std::vector<MapReport> maps(map_list.size());
 
-    for(int map = 0; map < static_cast<int>(AppConfig::duel_maps.size()); map++)
+    for(int map = 0; map < static_cast<int>(map_list.size()); map++)
     {
         if(only_map >= 0 && map != only_map) continue;
         config.map = map;
@@ -142,9 +148,11 @@ int main(int argc, char* argv[])
                 time += STEP;
                 // A partida acabou (alguém venceu 2 rodadas): não espera a tela final
                 const DuelStats& s = duel.stats();
-                int wins[2] = {0, 0};
+                int wins[4] = {0, 0, 0, 0};
                 for(int w : s.round_winner) if(w >= 0) wins[w]++;
-                if(wins[0] >= AppConfig::duel_rounds_to_win || wins[1] >= AppConfig::duel_rounds_to_win) break;
+                bool over = false;
+                for(int t = 0; t < 4; t++) over = over || wins[t] >= AppConfig::duel_rounds_to_win;
+                if(over) break;
             }
             if(time >= MATCH_LIMIT) report.stalled++;
 
@@ -182,6 +190,7 @@ int main(int argc, char* argv[])
 
     std::printf("Equipes %s, %d partidas por mapa, semente %u\n\n", teams.c_str(), matches, seed);
 
+    // Cada um por si: a vitória de cada equipe (C e D) numa linha própria, abaixo da tabela
     std::printf("%-12s %6s %6s %6s %6s %7s %7s | %-24s | %-24s\n", "mapa", "rodadas", "A", "B", "empate", "base", "tempo",
                 "bots: preso  destrava/min", "cpu: preso  destrava/min");
     for(size_t map = 0; map < maps.size(); map++)
@@ -195,11 +204,17 @@ int main(int argc, char* argv[])
             if(r.alive[k] <= 0) std::snprintf(out, 64, "%s", "-");
             else std::snprintf(out, 64, "%5.1f%%  %6.2f", 100.0 * r.stuck[k] / r.alive[k], r.unstick[k] / (r.alive[k] / 60000.0));
         }
-        std::printf("%-12s %6d %6s %6s %6s %7s %6.0fs | %-24s | %-24s%s\n", AppConfig::duel_maps[map].second.c_str(), r.rounds,
+        std::printf("%-12s %6d %6s %6s %6s %7s %6.0fs | %-24s | %-24s%s\n", map_list[map].second.c_str(), r.rounds,
                     percent(r.wins[0], r.rounds).c_str(), percent(r.wins[1], r.rounds).c_str(),
                     percent(r.draws, r.rounds).c_str(), percent(r.by_base, r.rounds).c_str(),
                     r.rounds ? r.time / r.rounds / 1000.0 : 0.0, bots, cpus,
                     r.stalled ? (" (" + std::to_string(r.stalled) + " travadas)").c_str() : "");
+        if(team_count > 2)
+        {
+            std::printf("%-12s %6s", "  C e D:", "");
+            for(int t = 2; t < team_count; t++) std::printf(" %s=%s", t == 2 ? "C" : "D", percent(r.wins[t], r.rounds).c_str());
+            std::printf("\n");
+        }
     }
 
     std::map<std::pair<SpriteType, bool>, PickupTally> by_color;
@@ -231,6 +246,7 @@ int main(int argc, char* argv[])
         if(r.rounds == 0) continue;
         std::printf("#map %zu %d %d %d %d %d %.0f %.0f %.0f %.0f %.0f %d %d %d\n", map, r.rounds, r.wins[0], r.wins[1], r.draws,
                     r.by_base, r.time, r.alive[0], r.stuck[0], r.alive[1], r.stuck[1], r.unstick[0], r.unstick[1], r.stalled);
+        if(team_count > 2) std::printf("#ffa %zu %d %d\n", map, r.wins[2], r.wins[3]);
     }
     for(auto& entry : tally)
     {
@@ -248,7 +264,7 @@ int main(int argc, char* argv[])
             double total = 0;
             for(double v : r.heat) total += v;
             std::printf("\nOnde os bots passam o tempo: %s (. <0,2%%  : <0,5%%  o <1%%  O <2%%  @ >=2%%)\n",
-                        AppConfig::duel_maps[map].second.c_str());
+                        map_list[map].second.c_str());
             for(size_t i = 0; i < r.heat.size(); i++)
             {
                 double share = r.heat[i] / total;

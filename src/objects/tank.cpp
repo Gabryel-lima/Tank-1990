@@ -3,6 +3,17 @@
 #include "../soundmanager.h"
 #include <algorithm>
 
+Direction Tank::facingOfTeam(int team)
+{
+    switch(team)
+    {
+    case 1: return D_DOWN;
+    case 2: return D_RIGHT;
+    case 3: return D_LEFT;
+    default: return D_UP;
+    }
+}
+
 
 // Construtor padrão do Tank. Inicializa o tanque na posição inicial do inimigo 0.
 Tank::Tank()

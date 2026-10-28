@@ -14,7 +14,7 @@ tratavam a pausa e o painel de poderes de jeitos diferentes.
 | # | Regra | Onde |
 |---|-------|------|
 | J1 | Modo **não competitivo** (cooperativo, contra a IA): de **1 a 4 jogadores**, começando em 1. Dá para jogar sozinho. | `Menu` (`s_survival_players`) |
-| J2 | Modo **competitivo**: de 2 a 4 jogadores, em equipes (1 contra 1, 2 contra 1, 2 contra 2, 3 contra 1...). Não precisa de opção para 1 jogador. | `DuelConfig` |
+| J2 | Modo **competitivo**: de 2 a 4 jogadores, em equipes (1 contra 1, 2 contra 1, 2 contra 2, 3 contra 1...) ou **cada um por si** (1 contra 1 contra 1 contra 1, com 3 ou 4 jogadores: cada jogador é uma equipe, com a base dele). Não precisa de opção para 1 jogador. | `DuelConfig`, `DuelConfig::ffa` |
 | J3 | A tela de configuração mostra o **dispositivo de cada jogador** (`P1 PAD 1`, `P2 WASD`); quem ficou sem nenhum aparece em vermelho como `NO PAD`, o título vira "Connect N pads" e o **Next fica bloqueado**. | `Controllers::inputName`, `Controllers::playersWithoutInput`, `Menu::playersOnScreen` |
 | J4 | A distribuição de dispositivos é a do jogo inteiro: controles primeiro, depois `WASD` e `ARROWS`. | `Controllers::assign` |
 
@@ -37,10 +37,10 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 
 | # | Regra | Onde |
 |---|-------|------|
-| P1 | Pasta própria `resources/<modo>_levels/`, com `maps.txt` (`arquivo;Nome`, um por linha) e mapas de 26×26 com os símbolos das fases. A pasta entra em `APP_RESOURCES` no `Makefile`. | `Makefile`, `AppConfig::<modo>_maps` |
+| P1 | Pasta própria `resources/<modo>_levels/`, com `maps.txt` (`arquivo;Nome`, um por linha) e mapas de 26×26 com os símbolos das fases. A pasta entra em `APP_RESOURCES` no `Makefile`. Um formato com geometria própria tem a lista dele numa subpasta, com o `maps.txt` dela (o cada um por si do duelo: `duel_levels/ffa/`, mapas das quatro bases). | `Makefile`, `AppConfig::<modo>_maps`, `AppConfig::duel_ffa_maps` |
 | P2 | Uma classe `<Modo>Layout` separa **erros** (`validate`: o mapa é **recusado ao iniciar**, com o motivo no terminal, em vez de quebrar uma partida) de **avisos** (`advise`: o mapa funciona, vale rever). Os dois dizem linha e coluna. | `DuelLayout`, `SurvivalLayout` |
 | P3 | `make check-maps` verifica as pastas de todos os modos e mostra os erros e os avisos. Só erro reprova. | `tools/check_duel_maps.cpp` |
-| P4 | **Erro** só para o indispensável: formato (26×26, símbolos conhecidos), ponto de nascimento livre, caminho da **largura de um tanque** (2 tiles) até o objetivo (o flanco da base inimiga; na sobrevivência, a muralha da águia) e, no competitivo, **justiça**: o terreno de uma equipe é o da outra pela mesma transformação que leva as bases e os nascimentos de uma às da outra (no duelo, girar 180°; espelho não é exigido). | `<Modo>Layout::validate` |
+| P4 | **Erro** só para o indispensável: formato (26×26, símbolos conhecidos), ponto de nascimento livre, caminho da **largura de um tanque** (2 tiles) até o objetivo (o flanco da base inimiga; na sobrevivência, a muralha da águia) e, no competitivo, **justiça**: o terreno de uma equipe é o da outra pela mesma transformação que leva as bases e os nascimentos de uma às da outra (no duelo, girar 180° com duas equipes e 90° cada um por si; espelho não é exigido). | `<Modo>Layout::validate` |
 | P5 | **O jogo se adapta** em vez de proibir: monta a base e a muralha; o dono da pedra é decidido pela **parede inteira** (dentro da área com dono, é da equipe; cruzando a borda, é comum), então a parede nunca fica metade colorida; o bônus não surge num ponto coberto (e volta quando o bloco cai). | `DuelLayout::stoneOwners`, `Duel::openSpots` |
 | P6 | **Aviso**, não erro: ponto de bônus coberto ou inalcançável a pé, defensor longe dos flancos da própria base. São escolhas de desenho que o jogo aguenta. | `<Modo>Layout::advise` |
 | P7 | Bônus que surge no mapa (do tanque vermelho ou do sorteio do modo) vai **só onde os tanques andam**: lugar do tamanho de um tanque sem bloco que o pare, alcançável a pé, fora da base e do que o modo põe no mapa. A campanha mantém o sorteio do original. Coberto por teste (`make survival-test`). | `Game::bonusSpot`, `Survival::bonusSpots`, `Duel::openSpots` |
@@ -49,7 +49,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 
 | # | Regra | Onde |
 |---|-------|------|
-| C1 | A cor do tanque diz **de que lado** o jogador está. Competitivo: a cor é da **equipe** (cores diferentes só entre adversários). Cooperativo: cada jogador tem a sua (P1 amarelo, P2 verde, P3 azul, P4 vermelho). | `Player::getPlayerColor`, `Duel::teamColor` |
+| C1 | A cor do tanque diz **de que lado** o jogador está. Competitivo: a cor é da **equipe** (cores diferentes só entre adversários; cada um por si, cada jogador é uma equipe, com a cor dele). Cooperativo: cada jogador tem a sua (P1 amarelo, P2 verde, P3 azul, P4 vermelho). | `Player::getPlayerColor`, `Duel::teamColor` |
 | C2 | Bônus: no cooperativo, **todos cinza** (uma equipe só, qualquer um pega). Cor de equipe nos bônus é coisa de modo competitivo. | `Bonus::owner_team` |
 | C3 | Estrutura **com dono** (competitivo) fica na **cor clareada do dono**. Cor numa estrutura quer dizer uma coisa só: o adversário não a derruba (o dono derruba). O dono é da parede inteira (P5). | `Duel::stoneTint`, `Duel::stoneOwner` |
 
@@ -89,6 +89,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 | G2 | A IA **nunca atira** na direção da própria base ou da própria muralha. | `Duel::firesAtOwnBase` |
 | G3 | Modo com IA não pode travar: se a rodada entrar num impasse, alguém sai do lugar (a simulação acusa partidas "travadas"). | `Duel::roleOf`, `tools/duel_sim.cpp` |
 | G4 | **Aliados se atravessam:** torreta e bot (o reforço) não colidem com os tanques do mesmo lado; os jogadores entre si colidem, como na campanha. | `Game::passThrough`, `Game::sameSide` |
+| G5 | **Mais de duas equipes** (cada um por si): base destruída ou equipe sem jogadores **tira a equipe da rodada** (os tanques, reforços e torretas dela somem; os bônus dela também), e a rodada vai para a **última equipe de pé**. Com duas equipes a rodada acaba na hora, como sempre. Tudo que fala do "adversário" vale para **qualquer outra equipe**: tiro, escudo (W7), relógio, granada, o bônus que surge do lado "inimigo". A IA ataca a base de caminho mais curto (com folga na que já vinha atacando) e o jogador do computador volta a guardar a própria quando um inimigo chega perto. | `Duel::eliminateTeam`, `Duel::checkRoundEnd`, `Duel::rivalTeam`, `Duel::planAI` |
 
 ## 8. Código
 
@@ -121,7 +122,7 @@ adaptar ao mapa, ele se adapta, em vez de proibir um desenho.
 
 | O quê | Duelo | Sobrevivência | Por quê |
 |-------|-------|---------------|---------|
-| Jogadores | 2 a 4, em equipes | 1 a 4, juntos | J1, J2 |
+| Jogadores | 2 a 4, em equipes ou cada um por si (3 ou 4) | 1 a 4, juntos | J1, J2 |
 | Colisão entre jogadores | colidem | atravessam uns aos outros | a sobrevivência é cooperativa |
 | Cor do tanque | da equipe | do jogador | C1 |
 | Bônus | da cor da equipe ou cinza | sempre cinza | C2 |

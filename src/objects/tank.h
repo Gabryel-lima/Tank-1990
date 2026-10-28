@@ -179,10 +179,16 @@ public:
     int lives_count;
 
     /**
-     * Equipe do tanque no modo duelo (0 = A, 1 = B). -1 fora do duelo.
-     * Os projéteis disparados herdam a equipe.
+     * Equipe do tanque no modo duelo (0 = A embaixo, 1 = B em cima, 2 = C à esquerda, 3 = D à
+     * direita). -1 fora do duelo. Os projéteis disparados herdam a equipe.
      */
     int team;
+
+    /**
+     * Para onde a equipe olha ao nascer: para o meio do mapa a partir da base dela (A para cima,
+     * B para baixo, C para a direita, D para a esquerda). Fora do duelo (-1), para cima.
+     */
+    static Direction facingOfTeam(int team);
 
     /**
      * Posição de renascimento. Se x < 0, usa a posição padrão do tipo de tanque.

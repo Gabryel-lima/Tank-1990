@@ -3,9 +3,10 @@
 //
 //   make check-maps                      (compila e roda a partir de build/bin)
 //   ./check_duel_maps [arquivo...]       só esses mapas de duelo
+//   ./check_duel_maps --ffa arquivo...       só esses mapas do duelo cada um por si (quatro bases)
 //   ./check_duel_maps --survival arquivo...  só esses mapas de sobrevivência
 //
-// Sem argumentos, verifica todos os mapas listados em duel_levels/maps.txt e em
+// Sem argumentos, verifica todos os mapas listados em duel_levels/maps.txt, duel_levels/ffa/maps.txt e em
 // survival_levels/maps.txt e avisa sobre arquivos das pastas que não estão na lista.
 // Sai com código 1 se algum mapa tiver erro (o jogo o recusaria). Avisos ("aviso") são
 // conselhos de desenho: o mapa funciona e é aceito.
@@ -25,7 +26,7 @@
 
 using Validator = std::function<std::vector<std::string>(const std::vector<std::string>&)>;
 
-static bool check(const std::string& path, const std::string& name, const Validator& validate, bool duel)
+static bool check(const std::string& path, const std::string& name, const Validator& validate, bool duel, int teams = 2)
 {
     std::vector<std::string> grid = DuelLayout::readMap(path);
     std::vector<std::string> problems = validate(grid);
@@ -33,11 +34,11 @@ static bool check(const std::string& path, const std::string& name, const Valida
     {
         if(duel)
             std::printf("ok    %-12s %s  (%d bloco(s) de pedra do mapa com dono: coloridos, só o dono derruba)\n",
-                        name.c_str(), path.c_str(), DuelLayout::protectedStone(grid));
+                        name.c_str(), path.c_str(), DuelLayout::protectedStone(grid, teams));
         else
             std::printf("ok    %-12s %s\n", name.c_str(), path.c_str());
         if(duel)
-            for(const std::string& w : DuelLayout::advise(grid)) std::printf("        aviso: %s\n", w.c_str());
+            for(const std::string& w : DuelLayout::advise(grid, teams)) std::printf("        aviso: %s\n", w.c_str());
         else
         {
             // A loja do intervalo precisa de um 2x2 de chão à vista ao lado da base; sem ele, o
@@ -58,7 +59,7 @@ static bool check(const std::string& path, const std::string& name, const Valida
 }
 
 // Todos os mapas listados no maps.txt da pasta, mais o aviso dos arquivos que ninguém listou
-static bool checkFolder(const std::string& folder, const std::string& title, const Validator& validate, bool duel)
+static bool checkFolder(const std::string& folder, const std::string& title, const Validator& validate, bool duel, int teams = 2)
 {
     std::printf("== %s (%smaps.txt)\n", title.c_str(), folder.c_str());
     std::string list_path = folder + "maps.txt";
@@ -79,7 +80,7 @@ static bool checkFolder(const std::string& folder, const std::string& title, con
         std::string file = line.substr(0, sep);
         std::string name = (sep == std::string::npos) ? file : line.substr(sep + 1);
         listed.insert(file);
-        all_ok = check(folder + file, name, validate, duel) && all_ok;
+        all_ok = check(folder + file, name, validate, duel, teams) && all_ok;
     }
 
     if(DIR* dir = opendir(folder.c_str()))
@@ -101,12 +102,18 @@ int main(int argc, char** argv)
     if(argc > 1)
     {
         bool survival = std::strcmp(argv[1], "--survival") == 0;
-        Validator validate = survival ? Validator(SurvivalLayout::validate) : Validator(DuelLayout::validate);
-        for(int i = survival ? 2 : 1; i < argc; i++) all_ok = check(argv[i], argv[i], validate, !survival) && all_ok;
+        // --ffa arquivo...: mapas do cada um por si (quatro bases)
+        bool ffa = std::strcmp(argv[1], "--ffa") == 0;
+        int teams = ffa ? DuelLayout::FFA_TEAMS : 2;
+        Validator validate = survival ? Validator(SurvivalLayout::validate)
+                                      : Validator([teams](const std::vector<std::string>& g) { return DuelLayout::validate(g, teams); });
+        for(int i = (survival || ffa) ? 2 : 1; i < argc; i++) all_ok = check(argv[i], argv[i], validate, !survival, teams) && all_ok;
         return all_ok ? 0 : 1;
     }
 
-    all_ok = checkFolder(AppConfig::duel_levels_path, "Duelo", DuelLayout::validate, true) && all_ok;
+    all_ok = checkFolder(AppConfig::duel_levels_path, "Duelo", [](const std::vector<std::string>& g) { return DuelLayout::validate(g); }, true) && all_ok;
+    all_ok = checkFolder(AppConfig::duel_ffa_levels_path, "Duelo cada um por si", [](const std::vector<std::string>& g) { return DuelLayout::validate(g, DuelLayout::FFA_TEAMS); },
+                         true, DuelLayout::FFA_TEAMS) && all_ok;
     all_ok = checkFolder(AppConfig::survival_levels_path, "Sobrevivência", SurvivalLayout::validate, false) && all_ok;
     return all_ok ? 0 : 1;
 }

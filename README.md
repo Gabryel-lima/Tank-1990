@@ -208,15 +208,15 @@ Passo a passo, problemas comuns e como a build funciona: **[EMUELEC.md](EMUELEC.
 - ✅ **Efeitos sonoros** e visuais
 - ✅ **Sistema de vidas** e respawn
 - ✅ **Proteção da base** (águia) com paredes de pedra
-- ✅ **Modos extras**: duelo por equipes (10 mapas) e sobrevivência em ondas (1 a 4 jogadores)
+- ✅ **Modos extras**: duelo por equipes (10 mapas) ou cada um por si (1v1v1v1, 6 mapas de quatro bases) e sobrevivência em ondas (1 a 4 jogadores)
 - ✅ **Créditos** no menu principal (**Credits**): quem fez o remake, a base do motor e o jogo original
-- ✅ **Demonstração no fundo do menu**, como no jogo original: uma partida de um modo sorteado (campanha numa fase qualquer, duelo 1 contra 1 ou 2 contra 2, sobrevivência), com mapa e jogadores sorteados e todos os tanques no computador, escurecida atrás das opções e sem som. A cada 40 s, ou quando a partida acaba, vem outra (`AppConfig::menu_demo_time`; 0 volta ao fundo preto)
+- ✅ **Demonstração no fundo do menu**, como no jogo original: uma partida de um modo sorteado (campanha numa fase qualquer, duelo 1 contra 1, 2 contra 2 ou cada um por si, sobrevivência), com mapa e jogadores sorteados e todos os tanques no computador, escurecida atrás das opções e sem som. A cada 40 s, ou quando a partida acaba, vem outra (`AppConfig::menu_demo_time`; 0 volta ao fundo preto)
 
 ## ⚔️ Modo Duelo (Extra Modes)
 
 No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por equipes, só entre jogadores humanos: cada equipe defende a sua águia e tenta destruir a do adversário. A equipe **A** (amarela) nasce embaixo e a **B** (verde) em cima, em mapas próprios, separados da campanha (`resources/duel_levels/`), todos simétricos (girando o mapa 180°, um lado vira o outro) para que as duas equipes tenham o mesmo terreno.
 
-**Formatos:** `1 vs 1`, `2 vs 2` ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
+**Formatos:** `1 vs 1`, `2 vs 2`, `1v1v1v1` (cada um por si, com a sua base; ver [abaixo](#-cada-um-por-si-1v1v1v1)) ou `Custom Teams`, em que você escolhe de 2 a 4 jogadores e a equipe de cada um (2 contra 1, 3 contra 1...). Não há bots ocupando vagas; como o jogo aceita até 4 jogadores (ver [Controles](#-controles)), não existem 3 vs 3 nem 4 vs 4.
 
 **Mapas:** depois de montar as equipes, **Next** abre a escolha de mapa, com uma miniatura do mapa selecionado. Se a lista não cabe na tela, ela rola junto com a seleção (setas à direita indicam que há mais itens acima ou abaixo):
 
@@ -233,6 +233,26 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 | **Frozen Lake** | Lago de gelo no centro, cercado de arbustos: difícil parar e mirar |
 | **Gauntlet** | Um portão central de pedra: quem atravessa encontra o adversário |
 | **Random** | Um mapa sorteado a cada rodada |
+
+### 🌀 Cada um por si (1v1v1v1)
+
+**Extra Modes → Duel Mode → 1v1v1v1**: de **3 ou 4 jogadores** (`Players`), cada um é uma equipe, com a **sua base**, uma de cada lado do mapa: **A** (amarela) embaixo, **B** (verde) em cima, **C** (azul) à esquerda e **D** (vermelha) à direita. Cada base é a mesma do duelo (frente de pedra, laterais de tijolo, pátio e zona da base), só **girada**: a da C é a da A girada 90°, a da B 180° e a da D 270°. Tudo o que o duelo já tem (bônus, poderes, tiro demolidor, fogo amigo) vale contra **qualquer** outro jogador.
+
+- **Rodada:** base destruída (ou todos os tanques da equipe fora) **tira a equipe da rodada**: o tanque dela explode sem renascer, e os reforços, as torretas e os bônus dela somem. Vence a rodada a **última equipe de pé**. A partida é de duas rodadas ganhas, e o painel mostra uma bandeira por rodada vencida; uma equipe fora da rodada fica com o bloco escurecido.
+- **Mapas** (`resources/duel_levels/ffa/`, com o `maps.txt` deles): seis mapas, todos **iguais a si mesmos girados 90°** (as quatro equipes veem o mesmo terreno):
+
+| Mapa | Estilo |
+|------|--------|
+| **Crossfire** | Cantos e diagonais com cobertura de tijolo e arbusto, o meio aberto |
+| **Pinwheel** | Um braço de tijolo por lado, girando como um cata-vento (só tem simetria de rotação) |
+| **Fortress** | Pedra dentro da zona de cada base (fica na cor do dono) e tijolo à frente |
+| **Lakes** | Lagos nas diagonais, com os eixos abertos para os tanques |
+| **Maze** | Muros com passagens de 2 blocos, o meio e as diagonais alcançáveis |
+| **Open Field** | Quase vazio: arbustos e gelo no meio |
+| **Random** | Um mapa sorteado a cada rodada |
+
+- **Criar um mapa:** igual ao do duelo (grade de **26×26**, uma linha em `resources/duel_levels/ffa/maps.txt`, `make check-maps`), mas o validador exige a simetria de **90°** (`grid[linha][coluna] == grid[coluna][25 - linha]`), pontos de nascimento livres nos **quatro** lados (linhas/colunas 0-1 e 24-25) e caminho de **2 tiles de largura** de cada nascimento até um flanco de **cada** base inimiga. Os pontos de bônus do meio são o centro e as quatro diagonais. Dica: desenhe só o quadrante superior esquerdo (13×13) e gire para os outros.
+- **Simulação:** `./duel_sim --teams ABCD` (ou `ABC`, com 3 jogadores) usa os mapas do cada um por si.
 
 **Criar um mapa novo** (sem mexer em código):
 
@@ -588,7 +608,7 @@ Tank-1990/
 │   ├── sound/            # Efeitos sonoros
 │   ├── font/             # Fontes do jogo
 │   ├── levels/           # Arquivos dos 36 níveis
-│   ├── duel_levels/      # Mapas do modo duelo (lista em maps.txt)
+│   ├── duel_levels/      # Mapas do modo duelo (lista em maps.txt; ffa/ tem os do cada um por si)
 │   └── survival_levels/  # Mapas do modo sobrevivência (lista em maps.txt)
 ├── tools/
 │   ├── duel_sim.cpp      # Simulação do duelo sem janela (IA contra IA)

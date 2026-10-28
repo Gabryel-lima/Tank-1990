@@ -180,8 +180,8 @@ void Player::respawn()
     m_turbo_time = 0; // o turbo e a cadência acabam com a morte (o poder guardado, não)
     m_rapid_time = 0;
 
-    // Renasce apontando para cima; no duelo, a equipe de cima (B) renasce apontando para baixo
-    setDirection(team == 1 ? D_DOWN : D_UP);
+    // Renasce apontando para cima; no duelo, cada equipe renasce olhando para o meio do mapa (Tank::facingOfTeam)
+    setDirection(Tank::facingOfTeam(team));
     // A IA começa parada, olhando para onde o tanque nasceu (Tank::respawn chama update)
     cpu_command = TankCommand();
     cpu_command.direction = direction;
@@ -362,7 +362,7 @@ void Player::teleport(double x, double y)
     bool boat = testFlag(TSF_BOAT);
     pos_x = x;
     pos_y = y;
-    setDirection(team == 1 ? D_DOWN : D_UP);
+    setDirection(Tank::facingOfTeam(team));
     cpu_command = TankCommand();
     cpu_command.direction = direction;
     Tank::respawn();               // animação de nascimento, sem gastar vida

@@ -19,6 +19,8 @@
 //              aliado não detona a mina
 //   torreta    torreta e mina ficam até serem destruídas, na sobrevivência e no duelo (o
 //              duelo ainda as fazia sumir com o tempo); até 3 torretas por jogador
+//   cada um    duelo 1v1v1v1: as quatro bases são a da equipe A girada; os mapas da pasta ffa
+//   por si     passam; base destruída tira só a equipe dela, e a rodada acaba na última de pé
 
 #include <SDL2/SDL.h>
 
@@ -658,6 +660,93 @@ struct SurvivalTest
                name + ": até " + std::to_string(AppConfig::power_turret_max_per_player) + " por jogador, a mais antiga sai (" + std::to_string(alive) + " no mapa)");
     }
 
+    // Passa a abertura da rodada (o duelo só joga depois dela)
+    static void startPlaying(Duel& d)
+    {
+        for(int i = 0; i < 200 && d.m_phase != Duel::PHASE_PLAY; i++) d.update(16);
+    }
+
+    // Tiro de um jogador da @a shooter na base da @a target, como o jogo o entrega
+    static void shootBase(Duel& d, int shooter, int target)
+    {
+        Bullet bullet;
+        bullet.team = shooter;
+        bullet.from_player = true;
+        d.onBaseHit(d.baseOf(target), &bullet);
+    }
+
+    static void freeForAll()
+    {
+        std::srand(23);
+        DuelLayout::loadMapList();
+
+        // Geometria: as bases nos quatro lados (o canto superior esquerdo da águia de cada uma)
+        using DuelLayout::Tile;
+        Tile a = DuelLayout::baseOrigin(0), b = DuelLayout::baseOrigin(1), c = DuelLayout::baseOrigin(2), d4 = DuelLayout::baseOrigin(3);
+        expect(a.row == 24 && a.column == 12 && b.row == 0 && b.column == 12 && c.row == 12 && c.column == 0 && d4.row == 12 && d4.column == 24,
+               "as quatro bases: embaixo, em cima, à esquerda e à direita");
+        bool zones = DuelLayout::zoneTeam(24, 12, 4) == 0 && DuelLayout::zoneTeam(0, 12, 4) == 1 &&
+                     DuelLayout::zoneTeam(12, 0, 4) == 2 && DuelLayout::zoneTeam(12, 24, 4) == 3 && DuelLayout::zoneTeam(12, 12, 4) == -1;
+        expect(zones, "uma zona de base por equipe, e o meio fica de ninguém");
+        expect(DuelLayout::zoneTeam(12, 0, 2) == -1, "com duas equipes, a zona da esquerda não existe");
+        // Os nascimentos de cada equipe são os da A girados: ficam na borda da própria base
+        bool spawns = true;
+        for(SDL_Point p : DuelLayout::spawnOrder(2)) spawns = spawns && p.x == 0;
+        for(SDL_Point p : DuelLayout::spawnOrder(3)) spawns = spawns && p.x == 24 * AppConfig::tile_rect.w;
+        expect(spawns, "nascimentos de C na borda esquerda e de D na direita");
+        bool facing = Tank::facingOfTeam(0) == D_UP && Tank::facingOfTeam(1) == D_DOWN && Tank::facingOfTeam(2) == D_RIGHT &&
+                      Tank::facingOfTeam(3) == D_LEFT && Tank::facingOfTeam(-1) == D_UP;
+        expect(facing, "cada equipe nasce olhando para o meio do mapa (a campanha, para cima)");
+
+        // Os mapas da pasta ffa: simétricos girando 90 graus, com caminho até as bases
+        int bad = 0;
+        for(auto& map : AppConfig::duel_ffa_maps)
+            if(!DuelLayout::validate(DuelLayout::readMap(AppConfig::duel_ffa_levels_path + map.first), DuelLayout::FFA_TEAMS).empty()) bad++;
+        expect(!AppConfig::duel_ffa_maps.empty() && bad == 0, "os " + std::to_string(AppConfig::duel_ffa_maps.size()) + " mapas cada um por si passam no validador");
+
+        // Rodada: base destruída tira só a equipe dela; a última de pé vence
+        DuelConfig config;
+        config.ffa = true;
+        config.humans = 4;
+        for(int i = 0; i < 4; i++) { config.human_team[i] = i; config.cpu[i] = true; }
+        config.map = 0;
+        Duel d(config);
+        startPlaying(d);
+        expect(d.m_phase == Duel::PHASE_PLAY && d.bases().size() == 4, "cada um por si: quatro bases e a rodada começa");
+
+        shootBase(d, 1, 2);
+        expect(d.m_out[2] && !d.teamAlive(2) && d.m_phase == Duel::PHASE_PLAY, "base da C cai: a C sai, a rodada segue");
+        bool c_gone = true;
+        for(Player* p : d.m_players) if(p->team == 2 && p->lives_count > 0) c_gone = false;
+        expect(c_gone, "os jogadores da C não renascem");
+        shootBase(d, 0, 3);
+        expect(d.m_phase == Duel::PHASE_PLAY && !d.teamAlive(3), "base da D cai: restam A e B, a rodada segue");
+
+        // O tiro de um jogador na própria base também a derruba (fogo amigo, como no original)
+        shootBase(d, 1, 1);
+        expect(d.m_phase == Duel::PHASE_ROUND_END && d.m_round_winner == 0 && d.m_wins[0] == 1,
+               "base da B cai: a A é a última de pé e vence a rodada");
+
+        // Menos de 3 jogadores não é cada um por si: duas equipes, como sempre
+        DuelConfig two;
+        two.ffa = true;
+        two.humans = 2;
+        Duel e(two);
+        expect(!e.m_config.ffa && e.m_teams == 2, "com 2 jogadores o duelo volta a ser de duas equipes");
+
+        // Três jogadores: três bases e a zona da quarta não existe
+        DuelConfig three;
+        three.ffa = true;
+        three.humans = 3;
+        for(int i = 0; i < 3; i++) three.cpu[i] = true;
+        Duel f(three);
+        startPlaying(f);
+        expect(f.bases().size() == 3 && f.baseOf(3) == nullptr, "três jogadores: três bases");
+        shootBase(f, 0, 1);
+        shootBase(f, 0, 2);
+        expect(f.m_phase == Duel::PHASE_ROUND_END && f.m_round_winner == 0, "três jogadores: a última base de pé vence");
+    }
+
     static void permanentPowers()
     {
         std::srand(17);
@@ -697,6 +786,7 @@ int main(int, char*[])
     SurvivalTest::ramp();
     SurvivalTest::allyBonus();
     SurvivalTest::permanentPowers();
+    SurvivalTest::freeForAll();
 
     std::printf("\n%s: %d falha(s)\n", g_failures == 0 ? "PASSOU" : "FALHOU", g_failures);
     return g_failures == 0 ? 0 : 1;

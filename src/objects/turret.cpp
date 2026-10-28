@@ -9,7 +9,7 @@ Turret::Turret(double x, double y, int team, int owner, SDL_Color color)
     this->color = color;
     m_reload_left = 0;
     m_bullet_max_size = 1;
-    direction = (team == 1 ? D_DOWN : D_UP);
+    direction = Tank::facingOfTeam(team);
     lives_count = 0;  // não renasce: destruída, some
     respawn();        // aparece com a animação de criação, como um tanque
 }

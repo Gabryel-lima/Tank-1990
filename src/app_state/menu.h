@@ -20,7 +20,8 @@
  * @li principal: 1 a 4 jogadores, Extra Modes, Credits, Exit
  * @li Credits: quem fez o remake, a base do motor e o jogo original
  * @li Extra Modes: Duel Mode, Survival
- * @li Duel Mode: 1 vs 1, 2 vs 2 ou equipes personalizadas (só jogadores humanos, até 4)
+ * @li Duel Mode: 1 vs 1, 2 vs 2, 1v1v1v1 (cada um por si, 3 ou 4 jogadores, quatro bases) ou equipes
+ *     personalizadas (só jogadores humanos, até 4)
  * @li configuração do duelo: quantidade de jogadores (personalizado) e equipe de cada um
  * @li escolha do mapa do duelo, com miniatura (ou aleatório a cada rodada)
  * @li sobrevivência: quantidade de jogadores (1 a 4) e escolha do mapa, com miniatura
@@ -93,12 +94,13 @@ private:
         ITEM_CAMPAIGN_1, ITEM_CAMPAIGN_2, ITEM_CAMPAIGN_3, ITEM_CAMPAIGN_4,
         ITEM_EXTRA_MODES, ITEM_CREDITS, ITEM_EXIT,
         ITEM_DUEL_MODE,
-        ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_CUSTOM,
+        ITEM_FORMAT_1V1, ITEM_FORMAT_2V2, ITEM_FORMAT_FFA, ITEM_FORMAT_CUSTOM,
         ITEM_HUMANS,
         ITEM_HUMAN_1_TEAM, ITEM_HUMAN_2_TEAM, ITEM_HUMAN_3_TEAM, ITEM_HUMAN_4_TEAM,
         ITEM_NEXT, ITEM_MAP_RANDOM, ITEM_BACK,
         ITEM_SURVIVAL, ITEM_SURVIVAL_PLAYERS, ITEM_SURVIVAL_COINS,
-        // linhas informativas da sobrevivência: dispositivo de cada jogador (não selecionáveis)
+        // linhas informativas: dispositivo de cada jogador na sobrevivência e no duelo cada um por si
+        // (não selecionáveis)
         ITEM_SURVIVAL_PLAYER_1, ITEM_SURVIVAL_PLAYER_2, ITEM_SURVIVAL_PLAYER_3, ITEM_SURVIVAL_PLAYER_4,
         ITEM_MAP_FIRST = 100 ///< ITEM_MAP_FIRST + i = mapa i da lista da tela (duelo ou sobrevivência)
     };
@@ -159,6 +161,9 @@ private:
     /** Define um formato de duelo N vs N com os jogadores alternando entre as equipes. */
     void applyDuelFormat(int team_size);
 
+    /** Liga ou desliga o cada um por si do duelo; ao trocar de formato, volta ao primeiro mapa. */
+    void setDuelFfa(bool ffa);
+
     /** Atualiza o tamanho de cada equipe a partir da equipe de cada jogador. */
     void syncTeamSizes();
 
@@ -177,8 +182,9 @@ private:
     /** Grades dos mapas da tela de escolha atual (para as miniaturas). */
     const std::vector<std::vector<std::string>>& mapGrids() const;
 
-    /** Grades dos mapas do duelo e da sobrevivência, lidas uma vez para as miniaturas. */
+    /** Grades dos mapas do duelo (duas equipes e cada um por si) e da sobrevivência, lidas uma vez para as miniaturas. */
     std::vector<std::vector<std::string>> m_map_grids;
+    std::vector<std::vector<std::string>> m_ffa_grids;
     std::vector<std::vector<std::string>> m_survival_grids;
 
     Screen m_screen;

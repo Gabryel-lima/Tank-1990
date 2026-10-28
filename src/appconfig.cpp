@@ -22,6 +22,18 @@ vector<pair<string, string>> AppConfig::duel_maps =
     {"9", "Frozen Lake"},
     {"10", "Gauntlet"},
 };
+// Mapas do formato cada um por si (quatro bases): arquivo dentro de duel_ffa_levels_path e nome
+// mostrado no menu. Cada mapa é igual a si mesmo girado 90 graus.
+string AppConfig::duel_ffa_levels_path = "duel_levels/ffa/";
+vector<pair<string, string>> AppConfig::duel_ffa_maps =
+{
+    {"1", "Crossfire"},
+    {"2", "Pinwheel"},
+    {"3", "Fortress"},
+    {"4", "Lakes"},
+    {"5", "Maze"},
+    {"6", "Open Field"},
+};
 // Caminho da pasta dos mapas do modo sobrevivência e a lista padrão (a real vem de
 // survival_levels/maps.txt, ver SurvivalLayout::loadMapList)
 string AppConfig::survival_levels_path = "survival_levels/";
@@ -151,11 +163,13 @@ double AppConfig::bullet_default_speed = 0.23;
 // Colunas (x) de nascimento da equipe A, em ordem de preferência, alternando os
 // lados da base: interna esquerda, externa direita, externa esquerda, interna direita.
 // A equipe B usa o espelho em ponto (x -> largura do mapa - 32 - x): interna direita,
-// externa esquerda... Com até 4 jogadores e 4 colunas, cada jogador recebe uma coluna
-// só dele (ver Duel::assignSpawns), então ninguém nasce na linha de tiro de outro.
+// externa esquerda... (a C e a D são a A girada 90 e 270 graus). Com até 4 jogadores e 4
+// colunas, cada jogador recebe uma coluna só dele (ver Duel::assignSpawns), então ninguém
+// nasce na linha de tiro de outro.
 vector<int> AppConfig::duel_spawn_columns = {128, 320, 64, 256};
-// Linha (y) de nascimento de cada equipe: A embaixo, B em cima
-vector<int> AppConfig::duel_spawn_rows = {384, 0};
+// Linha (y) de nascimento da equipe A, embaixo (as outras equipes são a A girada: B em cima,
+// C à esquerda e D à direita)
+vector<int> AppConfig::duel_spawn_rows = {384};
 // Vidas de cada jogador em uma equipe do tamanho da maior equipe
 int AppConfig::duel_tank_lives = 3;
 // Rodadas vencidas necessárias para ganhar a partida (melhor de 3)
