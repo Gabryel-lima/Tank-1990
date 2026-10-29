@@ -50,7 +50,7 @@ pelo `make attract`): refaça quando a cara do jogo mudar.
 
 Bug corrigido num modo vira caso no teste dele (`tools/survival_test.cpp`), para não voltar.
 
-A CI (`.github/workflows/build.yml`) roda isso no Linux, no macOS, no Windows (MSYS2) e o
+A CI (`.github/workflows/build.yml`, hoje desligada em push e PR: só roda à mão, em Actions -> build -> Run workflow; valide localmente com os comandos acima) roda isso no Linux, no macOS, no Windows (MSYS2) e o
 `tools/wsl-setup.sh` num Alpine, como o `install.cmd`.
 
 Poder novo com duração (tempo ou munição), em qualquer modo: avisa que está acabando com a
