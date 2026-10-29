@@ -20,10 +20,15 @@
 #   arquivo do pacote.
 #
 # A STORAGE é do root: as cópias para lá usam sudo. Mesmo arquivo no Tank 1990 e no CharyRick.
+#
+# Montar e desmontar o cartão NÃO usa sudo: tools/udisks.sh (udisksctl + polkit; veja a regra
+# temporária em tools/polkit/60-udisks-temp.rules). O script monta as partições removíveis que
+# estiverem soltas e desmonta só as que ele montou, no fim (ou se falhar no meio).
 set -eu
 
 ZIP=${1:-}
-BASE=${2:-/media/${SUDO_USER:-${USER:-}}}
+BASE=${2:-}
+USER_NAME=${SUDO_USER:-${USER:-}}
 # Os testes trocam o sudo e apontam as partições direto (gamelist-test.sh)
 SUDO=${CARD_SUDO-sudo}
 ROMS=${CARD_ROMS:-}
@@ -31,6 +36,7 @@ UPPER=${CARD_UPPER:-}
 
 case $ZIP in /*|'') ;; *) ZIP="$(pwd)/$ZIP" ;; esac
 cd "$(dirname "$0")/../.."
+. tools/udisks.sh
 if [ -z "$ZIP" ]; then
     for z in build-emuelec/*-emuelec.zip build/emuelec/*-emuelec.zip; do
         [ -f "$z" ] && { ZIP=$z; break; }
@@ -38,21 +44,32 @@ if [ -z "$ZIP" ]; then
 fi
 [ -n "$ZIP" ] && [ -f "$ZIP" ] || { echo "card-install.sh: pacote não encontrado (rode make emuelec)" >&2; exit 1; }
 
+T=
+cleanup() {
+    if [ -n "$T" ]; then rm -rf "$T"; fi
+    udisks_unmount
+}
+trap cleanup EXIT
+
+# Os testes apontam as partições direto (CARD_ROMS/CARD_UPPER): aí não se monta nada
+[ -n "$ROMS" ] && [ -n "$UPPER" ] || udisks_mount_removable
+if [ -n "$BASE" ]; then set -- "$BASE"; else set -- "/run/media/$USER_NAME" "/media/$USER_NAME"; fi
+BASES="$*"
+
 # As partições: a das ROMs tem roms/, a STORAGE tem .config/emuelec/
-for d in "$BASE"/*; do
+for b in "$@"; do for d in "$b"/*; do
     [ -z "$ROMS" ] && [ -d "$d/roms" ] && ROMS="$d/roms"
     [ -z "$UPPER" ] && [ -d "$d/.config/emuelec" ] && UPPER="$d/.config/emuelec/ports"
-done
-[ -n "$ROMS" ] || { echo "card-install.sh: não achei a partição das ROMs (a pasta roms/) em $BASE" >&2; exit 1; }
+done; done
+[ -n "$ROMS" ] || { echo "card-install.sh: não achei a partição das ROMs (a pasta roms/) em $BASES" >&2; exit 1; }
 if [ -z "$UPPER" ]; then
-    echo "card-install.sh: não achei a partição STORAGE (.config/emuelec) em $BASE." >&2
+    echo "card-install.sh: não achei a partição STORAGE (.config/emuelec) em $BASES." >&2
     echo "  Monte-a (abra-a no gerenciador de arquivos) e rode de novo. Sem ela, o atalho fica" >&2
     echo "  escondido pelo overlay do EmuELEC 4.3 e o jogo não aparece em Ports." >&2
     exit 1
 fi
 
 T=$(mktemp -d)
-trap 'rm -rf "$T"' EXIT
 if command -v unzip >/dev/null 2>&1; then
     unzip -q "$ZIP" -d "$T"
 else
@@ -87,4 +104,5 @@ for e in "$T"/ports/*/gamelist-entry.xml; do
 done
 
 sync
+udisks_unmount
 echo ">> pronto: ejete as partições do cartão, ponha-o no stick e ligue. O jogo aparece em Ports."

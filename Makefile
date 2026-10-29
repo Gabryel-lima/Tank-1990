@@ -463,9 +463,15 @@ endif
 emuelec: ## Pacote para o console de TV com EmuELEC (GameStick Y6); precisa de Docker
 	sh tools/emuelec/build.sh
 
-# Instala o pacote no cartão do stick, no leitor do PC (Linux, sudo): make emuelec-card [CARD=/media/<você>] [ZIP=...]
-emuelec-card: ## Instala o pacote no cartão do stick, no leitor do PC (Linux)
+# Instala o pacote no cartão do stick, no leitor do PC (Linux): monta e desmonta com udisksctl, sem sudo no disco
+emuelec-card: ## Instala o pacote no cartão do stick, no leitor do PC (Linux): monta e desmonta o cartão com udisksctl (CARD, ZIP)
 	sh tools/emuelec/card-install.sh "$(ZIP)" "$(CARD)"
+
+# Regra TEMPORÁRIA do polkit para montar/desmontar USB e cartão sem senha (ver CLAUDE.md)
+udisks-rule: ## Instala a regra TEMPORÁRIA do polkit (montar/desmontar USB sem senha, vence na data do arquivo); pede sudo uma vez
+	sudo install -m 644 tools/polkit/60-udisks-temp.rules /etc/polkit-1/rules.d/60-udisks-temp.rules
+	sudo systemctl restart polkit
+	@echo "Regra instalada; vale até a data escrita em tools/polkit/60-udisks-temp.rules."
 
 # Instala o pacote no stick pela rede (SSH): make emuelec-install HOST=<IP do stick> [ZIP=...]
 emuelec-install: ## Instala o pacote no stick pela rede, por SSH (HOST)
@@ -520,7 +526,7 @@ help: ## Lista os alvos por seção, com as variáveis de cada um
 	@echo ""
 
 # Declara alvos que não são arquivos
-.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test datadir-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec emuelec-card emuelec-install gamelist-test attract
+.PHONY: all build run clean doc info install-deps help print copy_resources compile copy_dlls check-sdl duel-sim check-maps survival-test datadir-test sprites pad-tools padprobe padbridge padbridge-win pad-selftest emuelec emuelec-card udisks-rule emuelec-install gamelist-test attract
 
 # ============================================================================
 # ALVOS DE LIMPEZA E DOCUMENTAÇÃO
