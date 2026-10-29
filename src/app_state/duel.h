@@ -386,6 +386,7 @@ private:
 
     DuelConfig m_config;
     int m_teams;              ///< equipes na partida: 2, ou 3 e 4 cada um por si
+    int m_crowded;            ///< com 3 equipes, a apertada entre as outras duas na rodada (DuelLayout::useFormat)
     Eagle* m_base_extra[4];   ///< base de cada equipe fora a A (a da equipe A é m_eagle); [0] não é usado
     bool m_out[4];            ///< equipe fora da rodada (a base caiu)
     Phase m_phase;

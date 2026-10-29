@@ -723,7 +723,7 @@ void Menu::drawMapPreview(int map_index)
         }
 
     // Duelo: bases nas cores das equipes (A embaixo, B em cima e, cada um por si, C à esquerda
-    // e D à direita). Sobrevivência: a águia
+    // e D à direita, no girassol), com a muralha. Sobrevivência: a águia
     // embaixo, em dourado, e os pontos de onde os inimigos surgem, em vermelho, no topo
     if(m_screen == SCREEN_SURVIVAL_MAP)
     {
@@ -737,8 +737,16 @@ void Menu::drawMapPreview(int map_index)
         }
         return;
     }
+    DuelLayout::FormatScope format(s_duel_config.ffa ? DuelLayout::FFA_TEAMS : 2);
     for(int team = 0; team < (s_duel_config.ffa ? DuelLayout::FFA_TEAMS : 2); team++)
     {
+        // A muralha que o jogo monta (a parte fixa de pedra, o resto de tijolo) e a águia
+        for(const DuelLayout::Tile& w : DuelLayout::baseWallTiles(team))
+        {
+            SDL_Rect wall = {inside.x + w.column * TILE, inside.y + w.row * TILE, TILE, TILE};
+            bool stone = DuelLayout::isBaseStone(team, w.row, w.column);
+            renderer->drawRect(&wall, stone ? SDL_Color{170, 170, 170, 255} : SDL_Color{170, 70, 20, 255}, true);
+        }
         DuelLayout::Tile origin = DuelLayout::baseOrigin(team);
         SDL_Rect base = {inside.x + origin.column * TILE, inside.y + origin.row * TILE, 2 * TILE, 2 * TILE};
         renderer->drawRect(&base, Duel::teamColor(team), true);

@@ -680,15 +680,60 @@ struct SurvivalTest
         std::srand(23);
         DuelLayout::loadMapList();
 
-        // Geometria: as bases nos quatro lados (o canto superior esquerdo da águia de cada uma)
+        // Geometria do girassol: as bases perto dos cantos (o canto superior esquerdo da águia)
         using DuelLayout::Tile;
+        {
+            DuelLayout::FormatScope two(2);
+            Tile a = DuelLayout::baseOrigin(0), b = DuelLayout::baseOrigin(1);
+            expect(a.row == 24 && a.column == 12 && b.row == 0 && b.column == 12, "duas equipes: as bases no meio de baixo e de cima");
+            expect(DuelLayout::zoneTeam(12, 0, 2) == -1, "com duas equipes, a zona da esquerda não existe");
+        }
+        DuelLayout::useFormat(4);
         Tile a = DuelLayout::baseOrigin(0), b = DuelLayout::baseOrigin(1), c = DuelLayout::baseOrigin(2), d4 = DuelLayout::baseOrigin(3);
-        expect(a.row == 24 && a.column == 12 && b.row == 0 && b.column == 12 && c.row == 12 && c.column == 0 && d4.row == 12 && d4.column == 24,
-               "as quatro bases: embaixo, em cima, à esquerda e à direita");
-        bool zones = DuelLayout::zoneTeam(24, 12, 4) == 0 && DuelLayout::zoneTeam(0, 12, 4) == 1 &&
-                     DuelLayout::zoneTeam(12, 0, 4) == 2 && DuelLayout::zoneTeam(12, 24, 4) == 3 && DuelLayout::zoneTeam(12, 12, 4) == -1;
+        expect(a.row == 24 && a.column == 19 && b.row == 0 && b.column == 5 && c.row == 19 && c.column == 0 && d4.row == 5 && d4.column == 24,
+               "girassol: A embaixo à direita, C à esquerda mais acima, B em cima mais à direita, D à direita mais abaixo");
+        bool zones = DuelLayout::zoneTeam(24, 19, 4) == 0 && DuelLayout::zoneTeam(0, 5, 4) == 1 &&
+                     DuelLayout::zoneTeam(19, 0, 4) == 2 && DuelLayout::zoneTeam(5, 24, 4) == 3 && DuelLayout::zoneTeam(12, 12, 4) == -1;
         expect(zones, "uma zona de base por equipe, e o meio fica de ninguém");
-        expect(DuelLayout::zoneTeam(12, 0, 2) == -1, "com duas equipes, a zona da esquerda não existe");
+
+        // Muralha do girassol: só a frente (virada para o centro) é de tijolo; laterais, cantos e
+        // o escudo à frente são de pedra. Com duas equipes continua o contrário (frente de pedra)
+        bool walls = true;
+        for(int team = 0; team < 4; team++)
+            for(const Tile& w : DuelLayout::baseWallTiles(team))
+            {
+                bool front = false;
+                for(const Tile& f : DuelLayout::baseFrontTiles(team)) front = front || (f.row == w.row && f.column == w.column);
+                walls = walls && DuelLayout::isBaseStone(team, w.row, w.column) == !front;
+            }
+        std::vector<Tile> shield = DuelLayout::baseShieldTiles(0);
+        walls = walls && shield.size() == 2 && shield[0].row == 23 - 1 - AppConfig::duel_ffa_shield_gap && shield[0].column == 19;
+        expect(walls, "girassol: frente de tijolo, laterais de pedra e escudo de pedra à frente");
+        {
+            DuelLayout::FormatScope two(2);
+            bool classic = DuelLayout::baseShieldTiles(0).empty() && DuelLayout::isBaseStone(0, 23, 12) && !DuelLayout::isBaseStone(0, 24, 11);
+            expect(classic, "duas equipes: frente de pedra, laterais de tijolo, sem escudo");
+        }
+        // Só se acerta a águia de frente e de perto: entre o escudo e a muralha, na coluna dela
+        std::vector<std::string> open(26, std::string(26, '.'));
+        expect(DuelLayout::attackSide(open, 0, 21, 19) == DuelLayout::FRONT && DuelLayout::attackSide(open, 0, 24, 16) == 0 &&
+                   DuelLayout::attackSide(open, 0, 10, 19) == 0,
+               "girassol: tiro de frente vale; de lado ou de longe, não");
+
+        // Três equipes: a apertada (entre as outras duas) muda; o lugar oposto a ela fica vazio
+        bool crowded = true;
+        for(int k = 0; k < 3; k++)
+        {
+            DuelLayout::useFormat(3, k);
+            int turns[3] = {DuelLayout::quarterTurns(0), DuelLayout::quarterTurns(1), DuelLayout::quarterTurns(2)};
+            bool distinct = turns[0] != turns[1] && turns[1] != turns[2] && turns[0] != turns[2];
+            int vacant = (turns[k] + 2) % 4;
+            bool others = true;
+            for(int t = 0; t < 3; t++) others = others && (t == k || (turns[t] != vacant && (turns[t] + 2) % 4 != turns[k]));
+            crowded = crowded && distinct && others;
+        }
+        expect(crowded, "três equipes: cada uma pode ser a apertada, com o lugar oposto vazio");
+        DuelLayout::useFormat(4);
         // Os nascimentos de cada equipe são os da A girados: ficam na borda da própria base
         bool spawns = true;
         for(SDL_Point p : DuelLayout::spawnOrder(2)) spawns = spawns && p.x == 0;
@@ -713,6 +758,12 @@ struct SurvivalTest
         Duel d(config);
         startPlaying(d);
         expect(d.m_phase == Duel::PHASE_PLAY && d.bases().size() == 4, "cada um por si: quatro bases e a rodada começa");
+        Tile origin = DuelLayout::baseOrigin(0);
+        Object* side = d.m_level.at(24).at(18);
+        Object* front = d.m_level.at(23).at(19);
+        expect(d.baseOf(0)->pos_x == origin.column * AppConfig::tile_rect.w && side != nullptr && side->type == ST_STONE_WALL &&
+                   front != nullptr && front->type == ST_BRICK_WALL,
+               "cada um por si: a águia da A sai do meio, com lateral de pedra e frente de tijolo");
 
         shootBase(d, 1, 2);
         expect(d.m_out[2] && !d.teamAlive(2) && d.m_phase == Duel::PHASE_PLAY, "base da C cai: a C sai, a rodada segue");
@@ -742,6 +793,11 @@ struct SurvivalTest
         Duel f(three);
         startPlaying(f);
         expect(f.bases().size() == 3 && f.baseOf(3) == nullptr, "três jogadores: três bases");
+        // A equipe apertada é sorteada a cada rodada: em algumas rodadas, todas passam por ela
+        bool seen[3] = {false, false, false};
+        for(int round = 0; round < 30; round++) { f.startRound(); startPlaying(f); seen[f.m_crowded] = true; }
+        expect(seen[0] && seen[1] && seen[2], "três jogadores: a equipe apertada muda de rodada em rodada");
+        expect(f.bases().size() == 3, "três jogadores: três bases depois de várias rodadas");
         shootBase(f, 0, 1);
         shootBase(f, 0, 2);
         expect(f.m_phase == Duel::PHASE_ROUND_END && f.m_round_winner == 0, "três jogadores: a última base de pé vence");

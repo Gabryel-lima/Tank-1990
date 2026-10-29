@@ -244,6 +244,24 @@ public:
     static vector<int> duel_spawn_rows;
 
     /**
+     * Cada um por si (girassol): coluna (em tiles) da águia da equipe A, embaixo, perto do canto
+     * direito; as outras bases são ela girada (DuelLayout::useFormat).
+     */
+    static int duel_ffa_base_column;
+
+    /**
+     * Cada um por si: colunas (x) de nascimento da equipe A, em ordem de preferência, dos dois
+     * lados da base deslocada (as outras equipes são a A girada).
+     */
+    static vector<int> duel_ffa_spawn_columns;
+
+    /**
+     * Cada um por si: linhas livres entre a frente da base (tijolo) e o escudo de pedra à frente
+     * dela. É a distância máxima, em tiles, de onde se atira na águia.
+     */
+    static int duel_ffa_shield_gap;
+
+    /**
      * Vidas de cada tanque no duelo (equipes menores recebem mais, ver Duel).
      */
     static int duel_tank_lives;

@@ -77,6 +77,7 @@ Duel::Duel(const DuelConfig& config)
         m_fortify_time[t] = 0;
         m_base_wall[t] = ST_BRICK_WALL;
     }
+    m_crowded = 2;
     m_round = 1;
     m_round_winner = -1;
     for(int i = 0; i < 4; i++) m_kills[i] = 0;
@@ -140,15 +141,29 @@ void Duel::startRound()
         return;
     }
 
-    // A águia da equipe A (embaixo) é criada pelo loadLevel, como na campanha
+    // Formato do mapa (DuelLayout::useFormat): com três equipes, a que fica apertada entre as
+    // outras duas é sorteada a cada rodada, porque nenhum arranjo de três lugares é igual para
+    // todos (o lugar oposto ao dela fica vazio)
+    if(m_teams == 3) m_crowded = rand() % 3;
+    DuelLayout::useFormat(m_teams, m_crowded);
+
+    // A águia da equipe A é criada pelo loadLevel, como na campanha (embaixo, no meio)
     loadLevel(path);
 
-    // As bases das outras equipes: B no topo do mapa, e C à esquerda e D à direita cada um por si
+    // As bases: B no topo do mapa, e C à esquerda e D à direita cada um por si; no girassol,
+    // a da A também sai do meio
     int t = AppConfig::tile_rect.w;
-    for(int team = 1; team < m_teams; team++)
+    for(int team = 0; team < m_teams; team++)
     {
         DuelLayout::Tile origin = DuelLayout::baseOrigin(team);
-        m_base_extra[team] = new Eagle(origin.column * t, origin.row * t);
+        if(team == 0)
+        {
+            if(m_eagle != nullptr && m_eagle->pos_x == origin.column * t && m_eagle->pos_y == origin.row * t) continue;
+            delete m_eagle;
+            m_eagle = new Eagle(origin.column * t, origin.row * t);
+        }
+        else
+            m_base_extra[team] = new Eagle(origin.column * t, origin.row * t);
         for(int row = origin.row; row < origin.row + 2; row++)
             for(int column = origin.column; column < origin.column + 2; column++)
             {
@@ -859,8 +874,9 @@ void Duel::updatePowers(Uint32 dt)
 
 void Duel::setBaseWalls(int team, SpriteType wall)
 {
-    // A frente da águia é sempre de pedra; laterais e cantos são do material pedido: tijolo,
-    // ou pedra com a pá / para a equipe menor
+    // A parte fixa (DuelLayout::baseStoneTiles: a frente com duas equipes; as laterais, os cantos
+    // e o escudo no girassol) é sempre de pedra; o resto é do material pedido: tijolo, ou pedra
+    // com a pá / para a equipe menor
     std::vector<Tank*> tanks = allTanks();
     for(const DuelLayout::Tile& wall_tile : DuelLayout::baseWallTiles(team))
     {
@@ -874,7 +890,7 @@ void Duel::setBaseWalls(int team, SpriteType wall)
         if(occupied) continue;
 
         delete m_level.at(row).at(column);
-        if(wall == ST_STONE_WALL || DuelLayout::isBaseFront(team, row, column))
+        if(wall == ST_STONE_WALL || DuelLayout::isBaseStone(team, row, column))
             m_level.at(row).at(column) = new Object(tile.x, tile.y, ST_STONE_WALL);
         else
             m_level.at(row).at(column) = new Brick(tile.x, tile.y);
@@ -911,6 +927,9 @@ void Duel::updateFortify(Uint32 dt)
 
 void Duel::update(Uint32 dt)
 {
+    // O formato do DuelLayout é global: outra tela (o menu, com a prévia dos mapas) pode tê-lo
+    // trocado entre dois quadros
+    DuelLayout::useFormat(m_teams, m_crowded);
     if(dt > 40) return;
     m_phase_time += dt;
 
@@ -1026,6 +1045,7 @@ void Duel::update(Uint32 dt)
 
 void Duel::draw()
 {
+    DuelLayout::useFormat(m_teams, m_crowded);
     Engine& engine = Engine::getEngine();
     Renderer* renderer = engine.getRenderer();
     renderer->clear();
