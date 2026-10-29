@@ -1,0 +1,18 @@
+// Permissão TEMPORÁRIA para montar e desmontar discos (USB, cartão, Android) sem senha.
+// Vale só para o usuário local com sessão ativa e some sozinha na data abaixo.
+//
+// Instalar (como root):
+//   sudo install -m 644 tools/polkit/60-udisks-temp.rules /etc/polkit-1/rules.d/60-udisks-temp.rules
+//   sudo systemctl restart polkit
+// Revogar antes do prazo:
+//   sudo rm /etc/polkit-1/rules.d/60-udisks-temp.rules && sudo systemctl restart polkit
+//
+// Ao levar para outro projeto ou máquina: troque o usuário e a data.
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.udisks2.filesystem-mount" ||
+         action.id == "org.freedesktop.udisks2.filesystem-unmount-others") &&
+        subject.user == "gabry" && subject.local && subject.active &&
+        Date.now() < new Date("2026-11-05T23:59:59").getTime()) {
+        return polkit.Result.YES;
+    }
+});

@@ -76,3 +76,69 @@ Confira uma tela nova também com a janela redimensionada (larga, alta, maximiza
 Mudança no `Game`, no `Player`, no `Tank`, no `Object` ou no `Renderer`: confirme que as
 telas da campanha continuam idênticas pixel a pixel, salvo as mudanças de design listadas no
 `MODOS_EXTRAS.md` (essas mudam o que a campanha mostra de propósito).
+
+## Montar e desmontar dispositivos (USB, cartão, Android, portas) sem pedir senha toda vez
+
+**(regra, decisão do dono, 2026-10-29; vale para qualquer projeto do dono; mesma seção do CharyRick.)** Script que precisa
+montar ou desmontar um dispositivo (cartão do EmuELEC, pendrive, aparelho Android, qualquer porta
+que apareça como disco) **não pede `sudo` nem senha a cada execução**. Usa o `udisksctl` e, onde a
+desmontagem exigir administrador, uma **permissão temporária** do polkit, com data para acabar.
+
+**O que o polkit já faz (verificado na máquina do dono):**
+
+| Ação do polkit | Comportamento |
+|---|---|
+| `org.freedesktop.udisks2.filesystem-mount` | liberada para usuário com sessão ativa, **sem senha** |
+| `org.freedesktop.udisks2.filesystem-unmount-others` | exige administrador; a autorização fica guardada por ~5 min (`auth_admin_keep`) |
+
+**Comandos que os scripts usam:**
+
+```
+udisksctl mount -b /dev/sdb2                 # montar (sem senha)
+udisksctl unmount -b /dev/sdb2               # desmontar o que o próprio usuário montou (sem senha)
+pkexec udisksctl unmount -b /dev/sdb2        # desmontar o que outro usuário ou o root montou (pede senha uma vez)
+```
+
+- **Nunca** use `sudo mount`/`sudo umount` nos scripts do projeto: use `udisksctl` (o ponto de
+  montagem sai em `/run/media/<usuário>/...`; leia-o da saída do `udisksctl`, não o invente).
+- Se a desmontagem falhar por permissão, o script **diz** o comando com `pkexec` e a regra
+  temporária abaixo; não tenta `sudo` por conta própria.
+
+**Permissão temporária sem senha (regra do polkit com validade):**
+
+Arquivo `/etc/polkit-1/rules.d/60-udisks-temp.rules` (instalado como root, como a regra do udev;
+a cópia pronta para levar a outro projeto está em `tools/polkit/60-udisks-temp.rules`):
+
+```js
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.udisks2.filesystem-mount" ||
+         action.id == "org.freedesktop.udisks2.filesystem-unmount-others") &&
+        subject.user == "gabry" && subject.local && subject.active &&
+        Date.now() < new Date("2026-11-05T23:59:59").getTime()) {
+        return polkit.Result.YES;
+    }
+});
+```
+
+Instalar (o dono roda, com `!` no Claude Code):
+
+```
+! sudo install -m 644 /caminho/para/60-udisks-temp.rules /etc/polkit-1/rules.d/60-udisks-temp.rules && sudo systemctl restart polkit
+```
+
+- A regra **deixa de valer sozinha** depois da data; troque `2026-11-05` pela que quiser. Antes
+  disso, para revogar: `sudo rm /etc/polkit-1/rules.d/60-udisks-temp.rules && sudo systemctl restart polkit`.
+- **O agente não instala nem altera regra do polkit por conta própria** (mexe no sistema, como
+  root): ele escreve o arquivo, mostra o comando e deixa o dono rodar.
+- A regra libera o desmonte de discos de **outros** usuários durante o prazo: mantenha o prazo
+  curto e `subject.local && subject.active`, para valer só na sessão local ativa do dono.
+- Ao levar a regra para outro projeto, copie esta seção inteira e confira o usuário (`subject.user`)
+  e a data.
+- **Todo script que monte/desmonte entra nesse fluxo (regra, decisão do dono).** Ao encontrar no projeto
+  (ou criar) script, alvo do Makefile ou doc que use `mount`/`umount`/`sudo mount` em USB, cartão, pendrive
+  ou porta, troque por `udisksctl` (hoje: `tools/udisks.sh`, lido por `tools/emuelec/card-install.sh`) e
+  deixe o alvo do Makefile apontar a regra temporária (`make udisks-rule`). `adb` (Android) não monta
+  disco: não precisa. Alvo novo desse tipo cita o caminho no `## descrição` do Makefile e em `EMUELEC.md`.
+- Ressalva: o texto colado pelo dono chegou truncado no meio da regra (a condição de `subject` e o
+  comando de instalação). O bloco acima é a **reconstrução** mais conservadora (`subject.local &&
+  subject.active`); confira com o dono antes de instalar.

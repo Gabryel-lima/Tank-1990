@@ -181,7 +181,7 @@ the NES can't run C++ or SDL2. This is the game itself, built for EmuELEC's ARM 
 1. Get the **Tank1990-emuelec** package. Download it from *Actions → build → Artifacts* on
    GitHub, or build it with `make emuelec` (Linux or WSL, with Docker).
 2. Put it on the stick:
-   - **card in a Linux PC**: `make emuelec-card` (asks for `sudo`). It writes the launcher into
+   - **card in a Linux PC**: `make emuelec-card` (mounts and unmounts the card with `udisksctl`; `sudo` only to write STORAGE). It writes the launcher into
      the overlay's upper layer on the card's STORAGE partition, so it isn't hidden;
    - **install script over the network**: `make emuelec-install HOST=<stick IP>` (Linux, macOS or WSL; needs
      SSH on the stick, password `emuelec`). The menu entry, with its art, shows up right away;

@@ -133,13 +133,16 @@ Escolha um dos três jeitos abaixo.
 
 A partição STORAGE é ext4, que o Linux lê e grava (o Windows não). Desligue o stick (*Start →
 Quit → Shutdown*), ponha o cartão no PC e abra as partições dele no gerenciador de arquivos
-(elas montam em `/media/<você>`: a das ROMs, a `STORAGE` e a de boot). Depois, no repositório:
+(elas montam em `/run/media/<você>` ou `/media/<você>`: a das ROMs, a `STORAGE` e a de boot). Não precisa
+montar nem desmontar à mão: o script monta as partições soltas e desmonta só as que ele montou. Depois, no repositório:
 
 ```sh
 make emuelec-card                       # ou: sh tools/emuelec/card-install.sh [pacote.zip] [/media/<você>]
 ```
 
-Ele pede a sua senha (`sudo`), porque a STORAGE é do root. Ele copia:
+Montar e desmontar o cartão usa o `udisksctl`, sem `sudo` e sem desligar a proteção do Linux (veja a regra
+temporária do polkit no `CLAUDE.md`: `make udisks-rule`). Ele ainda pede a sua senha (`sudo`) para gravar na
+STORAGE, que é do root. Ele copia:
 
 - `ports/tank1990/` para a partição das ROMs;
 - o atalho e as imagens para `STORAGE/.config/emuelec/ports/` (a camada de cima do overlay),
