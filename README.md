@@ -236,7 +236,10 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 
 ### 🌀 Cada um por si (1v1v1v1)
 
-**Extra Modes → Duel Mode → 1v1v1v1**: de **3 ou 4 jogadores** (`Players`), cada um é uma equipe, com a **sua base**, uma de cada lado do mapa: **A** (amarela) embaixo, **B** (verde) em cima, **C** (azul) à esquerda e **D** (vermelha) à direita. Cada base é a mesma do duelo (frente de pedra, laterais de tijolo, pátio e zona da base), só **girada**: a da C é a da A girada 90°, a da B 180° e a da D 270°. Tudo o que o duelo já tem (bônus, poderes, tiro demolidor, fogo amigo) vale contra **qualquer** outro jogador.
+**Extra Modes → Duel Mode → 1v1v1v1**: de **3 ou 4 jogadores** (`Players`), cada um é uma equipe, com a **sua base**, num **girassol**: cada base fica numa borda, perto de um canto, deslocada no sentido da rotação. **A** (amarela) embaixo à direita, **C** (azul) à esquerda mais acima, **B** (verde) em cima mais à direita e **D** (vermelha) à direita mais abaixo. Cada base é a da A **girada** (a da C 90°, a da B 180° e a da D 270°), e nenhuma fica na linha de tiro da frente de outra.
+
+- **Muralha:** o contrário do duelo por equipes. As **laterais e os cantos são de pedra** e só a **frente**, virada para o centro, é de **tijolo**. À frente dela, a 3 blocos (`AppConfig::duel_ffa_shield_gap`), o jogo põe um **escudo de pedra** da largura da águia: o tiro de longe para nele, e para acertar a base é preciso entrar no espaço entre o escudo e a muralha e atirar **de frente e de perto**. A pedra da muralha e do escudo é do dono (na cor dele): o adversário não a derruba, nem com o canhão.
+- **Três jogadores:** usam três dos quatro lugares do girassol. Num quadrado não há arranjo de três lugares igual para todos: uma equipe fica **apertada** entre as outras duas, e o lugar oposto a ela fica vazio. Por isso a equipe apertada é **sorteada a cada rodada**. Tudo o que o duelo já tem (bônus, poderes, tiro demolidor, fogo amigo) vale contra **qualquer** outro jogador.
 
 - **Rodada:** base destruída (ou todos os tanques da equipe fora) **tira a equipe da rodada**: o tanque dela explode sem renascer, e os reforços, as torretas e os bônus dela somem. Vence a rodada a **última equipe de pé**. A partida é de duas rodadas ganhas, e o painel mostra uma bandeira por rodada vencida; uma equipe fora da rodada fica com o bloco escurecido.
 - **Mapas** (`resources/duel_levels/ffa/`, com o `maps.txt` deles): seis mapas, todos **iguais a si mesmos girados 90°** (as quatro equipes veem o mesmo terreno):
@@ -245,13 +248,13 @@ No menu principal, **Extra Modes → Duel Mode** abre o modo multijogador por eq
 |------|--------|
 | **Crossfire** | Cantos e diagonais com cobertura de tijolo e arbusto, o meio aberto |
 | **Pinwheel** | Um braço de tijolo por lado, girando como um cata-vento (só tem simetria de rotação) |
-| **Fortress** | Pedra dentro da zona de cada base (fica na cor do dono) e tijolo à frente |
+| **Fortress** | Postos de pedra e blocos de tijolo entre as bases |
 | **Lakes** | Lagos nas diagonais, com os eixos abertos para os tanques |
 | **Maze** | Muros com passagens de 2 blocos, o meio e as diagonais alcançáveis |
 | **Open Field** | Quase vazio: arbustos e gelo no meio |
 | **Random** | Um mapa sorteado a cada rodada |
 
-- **Criar um mapa:** igual ao do duelo (grade de **26×26**, uma linha em `resources/duel_levels/ffa/maps.txt`, `make check-maps`), mas o validador exige a simetria de **90°** (`grid[linha][coluna] == grid[coluna][25 - linha]`), pontos de nascimento livres nos **quatro** lados (linhas/colunas 0-1 e 24-25) e caminho de **2 tiles de largura** de cada nascimento até um flanco de **cada** base inimiga. Os pontos de bônus do meio são o centro e as quatro diagonais. Dica: desenhe só o quadrante superior esquerdo (13×13) e gire para os outros.
+- **Criar um mapa:** igual ao do duelo (grade de **26×26**, uma linha em `resources/duel_levels/ffa/maps.txt`, `make check-maps`), mas o validador exige a simetria de **90°** (`grid[linha][coluna] == grid[coluna][25 - linha]`), pontos de nascimento livres nos **quatro** lados (linhas/colunas 0-1 e 24-25, dos dois lados de cada base) e caminho de **2 tiles de largura** de cada nascimento até o ponto de tiro **à frente** de **cada** base inimiga (entre o escudo e a muralha). O jogo monta a base, a muralha e o escudo por cima do que estiver no arquivo; deixe livre a volta de cada base (na visão da A, linhas 19-25 e colunas 14-25) para o defensor sair e o atacante chegar. Os pontos de bônus do meio são o centro e as quatro diagonais (blocos 7-8). Dica: desenhe só o quadrante superior esquerdo (13×13) e gire para os outros.
 - **Simulação:** `./duel_sim --teams ABCD` (ou `ABC`, com 3 jogadores) usa os mapas do cada um por si.
 
 **Criar um mapa novo** (sem mexer em código):

@@ -170,6 +170,17 @@ vector<int> AppConfig::duel_spawn_columns = {128, 320, 64, 256};
 // Linha (y) de nascimento da equipe A, embaixo (as outras equipes são a A girada: B em cima,
 // C à esquerda e D à direita)
 vector<int> AppConfig::duel_spawn_rows = {384};
+// Cada um por si (girassol): a águia da equipe A fica embaixo, nas colunas 19-20, perto do canto
+// direito; girada, a C fica à esquerda mais acima, a B em cima mais à direita e a D à direita mais
+// abaixo. Assim nenhuma base fica na linha de tiro da frente de outra
+int AppConfig::duel_ffa_base_column = 19;
+// Nascimentos da equipe A no girassol: à esquerda da muralha (colunas 16 e 13) e entre a muralha
+// e o canto (coluna 22)
+vector<int> AppConfig::duel_ffa_spawn_columns = {256, 352, 208};
+// Linhas livres entre a frente de tijolo da base e o escudo de pedra que o jogo põe à frente
+// dela: quem quer acertar a águia precisa entrar nesse espaço, a no máximo 3 tiles da frente
+// (as laterais são de pedra; o tiro de longe para no escudo)
+int AppConfig::duel_ffa_shield_gap = 3;
 // Vidas de cada jogador em uma equipe do tamanho da maior equipe
 int AppConfig::duel_tank_lives = 3;
 // Rodadas vencidas necessárias para ganhar a partida (melhor de 3)

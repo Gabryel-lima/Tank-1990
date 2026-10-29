@@ -251,7 +251,10 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 
 ### 🌀 Free-for-all (1v1v1v1)
 
-**Extra Modes → Duel Mode → 1v1v1v1**: with **3 or 4 players** (`Players`), each player is a team with **their own base**, one on each side of the map: **A** (yellow) at the bottom, **B** (green) at the top, **C** (blue) on the left and **D** (red) on the right. Every base is the duel's base (stone front, brick sides, yard and base zone), just **rotated**: C's is A's rotated 90°, B's 180° and D's 270°. Everything the duel has (power-ups, powers, demolisher shot, friendly fire) works against **every** other player.
+**Extra Modes → Duel Mode → 1v1v1v1**: with **3 or 4 players** (`Players`), each player is a team with **their own base**, laid out like a **pinwheel**: each base sits on an edge, near a corner, shifted in the direction of the rotation. **A** (yellow) at the bottom right, **C** (blue) on the left a bit higher, **B** (green) at the top a bit to the right and **D** (red) on the right a bit lower. Every base is A's **rotated** (C's 90°, B's 180° and D's 270°), and none of them sits in the line of fire of another's front.
+
+- **Walls:** the opposite of the team duel. The **sides and corners are stone** and only the **front**, facing the center, is **brick**. In front of it, 3 tiles away (`AppConfig::duel_ffa_shield_gap`), the game places a **stone shield** as wide as the eagle: long shots stop there, and to hit the base you have to get into the space between the shield and the wall and shoot **head-on and up close**. The stone in the wall and the shield belongs to the owner (in their color): opponents can't break it, not even with the gun.
+- **Three players:** they use three of the pinwheel's four spots. A square has no three-spot layout that is the same for everyone: one team is **squeezed** between the other two, and the spot opposite it stays empty. That's why the squeezed team is **drawn at random every round**. Everything the duel has (power-ups, powers, demolisher shot, friendly fire) works against **every** other player.
 
 - **Round:** a destroyed base (or every tank of the team gone) **takes the team out of the round**: its tank explodes without respawning, and its reinforcements, turrets and power-ups vanish. The **last team standing** wins the round. A match is first to two rounds, and the panel shows one flag per round won; a team that is out of the round gets a darkened block.
 - **Maps** (`resources/duel_levels/ffa/`, with their own `maps.txt`): six maps, all **equal to themselves rotated 90°** (the four teams see the same terrain):
@@ -260,13 +263,13 @@ From the main menu, **Extra Modes → Duel Mode** starts the multiplayer team mo
 |-----|-------|
 | **Crossfire** | Corners and diagonals with brick and bush cover, an open middle |
 | **Pinwheel** | One brick arm per side, turning like a pinwheel (rotation symmetry only) |
-| **Fortress** | Stone inside each base's zone (painted in its owner's color) and brick in front |
+| **Fortress** | Stone posts and brick blocks between the bases |
 | **Lakes** | Lakes on the diagonals, with the axes open for tanks |
 | **Maze** | Walls with 2-block gaps, the middle and the diagonals reachable |
 | **Open Field** | Almost empty: bushes and ice in the middle |
 | **Random** | A random map each round |
 
-- **Adding a map:** like the duel's (a **26×26** grid, a line in `resources/duel_levels/ffa/maps.txt`, `make check-maps`), but the validator requires **90°** symmetry (`grid[row][column] == grid[column][25 - row]`), free spawn points on **all four** sides (rows/columns 0-1 and 24-25) and a **2-tile-wide** path from each spawn to a flank of **each** enemy base. The middle bonus spots are the center and the four diagonals. Tip: draw only the top-left quadrant (13×13) and rotate it for the others.
+- **Adding a map:** like the duel's (a **26×26** grid, a line in `resources/duel_levels/ffa/maps.txt`, `make check-maps`), but the validator requires **90°** symmetry (`grid[row][column] == grid[column][25 - row]`), free spawn points on **all four** sides (rows/columns 0-1 and 24-25, on both sides of each base) and a **2-tile-wide** path from each spawn to the firing spot **in front of each** enemy base (between the shield and the wall). The game builds the base, its walls and the shield over whatever the file has there; keep the area around each base clear (from A's point of view, rows 19-25 and columns 14-25) so the defender can get out and the attacker can get in. The middle bonus spots are the center and the four diagonals (tiles 7-8). Tip: draw only the top-left quadrant (13×13) and rotate it for the others.
 - **Simulation:** `./duel_sim --teams ABCD` (or `ABC`, with 3 players) uses the free-for-all maps.
 
 **Adding a new map** (no code changes):

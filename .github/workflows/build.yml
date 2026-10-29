@@ -9,10 +9,14 @@
 # para baixar em Actions -> build -> Artifacts -> Tank1990-emuelec. Ver EMUELEC.md.
 name: build
 
+# Desligado por enquanto (decisão do dono, 2026-10-29): não roda em push nem em PR, para não
+# gastar build sem necessidade. Roda só à mão (Actions -> build -> Run workflow). Para religar,
+# tire o comentário das linhas de push e pull_request.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
 
 jobs:
   linux:
